@@ -1,0 +1,10 @@
+node_modules/
+.expo/
+dist/
+web-build/
+*.log
+.DS_Store
+*.orig.*
+# Native build-output (alleen relevant bij prebuild/bare)
+/ios
+/android

@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "CTF Commi",
+    "slug": "ctfcommi",
+    "scheme": "commi",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#396971",
+      "resizeMode": "contain",
+      "image": "./assets/icon.png"
+    },
+    "ios": {
+      "bundleIdentifier": "nl.cafetheaterfestival.commi",
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "nl.cafetheaterfestival.commi",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#396971"
+      }
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#396971"
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "extra": {
+      "apiUrl": "https://backend.cafetheaterfestival.nl",
+      "pusherKey": "2f06adeb85a0b8f40462",
+      "pusherCluster": "eu",
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
