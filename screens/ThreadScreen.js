@@ -4,45 +4,44 @@ import { chat } from '../src/api';
 import { getEcho } from '../src/echo';
 import MessageView, { theme } from '../src/MessageView';
 
-export default function ChatScreen({ route, navigation }) {
-  const { id } = route.params;
+export default function ThreadScreen({ route }) {
+  const { convId, parentId } = route.params;
   const dark = useColorScheme() === 'dark';
   const c = theme(dark);
-  const [messages, setMessages] = useState([]);
+  const [parent, setParent] = useState(null);
+  const [replies, setReplies] = useState([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const subRef = useRef(null);
-
-  const markRead = (lastId) => chat.markRead(id, lastId).catch(() => {});
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await chat.listMessages(id, { limit: 40 });
+        const res = await chat.listReplies(parentId);
         if (cancelled) return;
-        const msgs = res.messages || [];
-        setMessages(msgs);
-        if (msgs.length) markRead(msgs[msgs.length - 1].id);
+        setParent(res.parent);
+        setReplies(res.replies || []);
       } catch {}
     })();
     return () => { cancelled = true; };
-  }, [id]);
+  }, [parentId]);
 
   useEffect(() => {
     let active = true;
     (async () => {
       const echo = await getEcho();
       if (!echo || !active) return;
-      const channel = echo.private(`conversation.${id}`);
-      const onCreated = (p) => { const m = p.message; if (m.parent_id) return; setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m])); markRead(m.id); };
-      const onUpdated = (p) => setMessages((prev) => prev.map((x) => (x.id === p.message.id ? p.message : x)));
-      const onDeleted = (p) => setMessages((prev) => prev.map((x) => (x.id === p.message.id ? { ...x, deleted_at: new Date().toISOString() } : x)));
+      const channel = echo.private(`conversation.${convId}`);
+      const onCreated = (p) => { const m = p.message; if (m.parent_id !== parentId) return; setReplies((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m])); };
+      const onUpdated = (p) => { const m = p.message; if (m.id === parentId) { setParent(m); return; } if (m.parent_id !== parentId) return; setReplies((prev) => prev.map((x) => (x.id === m.id ? m : x))); };
+      const onDeleted = (p) => setReplies((prev) => prev.map((x) => (x.id === p.message.id ? { ...x, deleted_at: new Date().toISOString() } : x)));
       channel.listen('.chat.message.created', onCreated);
       channel.listen('.chat.message.updated', onUpdated);
       channel.listen('.chat.message.deleted', onDeleted);
-      subRef.current = { channel, echo, onCreated, onUpdated, onDeleted };
+      subRef.current = { channel, onCreated, onUpdated, onDeleted };
     })();
+    // Let op: GEEN echo.leave hier — dat zou de luisteraar van het chatscherm slopen.
     return () => {
       active = false;
       const r = subRef.current;
@@ -51,39 +50,43 @@ export default function ChatScreen({ route, navigation }) {
           r.channel.stopListening('.chat.message.created', r.onCreated);
           r.channel.stopListening('.chat.message.updated', r.onUpdated);
           r.channel.stopListening('.chat.message.deleted', r.onDeleted);
-          r.echo.leave(`conversation.${id}`);
         } catch {}
       }
     };
-  }, [id]);
+  }, [convId, parentId]);
 
   const send = async () => {
     const body = text.trim();
     if (!body) return;
     setSending(true);
     try {
-      const sent = await chat.sendMessage(id, { body });
-      setMessages((prev) => (prev.some((x) => x.id === sent.id) ? prev : [...prev, sent]));
+      const sent = await chat.sendMessage(convId, { body, parentId });
+      setReplies((prev) => (prev.some((x) => x.id === sent.id) ? prev : [...prev, sent]));
       setText('');
     } catch {} finally { setSending(false); }
   };
 
-  const openThread = (item) => navigation.navigate('Thread', { convId: id, parentId: item.id, title: 'Thread' });
-
-  const data = [...messages].reverse(); // inverted: nieuwste onderaan
+  const Header = () => (
+    <View>
+      {parent && <MessageView item={parent} c={c} />}
+      <Text style={[styles.divider, { color: c.muted, borderColor: c.border }]}>
+        {replies.length} {replies.length === 1 ? 'antwoord' : 'antwoorden'}
+      </Text>
+    </View>
+  );
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
       <FlatList
-        inverted
-        data={data}
+        data={replies}
         keyExtractor={(x) => String(x.id)}
-        renderItem={({ item }) => <MessageView item={item} c={c} onOpenThread={openThread} />}
+        renderItem={({ item }) => <MessageView item={item} c={c} />}
+        ListHeaderComponent={Header}
         contentContainerStyle={{ padding: 12 }}
       />
       <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg }]}>
         <TextInput style={[styles.input, { color: c.text, borderColor: c.border }]} value={text} onChangeText={setText}
-          placeholder="Bericht…" placeholderTextColor={c.muted} multiline />
+          placeholder="Antwoord in thread…" placeholderTextColor={c.muted} multiline />
         <TouchableOpacity style={[styles.send, (sending || !text.trim()) && { opacity: 0.4 }]} onPress={send} disabled={sending || !text.trim()}>
           <Text style={{ color: '#fff', fontWeight: '600' }}>Stuur</Text>
         </TouchableOpacity>
@@ -93,6 +96,7 @@ export default function ChatScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  divider: { fontSize: 12, paddingBottom: 6, marginBottom: 6, borderBottomWidth: StyleSheet.hairlineWidth },
   composer: { flexDirection: 'row', alignItems: 'flex-end', padding: 8, borderTopWidth: StyleSheet.hairlineWidth, gap: 8 },
   input: { flex: 1, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, maxHeight: 120, fontSize: 15 },
   send: { backgroundColor: '#4f46e5', borderRadius: 18, paddingHorizontal: 18, paddingVertical: 10 },

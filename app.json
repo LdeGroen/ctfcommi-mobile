@@ -40,8 +40,9 @@
       "pusherKey": "2f06adeb85a0b8f40462",
       "pusherCluster": "eu",
       "eas": {
-        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+        "projectId": "9232f4e2-a1d1-4899-b897-4953a05d9750"
       }
-    }
+    },
+    "owner": "lucdeg"
   }
 }

@@ -10,6 +10,7 @@ import { registerForPush } from './src/push';
 import LoginScreen from './screens/LoginScreen';
 import ConversationsScreen from './screens/ConversationsScreen';
 import ChatScreen from './screens/ChatScreen';
+import ThreadScreen from './screens/ThreadScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -57,6 +58,7 @@ export default function App() {
               {(props) => <ConversationsScreen {...props} user={user} onLogout={() => setUser(null)} />}
             </Stack.Screen>
             <Stack.Screen name="Chat" component={ChatScreen} options={({ route }) => ({ title: route.params?.title || 'Gesprek' })} />
+            <Stack.Screen name="Thread" component={ThreadScreen} options={{ title: 'Thread' }} />
           </>
         )}
       </Stack.Navigator>
