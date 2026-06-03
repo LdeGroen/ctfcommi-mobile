@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "394364737702",
+    "project_id": "ctf-commi",
+    "storage_bucket": "ctf-commi.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:394364737702:android:48240a459bd98f6ad0fc67",
+        "android_client_info": {
+          "package_name": "nl.cafetheaterfestival.commi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC7VaM57CIYoR5hFyMufEioMX_mQNUD7mU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

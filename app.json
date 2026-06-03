@@ -21,6 +21,7 @@
     },
     "android": {
       "package": "nl.cafetheaterfestival.commi",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#396971"
@@ -33,7 +34,8 @@
           "color": "#396971"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-asset"
     ],
     "extra": {
       "apiUrl": "https://backend.cafetheaterfestival.nl",
