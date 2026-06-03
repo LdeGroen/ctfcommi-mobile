@@ -5,7 +5,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
-import { chat, getToken } from './src/api';
+import * as Linking from 'expo-linking';
+import { chat, getToken, setToken } from './src/api';
 import { registerForPush } from './src/push';
 import LoginScreen from './screens/LoginScreen';
 import ConversationsScreen from './screens/ConversationsScreen';
@@ -28,6 +29,21 @@ export default function App() {
   };
 
   useEffect(() => { loadUser(); }, []);
+
+  // Vang het OAuth-token op uit de deeplink (commi://auth?token=...), ook als de
+  // in-app browser op Android sluit met 'dismiss' i.p.v. het resultaat terug te geven.
+  useEffect(() => {
+    const handleUrl = async (url) => {
+      if (!url) return;
+      const { queryParams } = Linking.parse(url);
+      const pick = (v) => (Array.isArray(v) ? v[0] : v);
+      const token = pick(queryParams?.token);
+      if (token) { await setToken(token); loadUser(); }
+    };
+    const sub = Linking.addEventListener('url', (e) => handleUrl(e.url));
+    Linking.getInitialURL().then(handleUrl).catch(() => {});
+    return () => sub.remove();
+  }, []);
 
   // Tik op een notificatie → open het juiste gesprek.
   useEffect(() => {
