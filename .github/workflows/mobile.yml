@@ -1,0 +1,43 @@
+name: Build & submit mobile (EAS)
+
+# Handmatig starten (kies platform), of automatisch bij een versie-tag (vX.Y.Z).
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform'
+        type: choice
+        options: [all, ios, android]
+        default: all
+      submit:
+        description: 'Direct indienen bij de stores?'
+        type: boolean
+        default: true
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: EAS CLI installeren + inloggen
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build (+ optioneel indienen) op EAS
+        run: |
+          PLATFORM="${{ github.event.inputs.platform || 'all' }}"
+          SUBMIT="${{ github.event.inputs.submit }}"
+          if [ "${{ github.ref_type }}" = "tag" ] || [ "$SUBMIT" = "true" ]; then
+            eas build --platform "$PLATFORM" --profile production --non-interactive --no-wait --auto-submit
+          else
+            eas build --platform "$PLATFORM" --profile production --non-interactive --no-wait
+          fi

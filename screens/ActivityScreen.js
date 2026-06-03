@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
 
 function fmt(iso) {
@@ -43,11 +44,12 @@ export default function ActivityScreen({ navigation }) {
 
   const renderItem = ({ item: m }) => {
     const conv = m.conversation || {};
-    const prefix = conv.type === 'channel' ? (conv.is_private ? '🔒 ' : '# ') : '';
+    const isChannel = conv.type === 'channel';
     return (
       <TouchableOpacity onPress={() => open(m)} style={[styles.card, { borderColor: c.border, backgroundColor: c.card }]}>
         <Text style={{ fontSize: 12, fontWeight: '600', color: '#6366f1' }} numberOfLines={1}>
-          {prefix}{conv.display_name || 'Gesprek'}{m.parent_id ? ' · in thread' : ''}
+          {isChannel && <><Feather name={conv.is_private ? 'lock' : 'hash'} size={12} color="#6366f1" /> </>}
+          {conv.display_name || 'Gesprek'}{m.parent_id ? ' · in thread' : ''}
         </Text>
         <Text style={{ marginTop: 3, color: c.text }} numberOfLines={1}>
           <Text style={{ fontWeight: '600' }}>{m.user?.name || 'Onbekend'}</Text>

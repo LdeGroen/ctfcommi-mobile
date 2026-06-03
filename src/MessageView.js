@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Linking, StyleSheet, Pressable, Modal } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
 
 const QUICK = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🎉', '🔥'];
@@ -29,7 +30,9 @@ export default function MessageView({ item, c, onOpenThread, onReact }) {
       {!!item.body && <Markdown style={{ body: { color: c.text, fontSize: 15 }, link: { color: '#6366f1' } }}>{item.body}</Markdown>}
 
       {item.attachments?.map((a) => (
-        <Text key={a.id} style={{ color: '#6366f1', marginTop: 2 }} onPress={() => Linking.openURL(a.url)}>📎 {a.filename}</Text>
+        <Text key={a.id} style={{ color: '#6366f1', marginTop: 2 }} onPress={() => Linking.openURL(a.url)}>
+          <Feather name="paperclip" size={13} color="#6366f1" /> {a.filename}
+        </Text>
       ))}
 
       {item.reactions?.length > 0 && (
@@ -45,7 +48,8 @@ export default function MessageView({ item, c, onOpenThread, onReact }) {
       {onOpenThread && (
         <TouchableOpacity onPress={() => onOpenThread(item)}>
           <Text style={{ color: '#6366f1', marginTop: 4, fontSize: 13 }}>
-            {item.reply_count > 0 ? `💬 ${item.reply_count} ${item.reply_count === 1 ? 'antwoord' : 'antwoorden'}` : '💬 Reageren in thread'}
+            <Feather name="message-square" size={13} color="#6366f1" />{' '}
+            {item.reply_count > 0 ? `${item.reply_count} ${item.reply_count === 1 ? 'antwoord' : 'antwoorden'}` : 'Reageren in thread'}
           </Text>
         </TouchableOpacity>
       )}

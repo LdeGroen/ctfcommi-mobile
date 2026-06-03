@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform, StyleSheet, useColorScheme } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
 import { getEcho } from '../src/echo';
 import MessageView, { theme } from '../src/MessageView';
@@ -92,7 +93,7 @@ export default function ChatScreen({ route, navigation }) {
         <TextInput style={[styles.input, { color: c.text, borderColor: c.border }]} value={text} onChangeText={setText}
           placeholder="Bericht…" placeholderTextColor={c.muted} multiline />
         <TouchableOpacity style={[styles.send, (sending || !text.trim()) && { opacity: 0.4 }]} onPress={send} disabled={sending || !text.trim()}>
-          <Text style={{ color: '#fff', fontWeight: '600' }}>Stuur</Text>
+          <Feather name="send" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, useColorScheme } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { Feather } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import { chat } from '../src/api';
 import { logout } from '../src/auth';
@@ -42,12 +43,14 @@ export default function ConversationsScreen({ navigation, onLogout }) {
   const renderItem = ({ item }) => {
     const unread = item.unread_count || 0;
     const name = item.display_name || item.name || 'Gesprek';
-    const prefix = item.type === 'channel' ? (item.is_private ? '🔒 ' : '# ') : '';
+    const isChannel = item.type === 'channel';
     return (
       <TouchableOpacity style={[styles.row, { borderColor: c.border }]}
         onPress={() => navigation.navigate('Chat', { id: item.id, title: name })}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.name, { color: c.text, fontWeight: unread ? '700' : '500' }]} numberOfLines={1}>{prefix}{name}</Text>
+          <Text style={[styles.name, { color: c.text, fontWeight: unread ? '700' : '500' }]} numberOfLines={1}>
+            {isChannel && <><Feather name={item.is_private ? 'lock' : 'hash'} size={13} color={c.muted} /> </>}{name}
+          </Text>
           {item.last_message?.body ? (
             <Text style={[styles.preview, { color: c.muted }]} numberOfLines={1}>
               {item.last_message.user_name ? `${item.last_message.user_name}: ` : ''}{item.last_message.body}
@@ -68,7 +71,7 @@ export default function ConversationsScreen({ navigation, onLogout }) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       ListHeaderComponent={
         <TouchableOpacity onPress={() => navigation.navigate('Activity')} style={[styles.row, { borderColor: c.border }]}>
-          <Text style={{ fontSize: 18, marginRight: 8 }}>🗂️</Text>
+          <Feather name="list" size={20} color={c.text} style={{ marginRight: 10 }} />
           <View style={{ flex: 1 }}>
             <Text style={[styles.name, { color: c.text, fontWeight: '600' }]}>Overzicht</Text>
             <Text style={[styles.preview, { color: c.muted }]}>Berichten & threads — laatste 30 dagen</Text>
