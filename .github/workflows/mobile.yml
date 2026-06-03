@@ -24,7 +24,17 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
+          cache: 'npm'
+
+      # De lockfile is met npm 11 gegenereerd; pin de runner-npm zodat npm ci klopt.
+      - name: Pin npm
+        run: npm install -g npm@11
+
+      # Node modules nodig zodat EAS de config-plugins (expo-notifications e.d.)
+      # kan resolven bij het lezen van app.json.
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
 
       - name: EAS CLI installeren + inloggen
         uses: expo/expo-github-action@v8
