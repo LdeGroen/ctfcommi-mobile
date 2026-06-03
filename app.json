@@ -14,7 +14,7 @@
     },
     "ios": {
       "bundleIdentifier": "nl.cafetheaterfestival.commi",
-      "supportsTablet": true,
+      "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -35,7 +35,8 @@
         }
       ],
       "expo-secure-store",
-      "expo-asset"
+      "expo-asset",
+      "expo-font"
     ],
     "extra": {
       "apiUrl": "https://backend.cafetheaterfestival.nl",
