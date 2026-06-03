@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, useColorScheme } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
 import { chat } from '../src/api';
 import { logout } from '../src/auth';
 import { disconnectEcho } from '../src/echo';
@@ -12,7 +13,13 @@ export default function ConversationsScreen({ navigation, onLogout }) {
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    try { const res = await chat.listConversations(); setItems(res.conversations || []); } catch {}
+    try {
+      const res = await chat.listConversations();
+      const list = res.conversations || [];
+      setItems(list);
+      const total = list.reduce((s, c) => s + (c.unread_count || 0), 0);
+      Notifications.setBadgeCountAsync(total).catch(() => {});
+    } catch {}
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
