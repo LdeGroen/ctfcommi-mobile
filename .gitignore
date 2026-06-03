@@ -8,3 +8,9 @@ web-build/
 # Native build-output (alleen relevant bij prebuild/bare)
 /ios
 /android
+
+# FCM service-account-sleutel — NOOIT committen (geheim, server-credential).
+# google-services.json mag wél in de repo (client-config, nodig voor de build).
+*service-account*.json
+fcm-*.json
+google-service-account*.json
