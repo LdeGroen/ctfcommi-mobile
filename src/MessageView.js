@@ -30,9 +30,20 @@ export default function MessageView({ item, c, onOpenThread, onReact }) {
       {!!item.body && <Markdown style={{ body: { color: c.text, fontSize: 15 }, link: { color: '#6366f1' } }}>{item.body}</Markdown>}
 
       {item.attachments?.map((a) => (
-        <Text key={a.id} style={{ color: '#6366f1', marginTop: 2 }} onPress={() => Linking.openURL(a.url)}>
-          <Feather name="paperclip" size={13} color="#6366f1" /> {a.filename}
-        </Text>
+        a.source === 'drive' ? (
+          <TouchableOpacity key={a.id} onPress={() => a.url && Linking.openURL(a.url)}
+                            style={[s.driveCard, { borderColor: c.border, backgroundColor: c.bg }]}>
+            <Feather name="hard-drive" size={15} color="#6366f1" />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text numberOfLines={1} style={{ color: c.text, fontSize: 14 }}>{a.filename}</Text>
+              <Text style={{ color: c.muted, fontSize: 11 }}>Google Drive</Text>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <Text key={a.id} style={{ color: '#6366f1', marginTop: 2 }} onPress={() => Linking.openURL(a.url)}>
+            <Feather name="paperclip" size={13} color="#6366f1" /> {a.filename}
+          </Text>
+        )
       ))}
 
       {item.reactions?.length > 0 && (
@@ -74,6 +85,7 @@ const s = StyleSheet.create({
   author: { fontSize: 14, fontWeight: '600' },
   time: { fontSize: 11, fontWeight: '400' },
   deleted: { fontStyle: 'italic', marginBottom: 12, fontSize: 13 },
+  driveCard: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginTop: 4 },
   reactionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
   chip: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 8, paddingVertical: 2 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' },

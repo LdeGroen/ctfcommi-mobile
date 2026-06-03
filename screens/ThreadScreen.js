@@ -3,6 +3,7 @@ import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView
 import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
 import { getEcho } from '../src/echo';
+import { shareFromDrive } from '../src/drive';
 import MessageView, { theme } from '../src/MessageView';
 
 export default function ThreadScreen({ route }) {
@@ -75,6 +76,18 @@ export default function ThreadScreen({ route }) {
     } catch {} finally { setSending(false); }
   };
 
+  const [driveBusy, setDriveBusy] = useState(false);
+  const shareDrive = async () => {
+    if (driveBusy) return;
+    setDriveBusy(true);
+    try {
+      const result = await shareFromDrive({ conversationId: convId, parentId });
+      if (result === 'shared') {
+        try { const res = await chat.listReplies(parentId); setParent(res.parent); setReplies(res.replies || []); } catch {}
+      }
+    } catch {} finally { setDriveBusy(false); }
+  };
+
   const Header = () => (
     <View>
       {parent && <MessageView item={parent} c={c} onReact={handleReact} />}
@@ -94,6 +107,9 @@ export default function ThreadScreen({ route }) {
         contentContainerStyle={{ padding: 12 }}
       />
       <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg }]}>
+        <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
+          <Feather name="hard-drive" size={20} color={c.muted} />
+        </TouchableOpacity>
         <TextInput style={[styles.input, { color: c.text, borderColor: c.border }]} value={text} onChangeText={setText}
           placeholder="Antwoord in thread…" placeholderTextColor={c.muted} multiline />
         <TouchableOpacity style={[styles.send, (sending || !text.trim()) && { opacity: 0.4 }]} onPress={send} disabled={sending || !text.trim()}>
@@ -108,5 +124,6 @@ const styles = StyleSheet.create({
   divider: { fontSize: 12, paddingBottom: 6, marginBottom: 6, borderBottomWidth: StyleSheet.hairlineWidth },
   composer: { flexDirection: 'row', alignItems: 'flex-end', padding: 8, borderTopWidth: StyleSheet.hairlineWidth, gap: 8 },
   input: { flex: 1, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, maxHeight: 120, fontSize: 15 },
+  drive: { paddingHorizontal: 4, paddingVertical: 10, justifyContent: 'center' },
   send: { backgroundColor: '#4f46e5', borderRadius: 18, paddingHorizontal: 18, paddingVertical: 10 },
 });

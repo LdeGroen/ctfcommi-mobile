@@ -3,6 +3,7 @@ import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView
 import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
 import { getEcho } from '../src/echo';
+import { shareFromDrive } from '../src/drive';
 import MessageView, { theme } from '../src/MessageView';
 
 export default function ChatScreen({ route, navigation }) {
@@ -69,6 +70,22 @@ export default function ChatScreen({ route, navigation }) {
     } catch {} finally { setSending(false); }
   };
 
+  const [driveBusy, setDriveBusy] = useState(false);
+  const shareDrive = async () => {
+    if (driveBusy) return;
+    setDriveBusy(true);
+    try {
+      const result = await shareFromDrive({ conversationId: id });
+      if (result === 'shared') {
+        // Nieuw bericht komt via realtime binnen; refresh als fallback.
+        try {
+          const res = await chat.listMessages(id, { limit: 40 });
+          setMessages(res.messages || []);
+        } catch {}
+      }
+    } catch {} finally { setDriveBusy(false); }
+  };
+
   const handleReact = async (msg, emoji) => {
     try {
       const updated = await chat.toggleReaction(msg.id, emoji);
@@ -90,6 +107,9 @@ export default function ChatScreen({ route, navigation }) {
         contentContainerStyle={{ padding: 12 }}
       />
       <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg }]}>
+        <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
+          <Feather name="hard-drive" size={20} color={c.muted} />
+        </TouchableOpacity>
         <TextInput style={[styles.input, { color: c.text, borderColor: c.border }]} value={text} onChangeText={setText}
           placeholder="Bericht…" placeholderTextColor={c.muted} multiline />
         <TouchableOpacity style={[styles.send, (sending || !text.trim()) && { opacity: 0.4 }]} onPress={send} disabled={sending || !text.trim()}>
@@ -103,5 +123,6 @@ export default function ChatScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   composer: { flexDirection: 'row', alignItems: 'flex-end', padding: 8, borderTopWidth: StyleSheet.hairlineWidth, gap: 8 },
   input: { flex: 1, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, maxHeight: 120, fontSize: 15 },
+  drive: { paddingHorizontal: 4, paddingVertical: 10, justifyContent: 'center' },
   send: { backgroundColor: '#4f46e5', borderRadius: 18, paddingHorizontal: 18, paddingVertical: 10 },
 });

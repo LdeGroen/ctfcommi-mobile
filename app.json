@@ -49,6 +49,7 @@
     ],
     "extra": {
       "apiUrl": "https://backend.cafetheaterfestival.nl",
+      "webUrl": "https://commi.cafetheaterfestival.nl",
       "pusherKey": "2f06adeb85a0b8f40462",
       "pusherCluster": "eu",
       "eas": {
