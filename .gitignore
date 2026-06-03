@@ -14,3 +14,8 @@ web-build/
 *service-account*.json
 fcm-*.json
 google-service-account*.json
+
+# Android signing-keystore — NOOIT committen (signing-identiteit).
+# Zit als base64 in GitHub-secret ANDROID_KEYSTORE_BASE64 + back-up in EAS.
+*.jks
+*.keystore
