@@ -28,7 +28,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
 
       - name: Dependencies installeren
         run: npm ci --no-audit --no-fund
