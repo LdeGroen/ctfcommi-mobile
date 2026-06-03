@@ -55,6 +55,14 @@ export default function ThreadScreen({ route }) {
     };
   }, [convId, parentId]);
 
+  const handleReact = async (msg, emoji) => {
+    try {
+      const updated = await chat.toggleReaction(msg.id, emoji);
+      if (msg.id === parentId) setParent(updated);
+      else setReplies((prev) => prev.map((x) => (x.id === msg.id ? updated : x)));
+    } catch {}
+  };
+
   const send = async () => {
     const body = text.trim();
     if (!body) return;
@@ -68,7 +76,7 @@ export default function ThreadScreen({ route }) {
 
   const Header = () => (
     <View>
-      {parent && <MessageView item={parent} c={c} />}
+      {parent && <MessageView item={parent} c={c} onReact={handleReact} />}
       <Text style={[styles.divider, { color: c.muted, borderColor: c.border }]}>
         {replies.length} {replies.length === 1 ? 'antwoord' : 'antwoorden'}
       </Text>
@@ -80,7 +88,7 @@ export default function ThreadScreen({ route }) {
       <FlatList
         data={replies}
         keyExtractor={(x) => String(x.id)}
-        renderItem={({ item }) => <MessageView item={item} c={c} />}
+        renderItem={({ item }) => <MessageView item={item} c={c} onReact={handleReact} />}
         ListHeaderComponent={Header}
         contentContainerStyle={{ padding: 12 }}
       />

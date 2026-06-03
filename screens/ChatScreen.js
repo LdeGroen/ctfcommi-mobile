@@ -68,6 +68,13 @@ export default function ChatScreen({ route, navigation }) {
     } catch {} finally { setSending(false); }
   };
 
+  const handleReact = async (msg, emoji) => {
+    try {
+      const updated = await chat.toggleReaction(msg.id, emoji);
+      setMessages((prev) => prev.map((x) => (x.id === msg.id ? updated : x)));
+    } catch {}
+  };
+
   const openThread = (item) => navigation.navigate('Thread', { convId: id, parentId: item.id, title: 'Thread' });
 
   const data = [...messages].reverse(); // inverted: nieuwste onderaan
@@ -78,7 +85,7 @@ export default function ChatScreen({ route, navigation }) {
         inverted
         data={data}
         keyExtractor={(x) => String(x.id)}
-        renderItem={({ item }) => <MessageView item={item} c={c} onOpenThread={openThread} />}
+        renderItem={({ item }) => <MessageView item={item} c={c} onOpenThread={openThread} onReact={handleReact} />}
         contentContainerStyle={{ padding: 12 }}
       />
       <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg }]}>

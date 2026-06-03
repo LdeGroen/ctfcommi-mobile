@@ -66,6 +66,15 @@ export default function ConversationsScreen({ navigation, onLogout }) {
       keyExtractor={(x) => String(x.id)}
       renderItem={renderItem}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      ListHeaderComponent={
+        <TouchableOpacity onPress={() => navigation.navigate('Activity')} style={[styles.row, { borderColor: c.border }]}>
+          <Text style={{ fontSize: 18, marginRight: 8 }}>🗂️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.name, { color: c.text, fontWeight: '600' }]}>Overzicht</Text>
+            <Text style={[styles.preview, { color: c.muted }]}>Berichten & threads — laatste 30 dagen</Text>
+          </View>
+        </TouchableOpacity>
+      }
       ListEmptyComponent={<Text style={{ color: c.muted, textAlign: 'center', marginTop: 40 }}>Nog geen gesprekken.</Text>}
     />
   );

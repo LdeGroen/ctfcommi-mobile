@@ -12,6 +12,7 @@ import LoginScreen from './screens/LoginScreen';
 import ConversationsScreen from './screens/ConversationsScreen';
 import ChatScreen from './screens/ChatScreen';
 import ThreadScreen from './screens/ThreadScreen';
+import ActivityScreen from './screens/ActivityScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -75,6 +76,7 @@ export default function App() {
             </Stack.Screen>
             <Stack.Screen name="Chat" component={ChatScreen} options={({ route }) => ({ title: route.params?.title || 'Gesprek' })} />
             <Stack.Screen name="Thread" component={ThreadScreen} options={{ title: 'Thread' }} />
+            <Stack.Screen name="Activity" component={ActivityScreen} options={{ title: 'Overzicht' }} />
           </>
         )}
       </Stack.Navigator>
