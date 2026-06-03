@@ -1,0 +1,76 @@
+name: Android build (Gradle — geen EAS-wachtrij)
+
+# Bouwt de Android-AAB rechtstreeks met Gradle op een GitHub-runner (gratis,
+# geen EAS-buildwachtrij). Optioneel daarna indienen bij Play via eas submit.
+on:
+  workflow_dispatch:
+    inputs:
+      submit:
+        description: 'Direct indienen bij Play (internal track)?'
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Pin npm
+        run: npm install -g npm@11
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Dependencies installeren
+        run: npm ci --no-audit --no-fund
+
+      - name: Native android/-project genereren (prebuild)
+        run: npx expo prebuild --platform android --no-install
+
+      - name: versionCode op tijdstempel zetten (altijd oplopend)
+        run: |
+          VC=$(( $(date +%s) / 60 ))
+          sed -i "s/versionCode [0-9]\+/versionCode $VC/" android/app/build.gradle
+          echo "versionCode = $VC"
+
+      - name: Upload-keystore schrijven
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload.jks
+
+      - name: AAB bouwen (gesigneerd)
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:bundleRelease \
+            -Pandroid.injected.signing.store.file="$PWD/app/upload.jks" \
+            -Pandroid.injected.signing.store.password="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            -Pandroid.injected.signing.key.alias="${{ secrets.ANDROID_KEY_ALIAS }}" \
+            -Pandroid.injected.signing.key.password="${{ secrets.ANDROID_KEY_PASSWORD }}"
+
+      - name: AAB als artifact bewaren
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+
+      - name: EAS CLI (alleen bij indienen)
+        if: ${{ github.event.inputs.submit == 'true' }}
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Indienen bij Play (internal track)
+        if: ${{ github.event.inputs.submit == 'true' }}
+        run: |
+          AAB=$(ls android/app/build/outputs/bundle/release/*.aab | head -n1)
+          eas submit --platform android --profile production --non-interactive --path "$AAB"
