@@ -5,10 +5,10 @@ import { Feather } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import { chat } from '../src/api';
 import { logout } from '../src/auth';
-import { disconnectEcho } from '../src/echo';
+import { disconnectEcho, getEcho } from '../src/echo';
 import Avatar from '../src/Avatar';
 
-export default function ConversationsScreen({ navigation, onLogout }) {
+export default function ConversationsScreen({ navigation, user, onLogout }) {
   const dark = useColorScheme() === 'dark';
   const c = theme(dark);
   const [items, setItems] = useState([]);
@@ -25,6 +25,44 @@ export default function ConversationsScreen({ navigation, onLogout }) {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // Live bijwerken: luister op het persoonlijke kanaal naar nieuwe berichten,
+  // zodat ongelezen-tellers + "laatste bericht" direct kloppen (niet pas bij focus).
+  useEffect(() => {
+    if (!user?.id) return;
+    let active = true; let sub = null;
+    (async () => {
+      const echo = await getEcho();
+      if (!echo || !active) return;
+      const ch = echo.private(`user.${user.id}`);
+      const onCreated = (payload) => {
+        const cid = payload.conversation_id;
+        const msg = payload.message;
+        setItems((prev) => {
+          const idx = prev.findIndex((x) => x.id === cid);
+          if (idx === -1) { load(); return prev; } // onbekend gesprek → herladen
+          const isMine = msg.user_id === user.id;
+          const updated = {
+            ...prev[idx],
+            last_message: { id: msg.id, body: msg.body, user_id: msg.user_id, user_name: msg.user?.name, created_at: msg.created_at },
+            last_message_at: msg.created_at,
+            unread_count: isMine ? 0 : (prev[idx].unread_count || 0) + 1,
+          };
+          const next = [updated, ...prev.filter((_, i) => i !== idx)];
+          const total = next.reduce((s, c) => s + (c.unread_count || 0), 0);
+          Notifications.setBadgeCountAsync(total).catch(() => {});
+          return next;
+        });
+      };
+      ch.listen('.chat.message.created', onCreated);
+      sub = { ch, onCreated };
+    })();
+    return () => {
+      active = false;
+      // Niet echo.leave() — alleen onze luisteraar opruimen.
+      if (sub) { try { sub.ch.stopListening('.chat.message.created', sub.onCreated); } catch {} }
+    };
+  }, [user?.id, load]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
