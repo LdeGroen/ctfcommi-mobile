@@ -19,7 +19,11 @@ const Stack = createNativeStackNavigator();
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [navReady, setNavReady] = useState(false);
   const navRef = useRef(null);
+  const pendingNavRef = useRef(null);
+  const userRef = useRef(null);
+  userRef.current = user;
 
   const loadUser = async () => {
     const t = await getToken();
@@ -46,23 +50,49 @@ export default function App() {
     return () => sub.remove();
   }, []);
 
-  // Tik op een notificatie → open het juiste gesprek.
+  // Tik op een notificatie → open het juiste gesprek. Robuust: navigeer pas als
+  // de navigator klaar is én de gebruiker is ingelogd; bewaar anders als pending.
+  const navReadyRef = useRef(false);
+  navReadyRef.current = navReady;
+  const openFromNotification = (data) => {
+    try {
+      const cid = data && data.conversation_id;
+      if (!cid) return;
+      const params = { id: Number(cid), title: data.title || 'Gesprek' };
+      if (navRef.current && navReadyRef.current && userRef.current) {
+        navRef.current.navigate('Chat', params);
+      } else {
+        pendingNavRef.current = params; // later afhandelen (zie onReady/login-effect)
+      }
+    } catch (e) { /* nooit de app laten crashen op een notificatie-tik */ }
+  };
+
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
-      const data = resp.notification.request.content.data || {};
-      if (data.conversation_id && navRef.current) {
-        navRef.current.navigate('Chat', { id: Number(data.conversation_id) });
-      }
+      openFromNotification(resp?.notification?.request?.content?.data || {});
     });
+    // App geopend vanuit gesloten staat door op een notificatie te tikken:
+    Notifications.getLastNotificationResponseAsync()
+      .then((resp) => { if (resp) openFromNotification(resp.notification.request.content.data || {}); })
+      .catch(() => {});
     return () => sub.remove();
   }, []);
+
+  // Pending navigatie afhandelen zodra navigator klaar is én user ingelogd.
+  useEffect(() => {
+    if (navReady && user && pendingNavRef.current && navRef.current) {
+      const p = pendingNavRef.current;
+      pendingNavRef.current = null;
+      try { navRef.current.navigate('Chat', p); } catch (e) {}
+    }
+  }, [navReady, user]);
 
   if (loading) {
     return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" color="#396971" /></View>;
   }
 
   return (
-    <NavigationContainer ref={navRef}>
+    <NavigationContainer ref={navRef} onReady={() => setNavReady(true)}>
       <StatusBar style="light" />
       <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: '#396971' }, headerTintColor: '#fff', headerTitleStyle: { fontWeight: '700' } }}>
         {!user ? (

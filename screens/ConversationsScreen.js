@@ -40,7 +40,18 @@ export default function ConversationsScreen({ navigation, onLogout }) {
   const channels = items.filter((x) => x.type === 'channel');
   const dms = items.filter((x) => x.type === 'dm');
 
+  // Secties met koppen, zoals de zijbalk op web/desktop.
+  const data = [
+    { _section: 'Kanalen' },
+    ...channels,
+    { _section: 'Directe berichten' },
+    ...dms,
+  ];
+
   const renderItem = ({ item }) => {
+    if (item._section) {
+      return <Text style={[styles.section, { color: c.muted }]}>{item._section.toUpperCase()}</Text>;
+    }
     const unread = item.unread_count || 0;
     const name = item.display_name || item.name || 'Gesprek';
     const isChannel = item.type === 'channel';
@@ -65,8 +76,8 @@ export default function ConversationsScreen({ navigation, onLogout }) {
   return (
     <FlatList
       style={{ backgroundColor: c.bg }}
-      data={[...channels, ...dms]}
-      keyExtractor={(x) => String(x.id)}
+      data={data}
+      keyExtractor={(x, i) => (x._section ? `s-${x._section}` : String(x.id))}
       renderItem={renderItem}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       ListHeaderComponent={
@@ -91,6 +102,7 @@ const theme = (dark) => ({
 });
 
 const styles = StyleSheet.create({
+  section: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, paddingHorizontal: 16, paddingTop: 18, paddingBottom: 6 },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
   name: { fontSize: 16 },
   preview: { fontSize: 13, marginTop: 2 },

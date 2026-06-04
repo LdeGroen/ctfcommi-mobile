@@ -5,7 +5,15 @@ import { Platform } from 'react-native';
 import { chat } from './api';
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: true }),
+  // shouldShowAlert (oud) + shouldShowBanner/List (SDK 52) zodat meldingen ook
+  // in de voorgrond getoond worden, ongeacht de expo-notifications-versie.
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
 });
 
 // Vraagt toestemming, haalt het Expo-push-token op en registreert het bij de backend.
