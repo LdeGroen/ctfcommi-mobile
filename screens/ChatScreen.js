@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform, StyleSheet, useColorScheme } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
@@ -18,6 +18,16 @@ export default function ChatScreen({ route, navigation }) {
   const subRef = useRef(null);
 
   const markRead = (lastId) => chat.markRead(id, lastId).catch(() => {});
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={() => navigation.navigate('Search', { conversationId: id, conversationName: route.params?.title })}>
+          <Feather name="search" size={20} color="#fff" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, id, route.params?.title]);
 
   useEffect(() => {
     let cancelled = false;

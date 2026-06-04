@@ -67,9 +67,14 @@ export default function ConversationsScreen({ navigation, user, onLogout }) {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity onPress={async () => { await logout(); disconnectEcho(); onLogout(); }}>
-          <Text style={{ color: '#fff' }}>Uitloggen</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+          <TouchableOpacity onPress={() => navigation.navigate('Search')}>
+            <Feather name="search" size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={async () => { await logout(); disconnectEcho(); onLogout(); }}>
+            <Text style={{ color: '#fff' }}>Uitloggen</Text>
+          </TouchableOpacity>
+        </View>
       ),
     });
   }, [navigation, onLogout]);

@@ -55,6 +55,14 @@ export const chat = {
     if (limit) qs.set('limit', limit);
     return apiFetch(`/api/chat/activity?${qs.toString()}`);
   },
+  search: ({ q, conversationId, before, limit = 30 } = {}) => {
+    const qs = new URLSearchParams();
+    qs.set('q', q || '');
+    if (conversationId) qs.set('conversation_id', conversationId);
+    if (before) qs.set('before', before);
+    if (limit) qs.set('limit', limit);
+    return apiFetch(`/api/chat/search?${qs.toString()}`);
+  },
   markRead: (id, lastReadMessageId) =>
     apiFetch(`/api/chat/conversations/${id}/read`, { method: 'POST', body: JSON.stringify({ last_read_message_id: lastReadMessageId }) }),
   toggleReaction: (messageId, emoji) =>
