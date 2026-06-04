@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform, StyleSheet, useColorScheme } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
@@ -10,7 +10,7 @@ import MessageView, { theme } from '../src/MessageView';
 export default function ThreadScreen({ route }) {
   const { convId, parentId } = route.params;
   const dark = useColorScheme() === 'dark';
-  const c = theme(dark);
+  const c = useMemo(() => theme(dark), [dark]);
   const headerHeight = useHeaderHeight();
   const [parent, setParent] = useState(null);
   const [replies, setReplies] = useState([]);
@@ -59,13 +59,17 @@ export default function ThreadScreen({ route }) {
     };
   }, [convId, parentId]);
 
-  const handleReact = async (msg, emoji) => {
+  const handleReact = useCallback(async (msg, emoji) => {
     try {
       const updated = await chat.toggleReaction(msg.id, emoji);
       if (msg.id === parentId) setParent(updated);
       else setReplies((prev) => prev.map((x) => (x.id === msg.id ? updated : x)));
     } catch {}
-  };
+  }, [parentId]);
+
+  const renderReply = useCallback(({ item }) => (
+    <MessageView item={item} c={c} onReact={handleReact} />
+  ), [c, handleReact]);
 
   const send = async () => {
     const body = text.trim();
@@ -104,9 +108,13 @@ export default function ThreadScreen({ route }) {
       <FlatList
         data={replies}
         keyExtractor={(x) => String(x.id)}
-        renderItem={({ item }) => <MessageView item={item} c={c} onReact={handleReact} />}
+        renderItem={renderReply}
         ListHeaderComponent={Header}
         contentContainerStyle={{ padding: 12 }}
+        initialNumToRender={15}
+        maxToRenderPerBatch={12}
+        windowSize={11}
+        removeClippedSubviews
       />
       <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg }]}>
         <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>

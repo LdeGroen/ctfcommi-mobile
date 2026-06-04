@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform, StyleSheet, useColorScheme } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
@@ -10,7 +10,7 @@ import MessageView, { theme } from '../src/MessageView';
 export default function ChatScreen({ route, navigation }) {
   const { id } = route.params;
   const dark = useColorScheme() === 'dark';
-  const c = theme(dark);
+  const c = useMemo(() => theme(dark), [dark]);
   const headerHeight = useHeaderHeight();
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
@@ -88,14 +88,18 @@ export default function ChatScreen({ route, navigation }) {
     } catch {} finally { setDriveBusy(false); }
   };
 
-  const handleReact = async (msg, emoji) => {
+  const handleReact = useCallback(async (msg, emoji) => {
     try {
       const updated = await chat.toggleReaction(msg.id, emoji);
       setMessages((prev) => prev.map((x) => (x.id === msg.id ? updated : x)));
     } catch {}
-  };
+  }, []);
 
-  const openThread = (item) => navigation.navigate('Thread', { convId: id, parentId: item.id, title: 'Thread' });
+  const openThread = useCallback((item) => navigation.navigate('Thread', { convId: id, parentId: item.id, title: 'Thread' }), [id, navigation]);
+
+  const renderItem = useCallback(({ item }) => (
+    <MessageView item={item} c={c} onOpenThread={openThread} onReact={handleReact} />
+  ), [c, openThread, handleReact]);
 
   const data = [...messages].reverse(); // inverted: nieuwste onderaan
 
@@ -105,8 +109,12 @@ export default function ChatScreen({ route, navigation }) {
         inverted
         data={data}
         keyExtractor={(x) => String(x.id)}
-        renderItem={({ item }) => <MessageView item={item} c={c} onOpenThread={openThread} onReact={handleReact} />}
+        renderItem={renderItem}
         contentContainerStyle={{ padding: 12 }}
+        initialNumToRender={15}
+        maxToRenderPerBatch={12}
+        windowSize={11}
+        removeClippedSubviews
       />
       <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg }]}>
         <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>

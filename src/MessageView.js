@@ -21,7 +21,9 @@ function fmt(iso) {
 
 // Eén bericht. Lang indrukken → emoji-reactie kiezen. Geef onOpenThread mee om
 // de thread-knop te tonen, en onReact om reageren mogelijk te maken.
-export default function MessageView({ item, c, onOpenThread, onReact }) {
+// Gememoizeerd (zie export onderaan) zodat alleen gewijzigde berichten opnieuw
+// renderen — scheelt veel werk bij lange gesprekken.
+function MessageView({ item, c, onOpenThread, onReact }) {
   const [picker, setPicker] = useState(false);
 
   if (item.deleted_at) {
@@ -106,3 +108,5 @@ const s = StyleSheet.create({
   sheet: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, padding: 16, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, maxWidth: 320 },
   emojiBtn: { padding: 8 },
 });
+
+export default React.memo(MessageView);
