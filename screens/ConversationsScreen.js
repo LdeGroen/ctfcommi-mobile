@@ -6,6 +6,7 @@ import * as Notifications from 'expo-notifications';
 import { chat } from '../src/api';
 import { logout } from '../src/auth';
 import { disconnectEcho } from '../src/echo';
+import Avatar from '../src/Avatar';
 
 export default function ConversationsScreen({ navigation, onLogout }) {
   const dark = useColorScheme() === 'dark';
@@ -58,6 +59,7 @@ export default function ConversationsScreen({ navigation, onLogout }) {
     return (
       <TouchableOpacity style={[styles.row, { borderColor: c.border }]}
         onPress={() => navigation.navigate('Chat', { id: item.id, title: name })}>
+        {item.type === 'dm' && <View style={{ marginRight: 10 }}><Avatar name={name} uri={item.peer_avatar} size={38} /></View>}
         <View style={{ flex: 1 }}>
           <Text style={[styles.name, { color: c.text, fontWeight: unread ? '700' : '500' }]} numberOfLines={1}>
             {isChannel && <><Feather name={item.is_private ? 'lock' : 'hash'} size={13} color={c.muted} /> </>}{name}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Linking, StyleSheet, Pressable, Modal } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
+import Avatar from './Avatar';
 
 const QUICK = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🎉', '🔥'];
 
@@ -31,6 +32,8 @@ export default function MessageView({ item, c, onOpenThread, onReact }) {
 
   return (
     <Pressable onLongPress={() => onReact && setPicker(true)} delayLongPress={250} style={s.msg}>
+      <Avatar name={item.user?.name} uri={item.user?.avatar} size={36} />
+      <View style={s.content}>
       <Text style={[s.author, { color: c.text }]}>
         {item.user?.name || 'Onbekend'} <Text style={[s.time, { color: c.muted }]}>{fmt(item.created_at)}</Text>
       </Text>
@@ -73,6 +76,8 @@ export default function MessageView({ item, c, onOpenThread, onReact }) {
         </TouchableOpacity>
       )}
 
+      </View>
+
       <Modal visible={picker} transparent animationType="fade" onRequestClose={() => setPicker(false)}>
         <Pressable style={s.backdrop} onPress={() => setPicker(false)}>
           <View style={[s.sheet, { backgroundColor: c.bg, borderColor: c.border }]}>
@@ -89,7 +94,8 @@ export default function MessageView({ item, c, onOpenThread, onReact }) {
 }
 
 const s = StyleSheet.create({
-  msg: { marginBottom: 12 },
+  msg: { marginBottom: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  content: { flex: 1, minWidth: 0 },
   author: { fontSize: 14, fontWeight: '600' },
   time: { fontSize: 11, fontWeight: '400' },
   deleted: { fontStyle: 'italic', marginBottom: 12, fontSize: 13 },
