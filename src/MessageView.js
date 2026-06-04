@@ -5,6 +5,14 @@ import Markdown from 'react-native-markdown-display';
 
 const QUICK = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🎉', '🔥'];
 
+// Gedeeld kleurschema (licht/donker) — gebruikt door Chat- en ThreadScreen.
+export const theme = (dark) => ({
+  bg: dark ? '#0b1220' : '#fff',
+  text: dark ? '#f3f4f6' : '#111827',
+  muted: dark ? '#9ca3af' : '#6b7280',
+  border: dark ? '#1f2937' : '#e5e7eb',
+});
+
 function fmt(iso) {
   if (!iso) return '';
   return new Date(iso).toLocaleString('nl-NL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
