@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform, StyleSheet, useColorScheme } from 'react-native';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
 import { getEcho } from '../src/echo';
@@ -10,6 +11,7 @@ export default function ChatScreen({ route, navigation }) {
   const { id } = route.params;
   const dark = useColorScheme() === 'dark';
   const c = theme(dark);
+  const headerHeight = useHeaderHeight();
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -98,7 +100,7 @@ export default function ChatScreen({ route, navigation }) {
   const data = [...messages].reverse(); // inverted: nieuwste onderaan
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={headerHeight}>
       <FlatList
         inverted
         data={data}

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform, StyleSheet, useColorScheme } from 'react-native';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
 import { getEcho } from '../src/echo';
@@ -10,6 +11,7 @@ export default function ThreadScreen({ route }) {
   const { convId, parentId } = route.params;
   const dark = useColorScheme() === 'dark';
   const c = theme(dark);
+  const headerHeight = useHeaderHeight();
   const [parent, setParent] = useState(null);
   const [replies, setReplies] = useState([]);
   const [text, setText] = useState('');
@@ -98,7 +100,7 @@ export default function ThreadScreen({ route }) {
   );
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={headerHeight}>
       <FlatList
         data={replies}
         keyExtractor={(x) => String(x.id)}
