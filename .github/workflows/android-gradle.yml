@@ -35,15 +35,14 @@ jobs:
       - name: Native android/-project genereren (prebuild)
         run: npx expo prebuild --platform android --no-install
 
-      - name: versionCode + versionName zetten (altijd oplopend)
+      - name: versionCode op tijdstempel zetten (altijd oplopend)
         run: |
-          # versionCode = oplopend getal (vereist door Google); versionName =
-          # leesbaar datum-label (YYYY.MM.DD.HHMM) zodat elke build uniek toont.
+          # versionCode = oplopend getal (vereist door Google). De versionName
+          # (leesbaar label) komt uit app.json → expo.version; die hoog je
+          # handmatig op per release (semver: 0.1.0 → 0.1.1 → 0.2.0 …).
           VC=$(( $(date +%s) / 60 ))
-          VN=$(date +%Y.%m.%d.%H%M)
           sed -i "s/versionCode [0-9]\+/versionCode $VC/" android/app/build.gradle
-          sed -i "s/versionName \"[^\"]*\"/versionName \"$VN\"/" android/app/build.gradle
-          echo "versionCode = $VC, versionName = $VN"
+          echo "versionCode = $VC"
 
       - name: Upload-keystore schrijven
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload.jks
