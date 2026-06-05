@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       submit:
-        description: 'Direct indienen bij Play (internal track)?'
+        description: 'Direct indienen bij Play (gesloten test / alpha)?'
         type: boolean
         default: false
 
@@ -68,7 +68,7 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Indienen bij Play (internal track)
+      - name: Indienen bij Play (track uit eas.json — gesloten test/alpha)
         if: ${{ github.event.inputs.submit == 'true' }}
         run: |
           AAB=$(ls android/app/build/outputs/bundle/release/*.aab | head -n1)

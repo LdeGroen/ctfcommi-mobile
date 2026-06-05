@@ -13,7 +13,8 @@ secure-store/web-browser/linking, pusher-js (realtime), react-native-markdown-di
   AAB rechtstreeks met Gradle op een GitHub-runner (`expo prebuild` → `gradlew
   bundleRelease`), signeert met de EAS-keystore (GitHub-secrets `ANDROID_KEYSTORE_BASE64`
   /`_PASSWORD`/`ANDROID_KEY_ALIAS`/`ANDROID_KEY_PASSWORD`), en kan met `submit=true`
-  via fastlane direct naar de Play **internal track** pushen. versionCode = epoch/60
+  via fastlane direct naar de Play **gesloten test-track (alpha)** pushen
+  (track staat in `eas.json` → submit.production.android.track). versionCode = epoch/60
   (altijd oplopend). target/compileSdk 35 via `expo-build-properties`.
 - **iOS:** via EAS — `.github/workflows/mobile.yml` (`eas build --platform ios
   --profile production --auto-submit`). `eas.json`: ios `image: latest` (iOS 26 SDK),
