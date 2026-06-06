@@ -38,6 +38,13 @@ secure-store/web-browser/linking, pusher-js (realtime), react-native-markdown-di
 | `screens/SearchScreen.js` | zoeken globaal (zonder params) of per gesprek (`conversationId`) |
 | `screens/ActivityScreen.js` | overzicht laatste 30 dagen |
 
+## Versiebeleid (AFSPRAAK)
+- `versionName` = `app.json` → `expo.version` (handmatig). versionCode loopt
+  automatisch op in de Gradle-build (epoch/60).
+- **Bij elke nieuwe versie de patch met 1 ophogen** (0.1.1 → 0.1.2 → 0.1.3 …),
+  **totdat de gebruiker expliciet zegt dat het 0.2 mag worden.** Houd
+  `app.json` en `package.json` in sync. Huidige versie: **0.1.1**.
+
 ## Aandachtspunten / valkuilen
 - **Toetsenbord:** `app.json` → `android.softwareKeyboardLayoutMode: "pan"` is de
   echte fix (native, werkt pas na rebuild). KeyboardAvoidingView alleen op iOS
