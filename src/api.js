@@ -65,6 +65,9 @@ export const chat = {
   },
   markRead: (id, lastReadMessageId) =>
     apiFetch(`/api/chat/conversations/${id}/read`, { method: 'POST', body: JSON.stringify({ last_read_message_id: lastReadMessageId }) }),
+  listUsers: (search = '') => apiFetch(`/api/chat/users${search ? `?search=${encodeURIComponent(search)}` : ''}`),
+  createChannel: (data) => apiFetch('/api/chat/conversations', { method: 'POST', body: JSON.stringify(data) }),
+  startDm: (userIds) => apiFetch('/api/chat/dm', { method: 'POST', body: JSON.stringify({ user_ids: userIds }) }),
   toggleReaction: (messageId, emoji) =>
     apiFetch(`/api/chat/messages/${messageId}/reactions`, { method: 'POST', body: JSON.stringify({ emoji }) }),
   registerDeviceToken: (token, platform) =>

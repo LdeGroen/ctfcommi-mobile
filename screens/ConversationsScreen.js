@@ -86,15 +86,22 @@ export default function ConversationsScreen({ navigation, user, onLogout }) {
 
   // Secties met koppen, zoals de zijbalk op web/desktop.
   const data = [
-    { _section: 'Kanalen' },
+    { _section: 'Kanalen', _action: 'NewChannel' },
     ...channels,
-    { _section: 'Directe berichten' },
+    { _section: 'Directe berichten', _action: 'NewDm' },
     ...dms,
   ];
 
   const renderItem = ({ item }) => {
     if (item._section) {
-      return <Text style={[styles.section, { color: c.muted }]}>{item._section.toUpperCase()}</Text>;
+      return (
+        <View style={styles.sectionRow}>
+          <Text style={[styles.section, { color: c.muted }]}>{item._section.toUpperCase()}</Text>
+          <TouchableOpacity onPress={() => navigation.navigate(item._action)} hitSlop={10}>
+            <Feather name="plus" size={18} color={c.muted} />
+          </TouchableOpacity>
+        </View>
+      );
     }
     const unread = item.unread_count || 0;
     const name = item.display_name || item.name || 'Gesprek';
@@ -147,7 +154,8 @@ const theme = (dark) => ({
 });
 
 const styles = StyleSheet.create({
-  section: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, paddingHorizontal: 16, paddingTop: 18, paddingBottom: 6 },
+  sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 16, paddingTop: 18, paddingBottom: 6 },
+  section: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, paddingHorizontal: 16 },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
   name: { fontSize: 16 },
   preview: { fontSize: 13, marginTop: 2 },

@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
 import { getEcho } from '../src/echo';
 import { shareFromDrive } from '../src/drive';
+import { convertEmoticons } from '../src/emoticons';
 import MessageView, { theme } from '../src/MessageView';
 
 export default function ThreadScreen({ route }) {
@@ -120,7 +121,7 @@ export default function ThreadScreen({ route }) {
         <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
           <Feather name="hard-drive" size={20} color={c.muted} />
         </TouchableOpacity>
-        <TextInput style={[styles.input, { color: c.text, borderColor: c.border }]} value={text} onChangeText={setText}
+        <TextInput style={[styles.input, { color: c.text, borderColor: c.border }]} value={text} onChangeText={(t) => setText(convertEmoticons(t))}
           placeholder="Antwoord in thread…" placeholderTextColor={c.muted} multiline />
         <TouchableOpacity style={[styles.send, (sending || !text.trim()) && { opacity: 0.4 }]} onPress={send} disabled={sending || !text.trim()}>
           <Feather name="send" size={18} color="#fff" />
