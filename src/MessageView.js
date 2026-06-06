@@ -3,6 +3,16 @@ import { View, Text, TouchableOpacity, Linking, StyleSheet, Pressable, Modal } f
 import { Feather } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
 import Avatar from './Avatar';
+import LinkPreview from './LinkPreview';
+
+const URL_RE = /\bhttps?:\/\/[^\s<>()]+[^\s<>().,!?'"]/gi;
+function extractUrls(text) {
+  if (!text) return [];
+  return Array.from(new Set(text.match(URL_RE) || []));
+}
+function isPdf(a) {
+  return a.mime === 'application/pdf' || /\.pdf(\?.*)?$/i.test(a.filename || a.url || '');
+}
 
 const QUICK = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🎉', '🔥'];
 
@@ -52,12 +62,23 @@ function MessageView({ item, c, onOpenThread, onReact }) {
               <Text style={{ color: c.muted, fontSize: 11 }}>Google Drive</Text>
             </View>
           </TouchableOpacity>
+        ) : isPdf(a) ? (
+          <TouchableOpacity key={a.id} onPress={() => a.url && Linking.openURL(a.url)}
+                            style={[s.driveCard, { borderColor: c.border, backgroundColor: c.bg }]}>
+            <Feather name="file-text" size={15} color="#dc2626" />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text numberOfLines={1} style={{ color: c.text, fontSize: 14 }}>{a.filename}</Text>
+              <Text style={{ color: c.muted, fontSize: 11 }}>PDF — tik om te openen</Text>
+            </View>
+          </TouchableOpacity>
         ) : (
           <Text key={a.id} style={{ color: '#6366f1', marginTop: 2 }} onPress={() => Linking.openURL(a.url)}>
             <Feather name="paperclip" size={13} color="#6366f1" /> {a.filename}
           </Text>
         )
       ))}
+
+      {!!item.body && extractUrls(item.body).slice(0, 2).map((u) => <LinkPreview key={u} url={u} c={c} />)}
 
       {item.reactions?.length > 0 && (
         <View style={s.reactionRow}>

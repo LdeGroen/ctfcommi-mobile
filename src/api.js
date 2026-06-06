@@ -65,6 +65,7 @@ export const chat = {
   },
   markRead: (id, lastReadMessageId) =>
     apiFetch(`/api/chat/conversations/${id}/read`, { method: 'POST', body: JSON.stringify({ last_read_message_id: lastReadMessageId }) }),
+  unfurl: (url) => apiFetch(`/api/chat/unfurl?url=${encodeURIComponent(url)}`),
   listUsers: (search = '') => apiFetch(`/api/chat/users${search ? `?search=${encodeURIComponent(search)}` : ''}`),
   createChannel: (data) => apiFetch('/api/chat/conversations', { method: 'POST', body: JSON.stringify(data) }),
   startDm: (userIds) => apiFetch('/api/chat/dm', { method: 'POST', body: JSON.stringify({ user_ids: userIds }) }),
