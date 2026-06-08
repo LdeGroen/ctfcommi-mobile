@@ -5,8 +5,12 @@ name: Android build (Gradle — geen EAS-wachtrij)
 on:
   workflow_dispatch:
     inputs:
+      apk:
+        description: 'Test-APK bouwen (installeerbaar op telefoon, NIET naar Play)?'
+        type: boolean
+        default: false
       submit:
-        description: 'Direct indienen bij Play (gesloten test / alpha)?'
+        description: 'Direct indienen bij Play (gesloten test / alpha)? (alleen bij AAB)'
         type: boolean
         default: false
 
@@ -47,7 +51,29 @@ jobs:
       - name: Upload-keystore schrijven
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload.jks
 
+      # --- Test-APK (installeerbaar via sideload, gaat NIET naar Play) ---
+      - name: APK bouwen (gesigneerd, test)
+        if: ${{ github.event.inputs.apk == 'true' }}
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleRelease \
+            -Pandroid.injected.signing.store.file="$PWD/app/upload.jks" \
+            -Pandroid.injected.signing.store.password="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            -Pandroid.injected.signing.key.alias="${{ secrets.ANDROID_KEY_ALIAS }}" \
+            -Pandroid.injected.signing.key.password="${{ secrets.ANDROID_KEY_PASSWORD }}"
+
+      - name: APK als artifact bewaren
+        if: ${{ github.event.inputs.apk == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      # --- AAB (voor Play; standaard) ---
       - name: AAB bouwen (gesigneerd)
+        if: ${{ github.event.inputs.apk != 'true' }}
         working-directory: android
         run: |
           chmod +x ./gradlew
@@ -58,6 +84,7 @@ jobs:
             -Pandroid.injected.signing.key.password="${{ secrets.ANDROID_KEY_PASSWORD }}"
 
       - name: AAB als artifact bewaren
+        if: ${{ github.event.inputs.apk != 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: app-release-aab
@@ -65,14 +92,14 @@ jobs:
           if-no-files-found: error
 
       - name: EAS CLI (alleen bij indienen)
-        if: ${{ github.event.inputs.submit == 'true' }}
+        if: ${{ github.event.inputs.apk != 'true' && github.event.inputs.submit == 'true' }}
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Indienen bij Play (track uit eas.json — gesloten test/alpha)
-        if: ${{ github.event.inputs.submit == 'true' }}
+        if: ${{ github.event.inputs.apk != 'true' && github.event.inputs.submit == 'true' }}
         run: |
           AAB=$(ls android/app/build/outputs/bundle/release/*.aab | head -n1)
           eas submit --platform android --profile production --non-interactive --path "$AAB"
