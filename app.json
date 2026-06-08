@@ -41,6 +41,11 @@
           "android": {
             "compileSdkVersion": 35,
             "targetSdkVersion": 35
+          },
+          "ios": {
+            "extraPods": [
+              { "name": "fmt", "version": "11.0.2", "modular_headers": true }
+            ]
           }
         }
       ],
