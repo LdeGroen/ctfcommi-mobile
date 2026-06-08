@@ -43,7 +43,7 @@ secure-store/web-browser/linking, pusher-js (realtime), react-native-markdown-di
   automatisch op in de Gradle-build (epoch/60).
 - **Bij elke nieuwe versie de patch met 1 ophogen** (0.1.1 → 0.1.2 → 0.1.3 …),
   **totdat de gebruiker expliciet zegt dat het 0.2 mag worden.** Houd
-  `app.json` en `package.json` in sync. Huidige versie: **0.1.1**.
+  `app.json` en `package.json` in sync. Huidige versie: **0.1.2**.
 
 ## Aandachtspunten / valkuilen
 - **Toetsenbord:** `app.json` → `android.softwareKeyboardLayoutMode: "pan"` is de
