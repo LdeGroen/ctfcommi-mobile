@@ -43,13 +43,16 @@ secure-store/web-browser/linking, pusher-js (realtime), react-native-markdown-di
   automatisch op in de Gradle-build (epoch/60).
 - **Bij elke nieuwe versie de patch met 1 ophogen** (0.1.1 → 0.1.2 → 0.1.3 …),
   **totdat de gebruiker expliciet zegt dat het 0.2 mag worden.** Houd
-  `app.json` en `package.json` in sync. Huidige versie: **0.1.3**.
+  `app.json` en `package.json` in sync. Huidige versie: **0.1.4**.
 
 ## Aandachtspunten / valkuilen
 - **Feather-iconen (Gradle-build):** in de prebuild/Gradle-build laadt
   `expo-font` het Feather-font niet async → iconen onzichtbaar. NIET oplossen
   met `useFonts`-gate (blokkeert de app op een wit laadscherm). Wél: het font
-  **inbedden** via de expo-font-plugin (`fonts: [".../Fonts/Feather.ttf"]`).
+  **inbedden** via de expo-font-plugin. LET OP: @expo/vector-icons gebruikt
+  fontFamily **`feather`** (kleine letter!) en Android matcht op bestandsnaam
+  (hoofdlettergevoelig) → embed `assets/fonts/feather.ttf` (kleine letter), niet
+  `Feather.ttf`.
 - **Toetsenbord:** `app.json` → `android.softwareKeyboardLayoutMode: "pan"` is de
   echte fix (native, werkt pas na rebuild). KeyboardAvoidingView alleen op iOS
   (`behavior padding` + `keyboardVerticalOffset = useHeaderHeight()`); Android `undefined`.
