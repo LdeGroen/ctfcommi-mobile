@@ -1,0 +1,12 @@
+diff --git a/node_modules/react-native/third-party-podspecs/fmt.podspec b/node_modules/react-native/third-party-podspecs/fmt.podspec
+index 121be50..c8e81bd 100644
+--- a/node_modules/react-native/third-party-podspecs/fmt.podspec
++++ b/node_modules/react-native/third-party-podspecs/fmt.podspec
+@@ -19,6 +19,7 @@ Pod::Spec.new do |spec|
+   }
+   spec.pod_target_xcconfig = {
+     "CLANG_CXX_LANGUAGE_STANDARD" => rct_cxx_language_standard(),
++    "GCC_PREPROCESSOR_DEFINITIONS" => "$(inherited) FMT_USE_CONSTEVAL=0",
+   }
+   spec.platforms = min_supported_versions
+   spec.libraries = "c++"
