@@ -6,6 +6,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
+import { useFonts } from 'expo-font';
+import { Feather } from '@expo/vector-icons';
 import { chat, getToken, setToken } from './src/api';
 import { registerForPush } from './src/push';
 import LoginScreen from './screens/LoginScreen';
@@ -23,6 +25,9 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [navReady, setNavReady] = useState(false);
+  // Feather-icoonlettertype vooraf laden — anders blijven iconen (verzendknop,
+  // +-knoppen, thread/paperclip) onzichtbaar tot het font async geladen is.
+  const [fontsLoaded] = useFonts(Feather.font);
   const navRef = useRef(null);
   const pendingNavRef = useRef(null);
   const userRef = useRef(null);
@@ -90,7 +95,7 @@ export default function App() {
     }
   }, [navReady, user]);
 
-  if (loading) {
+  if (loading || !fontsLoaded) {
     return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" color="#396971" /></View>;
   }
 
