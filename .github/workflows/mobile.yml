@@ -46,8 +46,10 @@ jobs:
         run: |
           PLATFORM="${{ github.event.inputs.platform || 'all' }}"
           SUBMIT="${{ github.event.inputs.submit }}"
+          # --wait: GitHub wacht op de EAS-build en wordt rood als die faalt
+          # (anders zie je een fout pas op EAS). De job draait dan langer.
           if [ "${{ github.ref_type }}" = "tag" ] || [ "$SUBMIT" = "true" ]; then
-            eas build --platform "$PLATFORM" --profile production --non-interactive --no-wait --auto-submit
+            eas build --platform "$PLATFORM" --profile production --non-interactive --wait --auto-submit
           else
-            eas build --platform "$PLATFORM" --profile production --non-interactive --no-wait
+            eas build --platform "$PLATFORM" --profile production --non-interactive --wait
           fi
