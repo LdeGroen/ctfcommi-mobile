@@ -22,6 +22,9 @@ const SNIPPET = `
         defs = fmt_fix_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
         defs = [defs] unless defs.is_a?(Array)
         fmt_fix_config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs + ['FMT_USE_CONSTEVAL=0']
+        flags = fmt_fix_config.build_settings['OTHER_CPLUSPLUSFLAGS'] || ['$(inherited)']
+        flags = [flags] unless flags.is_a?(Array)
+        fmt_fix_config.build_settings['OTHER_CPLUSPLUSFLAGS'] = flags + ['-DFMT_USE_CONSTEVAL=0']
       end
     end
 `;
@@ -33,7 +36,13 @@ module.exports = function withFmtConstevalFix(config) {
       const podfile = path.join(cfg.modRequest.platformProjectRoot, 'Podfile');
       let contents = fs.readFileSync(podfile, 'utf8');
       if (!contents.includes(MARKER)) {
-        contents = contents.replace(/post_install do \|installer\|/, (m) => `${m}\n${SNIPPET}`);
+        // Achteraan het post_install-blok injecteren (vóór de afsluitende `end`),
+        // zodat het ná Expo's react_native_post_install draait en niet wordt
+        // overschreven.
+        contents = contents.replace(
+          /(post_install do \|installer\|[\s\S]*?)\n(  end)/,
+          (full, body, endLine) => `${body}\n${SNIPPET}\n${endLine}`
+        );
         fs.writeFileSync(podfile, contents);
       }
       return cfg;
