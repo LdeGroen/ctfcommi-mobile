@@ -23,9 +23,14 @@ export default function ChatScreen({ route, navigation }) {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity onPress={() => navigation.navigate('Search', { conversationId: id, conversationName: route.params?.title })}>
-          <Feather name="search" size={20} color="#fff" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+          <TouchableOpacity onPress={() => navigation.navigate('SharedFiles', { id, title: route.params?.title })}>
+            <Feather name="paperclip" size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Search', { conversationId: id, conversationName: route.params?.title })}>
+            <Feather name="search" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
       ),
     });
   }, [navigation, id, route.params?.title]);

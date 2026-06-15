@@ -1,6 +1,7 @@
 import 'react-native-gesture-handler';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
@@ -16,6 +17,8 @@ import ActivityScreen from './screens/ActivityScreen';
 import SearchScreen from './screens/SearchScreen';
 import NewChannelScreen from './screens/NewChannelScreen';
 import NewDmScreen from './screens/NewDmScreen';
+import NieuwScreen from './screens/NieuwScreen';
+import SharedFilesScreen from './screens/SharedFilesScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -95,6 +98,7 @@ export default function App() {
   }
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <NavigationContainer ref={navRef} onReady={() => setNavReady(true)}>
       <StatusBar style="light" />
       <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: '#396971' }, headerTintColor: '#fff', headerTitleStyle: { fontWeight: '700' } }}>
@@ -113,9 +117,14 @@ export default function App() {
             <Stack.Screen name="Search" component={SearchScreen} options={{ title: 'Zoeken' }} />
             <Stack.Screen name="NewChannel" component={NewChannelScreen} options={{ title: 'Nieuw kanaal' }} />
             <Stack.Screen name="NewDm" component={NewDmScreen} options={{ title: 'Nieuw gesprek' }} />
+            <Stack.Screen name="Nieuw" options={{ title: 'Nieuw' }}>
+              {(props) => <NieuwScreen {...props} user={user} />}
+            </Stack.Screen>
+            <Stack.Screen name="SharedFiles" component={SharedFilesScreen} options={{ title: 'Gedeelde bestanden' }} />
           </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }
