@@ -16,7 +16,10 @@ export default function ChatScreen({ route, navigation }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [members, setMembers] = useState([]);
+  const [mentionItems, setMentionItems] = useState([]);
   const subRef = useRef(null);
+  const draftTimer = useRef(null);
 
   const markRead = (lastId) => chat.markRead(id, lastId).catch(() => {});
 
@@ -39,10 +42,12 @@ export default function ChatScreen({ route, navigation }) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await chat.listMessages(id, { limit: 40 });
+        const [res, det] = await Promise.all([chat.listMessages(id, { limit: 40 }), chat.getConversation(id)]);
         if (cancelled) return;
         const msgs = res.messages || [];
         setMessages(msgs);
+        setMembers(det?.members || []);
+        if (det?.draft) setText(det.draft); // concept van een ander apparaat
         if (msgs.length) markRead(msgs[msgs.length - 1].id);
       } catch {}
     })();
@@ -77,14 +82,43 @@ export default function ChatScreen({ route, navigation }) {
     };
   }, [id]);
 
+  const onChangeText = (raw) => {
+    const t = convertEmoticons(raw);
+    setText(t);
+    // @-suggesties tonen wanneer je een naam aan het typen bent na een @.
+    const m = t.match(/(?:^|\s)@([\w-]*)$/);
+    if (m) {
+      const q = m[1].toLowerCase();
+      const list = members.filter((mm) => (mm.name || '').toLowerCase().includes(q)).slice(0, 6);
+      if ('channel'.includes(q) || 'iedereen'.includes(q)) list.unshift({ name: 'channel', _channel: true });
+      setMentionItems(list);
+    } else {
+      setMentionItems([]);
+    }
+    // Concept gedebounced naar de server (synct over apparaten).
+    clearTimeout(draftTimer.current);
+    draftTimer.current = setTimeout(() => { chat.saveDraft(id, t).catch(() => {}); }, 800);
+  };
+
+  const pickMention = (item) => {
+    setText((prev) => prev.replace(/(^|\s)@([\w-]*)$/, (full, pre) => `${pre}@${item.name} `));
+    setMentionItems([]);
+  };
+
+  const resolveMentionIds = (body) =>
+    members.filter((mm) => mm.name && body.includes(`@${mm.name}`)).map((mm) => mm.user_id ?? mm.id);
+
   const send = async () => {
     const body = text.trim();
     if (!body) return;
     setSending(true);
     try {
-      const sent = await chat.sendMessage(id, { body });
+      const sent = await chat.sendMessage(id, { body, mentionUserIds: resolveMentionIds(body) });
       setMessages((prev) => (prev.some((x) => x.id === sent.id) ? prev : [...prev, sent]));
       setText('');
+      setMentionItems([]);
+      clearTimeout(draftTimer.current);
+      chat.saveDraft(id, '').catch(() => {});
     } catch {} finally { setSending(false); }
   };
 
@@ -132,11 +166,22 @@ export default function ChatScreen({ route, navigation }) {
         windowSize={11}
         removeClippedSubviews
       />
+      {mentionItems.length > 0 && (
+        <View style={[styles.mentionBox, { backgroundColor: c.bg, borderColor: c.border }]}>
+          {mentionItems.map((item) => (
+            <TouchableOpacity key={item._channel ? 'channel' : (item.user_id ?? item.id)} style={styles.mentionRow} onPress={() => pickMention(item)}>
+              <View style={styles.mentionAvatar}><Text style={styles.mentionAvatarText}>{item._channel ? '#' : (item.name || '?').charAt(0).toUpperCase()}</Text></View>
+              <Text style={[styles.mentionName, { color: c.text }]} numberOfLines={1}>@{item.name}</Text>
+              {item._channel && <Text style={[styles.mentionHint, { color: c.muted }]}>iedereen</Text>}
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
       <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg }]}>
         <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
           <Feather name="hard-drive" size={20} color={c.muted} />
         </TouchableOpacity>
-        <TextInput style={[styles.input, { color: c.text, borderColor: c.border }]} value={text} onChangeText={(t) => setText(convertEmoticons(t))}
+        <TextInput style={[styles.input, { color: c.text, borderColor: c.border }]} value={text} onChangeText={onChangeText}
           placeholder="Bericht…" placeholderTextColor={c.muted} multiline />
         <TouchableOpacity style={[styles.send, (sending || !text.trim()) && { opacity: 0.4 }]} onPress={send} disabled={sending || !text.trim()}>
           <Feather name="send" size={18} color="#fff" />
@@ -151,4 +196,10 @@ const styles = StyleSheet.create({
   input: { flex: 1, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, maxHeight: 120, fontSize: 15 },
   drive: { paddingHorizontal: 4, paddingVertical: 10, justifyContent: 'center' },
   send: { backgroundColor: '#4f46e5', borderRadius: 18, paddingHorizontal: 18, paddingVertical: 10 },
+  mentionBox: { borderTopWidth: StyleSheet.hairlineWidth, maxHeight: 220 },
+  mentionRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 10 },
+  mentionAvatar: { width: 28, height: 28, borderRadius: 6, backgroundColor: '#c7d2fe', alignItems: 'center', justifyContent: 'center' },
+  mentionAvatarText: { color: '#3730a3', fontWeight: '700', fontSize: 13 },
+  mentionName: { fontSize: 15, flex: 1 },
+  mentionHint: { fontSize: 12 },
 });
