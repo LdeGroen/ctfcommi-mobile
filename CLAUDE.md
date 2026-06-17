@@ -16,10 +16,64 @@ secure-store/web-browser/linking, pusher-js (realtime), react-native-markdown-di
   via fastlane direct naar de Play **gesloten test-track (alpha)** pushen
   (track staat in `eas.json` → submit.production.android.track). versionCode = epoch/60
   (altijd oplopend). target/compileSdk 35 via `expo-build-properties`.
-- **iOS:** via EAS — `.github/workflows/mobile.yml` (`eas build --platform ios
-  --profile production --auto-submit`). `eas.json`: ios `image: latest` (iOS 26 SDK),
-  submit `ascAppId: 6776176073`. EAS-wachtrij geaccepteerd.
+- **iOS (PRIMAIRE route — lokaal op de Mac mini):** `eas build --platform ios --local`
+  op de mini, buiten de EAS-cloudwachtrij/limiet om (lokale builds tellen NIET mee voor
+  het gratis plan). Zie sectie **"iOS bouwen op de Mac mini"** hieronder. EAS beheert nog
+  steeds de credentials (cert + provisioning profile) remote; de lokale build haalt die op.
+- **iOS (oude route, cloud):** `.github/workflows/mobile.yml` (`eas build --platform ios
+  --profile production --auto-submit`). Werkt, maar gratis cloudbuilds zijn beperkt per
+  maand. `eas.json`: ios `image: latest` (iOS 26 SDK), submit `ascAppId: 6776176073`.
 - Na codewijziging is dus een **nieuwe build** nodig om het op het toestel te zien.
+
+## iOS bouwen op de Mac mini (primaire route, gratis)
+
+De gratis EAS-cloudbuilds zijn maandelijks beperkt. We bouwen iOS daarom **lokaal op de
+Mac mini** (Apple M4) via `eas build --local` — dat telt NIET mee voor het gratis plan en
+is snel. De mini is bereikbaar via Tailscale-SSH: `ssh lucdegroen-schram@100.102.177.120`.
+
+### In één commando (na een codewijziging die al naar `main` is gepusht)
+```bash
+ssh lucdegroen-schram@100.102.177.120 "~/build-ios.sh"
+```
+`~/build-ios.sh` doet: `git pull` → `npm ci` → `eas build --platform ios --profile
+production --local` → `eas submit` naar App Store Connect. Daarna verwerkt Apple de build
+(~5-10 min, mail volgt); zichtbaar op App Store Connect / TestFlight (app id 6776176073).
+**Push je wijziging dus eerst naar `main`** voordat je het script draait (het pullt).
+
+### Wat er op de mini staat (eenmalig ingericht, juni 2026)
+- **Xcode 26.5** (stond er al), **Node 22** (`brew node@22`, keg-only →
+  `/opt/homebrew/opt/node@22/bin`), **CocoaPods**, **Fastlane**, **eas-cli** (npm global).
+- `~/.ctf-build-env` → `export EXPO_TOKEN=…` (Expo access token; **niet in git**).
+- `~/.git-credentials` → GitHub PAT (`repo`-scope) zodat `git pull` van de privé-repo werkt.
+- `~/ctfcommi-mobile` → git-clone van deze repo. `~/build-ios.sh` → het buildscript.
+
+### Handmatig (als je stap voor stap wilt)
+```bash
+ssh lucdegroen-schram@100.102.177.120
+export PATH=/opt/homebrew/opt/node@22/bin:/opt/homebrew/bin:/usr/bin:/bin
+export EAS_NO_VCS=1 LANG=en_US.UTF-8
+source ~/.ctf-build-env                 # EXPO_TOKEN
+cd ~/ctfcommi-mobile && git pull && npm ci
+eas build --platform ios --profile production --local --non-interactive --output ~/build-commi.ipa
+eas submit --platform ios --path ~/build-commi.ipa --profile production --non-interactive
+```
+
+### Valkuilen / wat we tegenkwamen
+- **`EAS_NO_VCS=1`** is nodig als de build vanuit een map zonder/los van git draait
+  (anders: "Failed to get Git root path"). Met de git-clone is het verder prima.
+- **Node-versie:** pin **Node 22** (Expo SDK 52). Brew installeerde eerst Node 26 → die
+  niet gebruiken; vandaar `node@22` met expliciet PATH.
+- **Certificaat-conflict (belangrijk):** stond er in de **login-keychain** van de mini nóg
+  een `Apple Distribution: Stichting CafeTheaterFestival`-certificaat (ander serienr. dan
+  dat van EAS), dan koos Xcode dat → archive faalt met *"Provisioning profile … doesn't
+  include signing certificate …"*. Fix: dat oude cert weghalen zodat alleen het
+  EAS-certificaat (in de tijdelijke build-keychain) overblijft:
+  `security find-identity -v -p codesigning` → de stray
+  `security delete-identity -Z <SHA1> ~/Library/Keychains/login.keychain-db`.
+  (De desktop-app gebruikt een **Developer ID**-cert — ander type, niet aankomen.)
+- **buildNumber** wordt door EAS remote automatisch opgehoogd (autoIncrement); geen
+  handmatige actie nodig.
+- De mini moet wakker + ingelogd zijn (FileVault aan, auto-login uit) en op Tailscale.
 
 ## Structuur
 | Bestand | Doel |
@@ -43,7 +97,7 @@ secure-store/web-browser/linking, pusher-js (realtime), react-native-markdown-di
   automatisch op in de Gradle-build (epoch/60).
 - **Bij elke nieuwe versie de patch met 1 ophogen** (0.1.1 → 0.1.2 → 0.1.3 …),
   **totdat de gebruiker expliciet zegt dat het 0.2 mag worden.** Houd
-  `app.json` en `package.json` in sync. Huidige versie: **0.1.4**.
+  `app.json` en `package.json` in sync. Huidige versie: **0.1.6**.
 
 ## Aandachtspunten / valkuilen
 - **Feather-iconen (Gradle-build):** in de prebuild/Gradle-build laadt
