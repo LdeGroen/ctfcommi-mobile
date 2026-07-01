@@ -56,8 +56,11 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
         </View>
 
         {isTodo ? (
-          todos.length ? todos.map((t) => (
-            <View key={t.id} style={s.todoRow}>
+          todos.length ? todos.filter((t) => !t.parent_id).sort((a, b) => a.position - b.position).flatMap((top) => [
+            top,
+            ...todos.filter((t) => t.parent_id === top.id).sort((a, b) => a.position - b.position),
+          ]).map((t) => (
+            <View key={t.id} style={[s.todoRow, t.parent_id && s.todoChild]}>
               <TouchableOpacity onPress={() => onToggleTodo && onToggleTodo(item, t)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Feather name={t.done ? 'check-square' : 'square'} size={17} color={t.done ? '#f59e0b' : c.muted} />
               </TouchableOpacity>
@@ -187,6 +190,7 @@ const s = StyleSheet.create({
   noteTitle: { flex: 1, fontSize: 14, fontWeight: '700' },
   noteMeta: { fontSize: 11, marginTop: 4 },
   todoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 3 },
+  todoChild: { marginLeft: 22 },
   todoText: { flex: 1, fontSize: 14 },
   todoDone: { textDecorationLine: 'line-through' },
   todoBy: { fontSize: 11, color: '#b45309', textDecorationLine: 'none' },

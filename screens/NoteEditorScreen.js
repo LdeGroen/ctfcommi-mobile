@@ -34,6 +34,8 @@ export default function NoteEditorScreen({ route, navigation }) {
   const [title, setTitle] = useState(initial.title || '');
   const [body, setBody] = useState(initial.body || '');
   const [newItem, setNewItem] = useState('');
+  const [subText, setSubText] = useState('');
+  const [addingSubFor, setAddingSubFor] = useState(null);
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pinning, setPinning] = useState(false);
@@ -121,6 +123,16 @@ export default function NoteEditorScreen({ route, navigation }) {
   const toggleItem = async (it) => {
     try { setNote(await chat.toggleTodo(note.id, it.id)); } catch {}
   };
+  const moveItem = async (it, dir) => {
+    try { setNote(await chat.moveTodo(note.id, it.id, dir)); } catch {}
+  };
+  const addSub = async (parentId) => {
+    const t = subText.trim();
+    if (!t) { setAddingSubFor(null); return; }
+    setSubText(''); setAddingSubFor(null);
+    try { setNote(await chat.addTodo(note.id, t, parentId)); }
+    catch (e) { Alert.alert('Toevoegen mislukt', e.message || ''); }
+  };
   const saveItem = async (it, text) => {
     const t = text.trim();
     if (!t || t === it.text) return;
@@ -183,25 +195,62 @@ export default function NoteEditorScreen({ route, navigation }) {
 
         {isTodo ? (
           <ScrollView style={{ flex: 1, marginTop: 10 }} keyboardShouldPersistTaps="handled">
-            {todos.map((it) => (
-              <View key={it.id} style={styles.todoRow}>
-                <TouchableOpacity onPress={() => toggleItem(it)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Feather name={it.done ? 'check-square' : 'square'} size={20} color={it.done ? '#f59e0b' : c.muted} />
-                </TouchableOpacity>
-                <View style={{ flex: 1 }}>
-                  <TextInput
-                    defaultValue={it.text}
-                    onEndEditing={(e) => saveItem(it, e.nativeEvent.text)}
-                    style={[styles.todoInput, { color: it.done ? c.muted : c.text }, it.done && styles.todoDone]}
-                    placeholderTextColor={c.muted}
-                  />
-                  {it.done && it.done_by_name ? <Text style={styles.todoBy}>✓ afgestreept door {it.done_by_name}</Text> : null}
+            {todos.filter((t) => !t.parent_id).sort((a, b) => a.position - b.position).map((top, ti, arr) => {
+              const kids = todos.filter((t) => t.parent_id === top.id).sort((a, b) => a.position - b.position);
+              const rows = [{ it: top, isChild: false, isFirst: ti === 0, isLast: ti === arr.length - 1 }];
+              kids.forEach((ch, ki) => rows.push({ it: ch, isChild: true, isFirst: ki === 0, isLast: ki === kids.length - 1 }));
+              return (
+                <View key={top.id}>
+                  {rows.map(({ it, isChild, isFirst, isLast }) => (
+                    <View key={it.id} style={[styles.todoRow, isChild && styles.todoChild]}>
+                      <TouchableOpacity onPress={() => toggleItem(it)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+                        <Feather name={it.done ? 'check-square' : 'square'} size={20} color={it.done ? '#f59e0b' : c.muted} />
+                      </TouchableOpacity>
+                      <View style={{ flex: 1 }}>
+                        <TextInput
+                          defaultValue={it.text}
+                          onEndEditing={(e) => saveItem(it, e.nativeEvent.text)}
+                          style={[styles.todoInput, { color: it.done ? c.muted : c.text }, it.done && styles.todoDone]}
+                          placeholderTextColor={c.muted}
+                        />
+                        {it.done && it.done_by_name ? <Text style={styles.todoBy}>✓ afgestreept door {it.done_by_name}</Text> : null}
+                      </View>
+                      <TouchableOpacity onPress={() => moveItem(it, 'up')} disabled={isFirst} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }} style={isFirst && { opacity: 0.25 }}>
+                        <Feather name="chevron-up" size={18} color={c.muted} />
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => moveItem(it, 'down')} disabled={isLast} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }} style={isLast && { opacity: 0.25 }}>
+                        <Feather name="chevron-down" size={18} color={c.muted} />
+                      </TouchableOpacity>
+                      {!isChild && (
+                        <TouchableOpacity onPress={() => { setAddingSubFor(top.id); setSubText(''); }} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}>
+                          <Feather name="corner-down-right" size={16} color={c.muted} />
+                        </TouchableOpacity>
+                      )}
+                      <TouchableOpacity onPress={() => removeItem(it)} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}>
+                        <Feather name="x" size={16} color={c.muted} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  {addingSubFor === top.id && (
+                    <View style={[styles.todoRow, styles.todoChild]}>
+                      <Feather name="corner-down-right" size={16} color="#f59e0b" />
+                      <TextInput
+                        autoFocus
+                        value={subText}
+                        onChangeText={setSubText}
+                        onSubmitEditing={() => addSub(top.id)}
+                        onBlur={() => addSub(top.id)}
+                        blurOnSubmit={false}
+                        returnKeyType="done"
+                        placeholder="Subitem…"
+                        placeholderTextColor={c.muted}
+                        style={[styles.todoInput, { color: c.text, flex: 1 }]}
+                      />
+                    </View>
+                  )}
                 </View>
-                <TouchableOpacity onPress={() => removeItem(it)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Feather name="x" size={16} color={c.muted} />
-                </TouchableOpacity>
-              </View>
-            ))}
+              );
+            })}
             <View style={styles.todoRow}>
               <Feather name="plus" size={18} color="#f59e0b" />
               <TextInput
@@ -270,7 +319,8 @@ const styles = StyleSheet.create({
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   toggleText: { color: '#6366f1', fontSize: 13, fontWeight: '600' },
   body: { flex: 1, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, padding: 12, fontSize: 15 },
-  todoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  todoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+  todoChild: { marginLeft: 24 },
   todoInput: { fontSize: 15, paddingVertical: 4 },
   todoDone: { textDecorationLine: 'line-through' },
   todoBy: { fontSize: 11, color: '#b45309', marginTop: 1 },
