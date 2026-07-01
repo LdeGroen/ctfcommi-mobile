@@ -22,7 +22,7 @@
     },
     "android": {
       "package": "nl.cafetheaterfestival.commi",
-      "versionCode": 200,
+      "versionCode": 29694609,
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
