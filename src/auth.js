@@ -1,6 +1,17 @@
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import { API_URL, setToken, clearToken } from './api';
+import { API_URL, apiFetch, setToken, clearToken } from './api';
+
+// E-mail/wachtwoord-login (naast Google), voor accounts zonder Google-login —
+// o.a. het App Store-review-account en externe testers.
+export async function loginWithPassword(email, password) {
+  const res = await apiFetch('/api/chat/login', {
+    method: 'POST',
+    body: JSON.stringify({ email: (email || '').trim().toLowerCase(), password }),
+  });
+  if (res?.token) { await setToken(res.token); return true; }
+  return false;
+}
 
 WebBrowser.maybeCompleteAuthSession();
 
