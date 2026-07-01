@@ -61,6 +61,8 @@ export const chat = {
   updateTodo: (noteId, itemId, text) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}`, { method: 'PUT', body: JSON.stringify({ text }) }),
   toggleTodo: (noteId, itemId) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}/toggle`, { method: 'POST' }),
   moveTodo: (noteId, itemId, direction) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}/move`, { method: 'POST', body: JSON.stringify({ direction }) }),
+  assignTodo: (noteId, itemId, userIds) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}/assignees`, { method: 'PUT', body: JSON.stringify({ user_ids: userIds }) }),
+  setTodoDue: (noteId, itemId, dueOn) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}/due`, { method: 'PUT', body: JSON.stringify({ due_on: dueOn }) }),
   deleteTodo: (noteId, itemId) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}`, { method: 'DELETE' }),
   activity: ({ before, limit = 30 } = {}) => {
     const qs = new URLSearchParams();

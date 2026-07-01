@@ -29,11 +29,6 @@ export default function ChatScreen({ route, navigation }) {
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-          <TouchableOpacity onPress={async () => {
-            try { const note = await chat.placeNote(id, {}); navigation.navigate('NoteEditor', { note, convId: id }); } catch {}
-          }}>
-            <Feather name="file-text" size={20} color="#fff" />
-          </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('SharedFiles', { id, title: route.params?.title })}>
             <Feather name="paperclip" size={20} color="#fff" />
           </TouchableOpacity>
@@ -190,7 +185,10 @@ export default function ChatScreen({ route, navigation }) {
   }, []);
 
   const openThread = useCallback((item) => navigation.navigate('Thread', { convId: id, parentId: item.id, title: 'Thread' }), [id, navigation]);
-  const openNote = useCallback((item) => navigation.navigate('NoteEditor', { note: item, convId: id }), [id, navigation]);
+  const openNote = useCallback((item) => navigation.navigate('NoteEditor', { note: item, convId: id, members }), [id, navigation, members]);
+  const placeNote = useCallback(async (noteType) => {
+    try { const note = await chat.placeNote(id, { noteType }); navigation.navigate('NoteEditor', { note, convId: id, members }); } catch {}
+  }, [id, navigation, members]);
   const toggleTodo = useCallback(async (note, todoItem) => {
     try {
       const updated = await chat.toggleTodo(note.id, todoItem.id);
@@ -250,9 +248,17 @@ export default function ChatScreen({ route, navigation }) {
       )}
       <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg }]}>
         {!editingId && (
-          <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
-            <Feather name="hard-drive" size={20} color={c.muted} />
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
+              <Feather name="hard-drive" size={20} color={c.muted} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.drive} onPress={() => placeNote('note')}>
+              <Feather name="file-text" size={20} color={c.muted} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.drive} onPress={() => placeNote('todo')}>
+              <Feather name="check-square" size={20} color={c.muted} />
+            </TouchableOpacity>
+          </>
         )}
         <TextInput style={[styles.input, { color: c.text, borderColor: c.border }]} value={text} onChangeText={onChangeText}
           placeholder={editingId ? 'Bewerk je bericht…' : 'Bericht…'} placeholderTextColor={c.muted} multiline />

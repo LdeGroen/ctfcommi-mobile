@@ -1,12 +1,27 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal, Pressable,
   KeyboardAvoidingView, Platform, Alert, ActivityIndicator, useColorScheme,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
+import Avatar from '../src/Avatar';
 import { chat } from '../src/api';
 import { getEcho } from '../src/echo';
+
+function fmtDue(iso) {
+  if (!iso) return '';
+  return new Date(iso + 'T00:00:00').toLocaleDateString('nl-NL', { day: '2-digit', month: 'short' });
+}
+function isOverdue(iso) {
+  if (!iso) return false;
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  return new Date(iso + 'T00:00:00') <= t;
+}
+function isoPlus(days) {
+  const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 
 const theme = (dark) => ({
   bg: dark ? '#0b1220' : '#fff',
@@ -29,6 +44,7 @@ export default function NoteEditorScreen({ route, navigation }) {
   const c = theme(dark);
   const initial = route.params?.note || {};
   const convId = route.params?.convId ?? initial.conversation_id;
+  const members = route.params?.members || [];
 
   const [note, setNote] = useState(initial);
   const [title, setTitle] = useState(initial.title || '');
@@ -36,6 +52,9 @@ export default function NoteEditorScreen({ route, navigation }) {
   const [newItem, setNewItem] = useState('');
   const [subText, setSubText] = useState('');
   const [addingSubFor, setAddingSubFor] = useState(null);
+  const [assignForId, setAssignForId] = useState(null);
+  const [dueForId, setDueForId] = useState(null);
+  const [manualDue, setManualDue] = useState('');
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pinning, setPinning] = useState(false);
@@ -141,6 +160,16 @@ export default function NoteEditorScreen({ route, navigation }) {
   const removeItem = async (it) => {
     try { setNote(await chat.deleteTodo(note.id, it.id)); } catch {}
   };
+  const assignItem = async (itemId, userIds) => {
+    try { setNote(await chat.assignTodo(note.id, itemId, userIds)); } catch (e) { Alert.alert('Toewijzen mislukt', e.message || ''); }
+  };
+  const setDueItem = async (itemId, dueOn) => {
+    setDueForId(null); setManualDue('');
+    try { setNote(await chat.setTodoDue(note.id, itemId, dueOn || null)); } catch (e) { Alert.alert('Deadline mislukt', e.message || ''); }
+  };
+
+  const assignItemObj = todos.find((t) => t.id === assignForId);
+  const dueItemObj = todos.find((t) => t.id === dueForId);
 
   const del = () => {
     Alert.alert('Notitie verwijderen', 'Deze notitie verwijderen voor iedereen in dit gesprek?', [
@@ -202,33 +231,47 @@ export default function NoteEditorScreen({ route, navigation }) {
               return (
                 <View key={top.id}>
                   {rows.map(({ it, isChild, isFirst, isLast }) => (
-                    <View key={it.id} style={[styles.todoRow, isChild && styles.todoChild]}>
-                      <TouchableOpacity onPress={() => toggleItem(it)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
-                        <Feather name={it.done ? 'check-square' : 'square'} size={20} color={it.done ? '#f59e0b' : c.muted} />
-                      </TouchableOpacity>
-                      <View style={{ flex: 1 }}>
+                    <View key={it.id} style={[styles.todoItem, isChild && styles.todoChild]}>
+                      <View style={styles.todoRow}>
+                        <TouchableOpacity onPress={() => toggleItem(it)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+                          <Feather name={it.done ? 'check-square' : 'square'} size={20} color={it.done ? '#f59e0b' : c.muted} />
+                        </TouchableOpacity>
                         <TextInput
                           defaultValue={it.text}
                           onEndEditing={(e) => saveItem(it, e.nativeEvent.text)}
-                          style={[styles.todoInput, { color: it.done ? c.muted : c.text }, it.done && styles.todoDone]}
+                          style={[styles.todoInput, { flex: 1, color: it.done ? c.muted : c.text }, it.done && styles.todoDone]}
                           placeholderTextColor={c.muted}
                         />
-                        {it.done && it.done_by_name ? <Text style={styles.todoBy}>✓ afgestreept door {it.done_by_name}</Text> : null}
-                      </View>
-                      <TouchableOpacity onPress={() => moveItem(it, 'up')} disabled={isFirst} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }} style={isFirst && { opacity: 0.25 }}>
-                        <Feather name="chevron-up" size={18} color={c.muted} />
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => moveItem(it, 'down')} disabled={isLast} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }} style={isLast && { opacity: 0.25 }}>
-                        <Feather name="chevron-down" size={18} color={c.muted} />
-                      </TouchableOpacity>
-                      {!isChild && (
-                        <TouchableOpacity onPress={() => { setAddingSubFor(top.id); setSubText(''); }} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}>
-                          <Feather name="corner-down-right" size={16} color={c.muted} />
+                        <TouchableOpacity onPress={() => setAssignForId(it.id)} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}>
+                          <Feather name="users" size={16} color={c.muted} />
                         </TouchableOpacity>
+                        <TouchableOpacity onPress={() => { setDueForId(it.id); setManualDue(it.due_on || ''); }} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}>
+                          <Feather name="calendar" size={16} color={c.muted} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => moveItem(it, 'up')} disabled={isFirst} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }} style={isFirst && { opacity: 0.25 }}>
+                          <Feather name="chevron-up" size={18} color={c.muted} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => moveItem(it, 'down')} disabled={isLast} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }} style={isLast && { opacity: 0.25 }}>
+                          <Feather name="chevron-down" size={18} color={c.muted} />
+                        </TouchableOpacity>
+                        {!isChild && (
+                          <TouchableOpacity onPress={() => { setAddingSubFor(top.id); setSubText(''); }} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}>
+                            <Feather name="corner-down-right" size={16} color={c.muted} />
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity onPress={() => removeItem(it)} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}>
+                          <Feather name="x" size={16} color={c.muted} />
+                        </TouchableOpacity>
+                      </View>
+                      {(it.due_on || (it.assignees || []).length > 0 || (it.done && it.done_by_name)) && (
+                        <View style={styles.todoMeta}>
+                          {it.due_on ? <Text style={[styles.dueBadge, !it.done && isOverdue(it.due_on) ? styles.dueOverdue : styles.dueNormal]}>{fmtDue(it.due_on)}</Text> : null}
+                          {(it.assignees || []).slice(0, 4).map((a) => (
+                            <View key={a.id} style={styles.avatarWrap}><Avatar name={a.name} uri={a.avatar} size={20} /></View>
+                          ))}
+                          {it.done && it.done_by_name ? <Text style={styles.todoBy}>✓ {it.done_by_name}</Text> : null}
+                        </View>
                       )}
-                      <TouchableOpacity onPress={() => removeItem(it)} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}>
-                        <Feather name="x" size={16} color={c.muted} />
-                      </TouchableOpacity>
                     </View>
                   ))}
                   {addingSubFor === top.id && (
@@ -304,6 +347,60 @@ export default function NoteEditorScreen({ route, navigation }) {
           <Text style={{ marginLeft: 'auto', color: c.muted, fontSize: 12 }}>{note.edited_at ? 'bewerkt ' : ''}{fmt(note.edited_at || note.created_at)}</Text>
         </View>
       </View>
+
+      {/* Toewijs-modal */}
+      <Modal visible={!!assignForId} transparent animationType="fade" onRequestClose={() => setAssignForId(null)}>
+        <Pressable style={styles.backdrop} onPress={() => setAssignForId(null)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: c.bg, borderColor: c.border }]} onPress={() => {}}>
+            <Text style={[styles.modalTitle, { color: c.text }]}>Toewijzen aan</Text>
+            <ScrollView style={{ maxHeight: 320 }}>
+              {members.length === 0 && <Text style={{ color: c.muted, padding: 12 }}>Geen leden.</Text>}
+              {members.map((m) => {
+                const uid = m.user_id ?? m.id;
+                const cur = (assignItemObj?.assignees || []).map((a) => a.id);
+                const on = cur.includes(uid);
+                return (
+                  <TouchableOpacity key={uid} style={styles.memberRow}
+                    onPress={() => assignItemObj && assignItem(assignItemObj.id, on ? cur.filter((x) => x !== uid) : [...cur, uid])}>
+                    <Feather name={on ? 'check-square' : 'square'} size={18} color={on ? '#f59e0b' : c.muted} />
+                    <Avatar name={m.name} uri={m.avatar} size={26} />
+                    <Text style={{ color: c.text, fontSize: 15, flex: 1 }} numberOfLines={1}>{m.name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <TouchableOpacity onPress={() => setAssignForId(null)} style={styles.modalDone}><Text style={styles.modalDoneText}>Klaar</Text></TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Deadline-modal */}
+      <Modal visible={!!dueForId} transparent animationType="fade" onRequestClose={() => setDueForId(null)}>
+        <Pressable style={styles.backdrop} onPress={() => setDueForId(null)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: c.bg, borderColor: c.border }]} onPress={() => {}}>
+            <Text style={[styles.modalTitle, { color: c.text }]}>Deadline</Text>
+            {[['Vandaag', isoPlus(0)], ['Morgen', isoPlus(1)], ['Over 1 week', isoPlus(7)]].map(([label, val]) => (
+              <TouchableOpacity key={label} style={styles.memberRow} onPress={() => setDueItem(dueForId, val)}>
+                <Feather name="calendar" size={16} color="#f59e0b" />
+                <Text style={{ color: c.text, fontSize: 15, flex: 1 }}>{label}</Text>
+                <Text style={{ color: c.muted, fontSize: 12 }}>{fmtDue(val)}</Text>
+              </TouchableOpacity>
+            ))}
+            <View style={styles.manualRow}>
+              <TextInput value={manualDue} onChangeText={setManualDue} placeholder="JJJJ-MM-DD" placeholderTextColor={c.muted}
+                         style={[styles.todoInput, { flex: 1, color: c.text, borderColor: c.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 8, paddingHorizontal: 10 }]} />
+              <TouchableOpacity onPress={() => /^\d{4}-\d{2}-\d{2}$/.test(manualDue) && setDueItem(dueForId, manualDue)} style={styles.modalDone}>
+                <Text style={styles.modalDoneText}>Zet</Text>
+              </TouchableOpacity>
+            </View>
+            {dueItemObj?.due_on ? (
+              <TouchableOpacity onPress={() => setDueItem(dueForId, null)} style={styles.clearDue}>
+                <Feather name="x" size={14} color="#dc2626" /><Text style={{ color: '#dc2626', fontSize: 14 }}>Deadline wissen</Text>
+              </TouchableOpacity>
+            ) : null}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -319,9 +416,23 @@ const styles = StyleSheet.create({
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   toggleText: { color: '#6366f1', fontSize: 13, fontWeight: '600' },
   body: { flex: 1, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, padding: 12, fontSize: 15 },
-  todoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+  todoItem: { paddingVertical: 2 },
+  todoRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
   todoChild: { marginLeft: 24 },
+  todoMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 28, marginTop: -2, marginBottom: 2 },
+  dueBadge: { fontSize: 11, fontWeight: '600', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, overflow: 'hidden' },
+  dueNormal: { backgroundColor: '#fef3c7', color: '#b45309' },
+  dueOverdue: { backgroundColor: '#fee2e2', color: '#b91c1c' },
+  avatarWrap: { marginLeft: -4 },
   todoInput: { fontSize: 15, paddingVertical: 4 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalCard: { width: '100%', maxWidth: 360, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, padding: 16 },
+  modalTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
+  memberRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9 },
+  manualRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  modalDone: { backgroundColor: '#6366f1', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 9, alignItems: 'center', marginTop: 8 },
+  modalDoneText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  clearDue: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center', marginTop: 10 },
   todoDone: { textDecorationLine: 'line-through' },
   todoBy: { fontSize: 11, color: '#b45309', marginTop: 1 },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingTop: 12 },

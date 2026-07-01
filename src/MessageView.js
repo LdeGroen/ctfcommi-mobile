@@ -30,6 +30,15 @@ function fmt(iso) {
   if (!iso) return '';
   return new Date(iso).toLocaleString('nl-NL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
+function fmtDue(iso) {
+  if (!iso) return '';
+  return new Date(iso + 'T00:00:00').toLocaleDateString('nl-NL', { day: '2-digit', month: 'short' });
+}
+function isOverdue(iso) {
+  if (!iso) return false;
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  return new Date(iso + 'T00:00:00') <= t;
+}
 
 // Eén bericht. Lang indrukken → emoji-reactie kiezen. Geef onOpenThread mee om
 // de thread-knop te tonen, en onReact om reageren mogelijk te maken.
@@ -68,6 +77,16 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
                 {t.text}
                 {t.done && t.done_by_name ? <Text style={s.todoBy}>  ✓ {t.done_by_name}</Text> : null}
               </Text>
+              {t.due_on ? (
+                <Text style={[s.dueBadge, !t.done && isOverdue(t.due_on) ? s.dueOverdue : s.dueNormal]}>{fmtDue(t.due_on)}</Text>
+              ) : null}
+              {(t.assignees || []).length > 0 && (
+                <View style={s.avatarRow}>
+                  {t.assignees.slice(0, 3).map((a) => (
+                    <View key={a.id} style={s.avatarWrap}><Avatar name={a.name} uri={a.avatar} size={20} /></View>
+                  ))}
+                </View>
+              )}
             </View>
           )) : <Text style={{ color: c.muted, fontStyle: 'italic', fontSize: 13 }}>Nog geen items — tik om toe te voegen</Text>
         ) : (
@@ -189,9 +208,14 @@ const s = StyleSheet.create({
   noteHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
   noteTitle: { flex: 1, fontSize: 14, fontWeight: '700' },
   noteMeta: { fontSize: 11, marginTop: 4 },
-  todoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 3 },
+  todoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 },
   todoChild: { marginLeft: 22 },
   todoText: { flex: 1, fontSize: 14 },
+  dueBadge: { fontSize: 11, fontWeight: '600', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, overflow: 'hidden' },
+  dueNormal: { backgroundColor: '#fef3c7', color: '#b45309' },
+  dueOverdue: { backgroundColor: '#fee2e2', color: '#b91c1c' },
+  avatarRow: { flexDirection: 'row' },
+  avatarWrap: { marginLeft: -6, borderRadius: 10, borderWidth: 1.5, borderColor: '#fffbeb' },
   todoDone: { textDecorationLine: 'line-through' },
   todoBy: { fontSize: 11, color: '#b45309', textDecorationLine: 'none' },
   driveCard: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginTop: 4 },
