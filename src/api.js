@@ -53,9 +53,14 @@ export const chat = {
   deleteMessage: (messageId) => apiFetch(`/api/chat/messages/${messageId}`, { method: 'DELETE' }),
   listReplies: (messageId) => apiFetch(`/api/chat/messages/${messageId}/replies`),
   // Gedeelde notities = berichten van soort 'note' in de stroom.
-  placeNote: (id, { title = '', body = '' } = {}) => apiFetch(`/api/chat/conversations/${id}/messages`, { method: 'POST', body: JSON.stringify({ kind: 'note', title, body }) }),
-  updateNote: (messageId, { title = '', body = '' }) => apiFetch(`/api/chat/messages/${messageId}`, { method: 'PUT', body: JSON.stringify({ title, body }) }),
+  placeNote: (id, { title = '', body = '', noteType = 'note' } = {}) => apiFetch(`/api/chat/conversations/${id}/messages`, { method: 'POST', body: JSON.stringify({ kind: 'note', title, body, note_type: noteType }) }),
+  updateNote: (messageId, { title = '', body = '', noteType } = {}) => apiFetch(`/api/chat/messages/${messageId}`, { method: 'PUT', body: JSON.stringify({ title, body, ...(noteType ? { note_type: noteType } : {}) }) }),
   togglePinNote: (messageId) => apiFetch(`/api/chat/messages/${messageId}/pin`, { method: 'POST' }),
+  // To-do-items binnen een notitie.
+  addTodo: (noteId, text) => apiFetch(`/api/chat/messages/${noteId}/todos`, { method: 'POST', body: JSON.stringify({ text }) }),
+  updateTodo: (noteId, itemId, text) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}`, { method: 'PUT', body: JSON.stringify({ text }) }),
+  toggleTodo: (noteId, itemId) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}/toggle`, { method: 'POST' }),
+  deleteTodo: (noteId, itemId) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}`, { method: 'DELETE' }),
   activity: ({ before, limit = 30 } = {}) => {
     const qs = new URLSearchParams();
     if (before) qs.set('before', before);

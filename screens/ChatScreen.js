@@ -191,10 +191,16 @@ export default function ChatScreen({ route, navigation }) {
 
   const openThread = useCallback((item) => navigation.navigate('Thread', { convId: id, parentId: item.id, title: 'Thread' }), [id, navigation]);
   const openNote = useCallback((item) => navigation.navigate('NoteEditor', { note: item, convId: id }), [id, navigation]);
+  const toggleTodo = useCallback(async (note, todoItem) => {
+    try {
+      const updated = await chat.toggleTodo(note.id, todoItem.id);
+      setMessages((prev) => prev.map((x) => (x.id === note.id ? updated : x)));
+    } catch {}
+  }, []);
 
   const renderItem = useCallback(({ item }) => (
-    <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} onOpenNote={openNote} />
-  ), [c, me, openThread, handleReact, startEdit, handleDelete, openNote]);
+    <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} onOpenNote={openNote} onToggleTodo={toggleTodo} />
+  ), [c, me, openThread, handleReact, startEdit, handleDelete, openNote, toggleTodo]);
 
   const pinnedNotes = messages.filter((m) => m.kind === 'note' && m.pinned_at && !m.deleted_at);
   // Vastgeprikte notities tonen we in de pinbalk; niet nóg eens in de stroom.
