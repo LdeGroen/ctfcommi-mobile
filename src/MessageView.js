@@ -33,21 +33,23 @@ function fmt(iso) {
 // de thread-knop te tonen, en onReact om reageren mogelijk te maken.
 // Gememoizeerd (zie export onderaan) zodat alleen gewijzigde berichten opnieuw
 // renderen — scheelt veel werk bij lange gesprekken.
-function MessageView({ item, c, onOpenThread, onReact }) {
+function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete }) {
   const [picker, setPicker] = useState(false);
 
   if (item.deleted_at) {
     return <Text style={[s.deleted, { color: c.muted }]}>bericht verwijderd</Text>;
   }
 
+  const mine = me && item.user_id === me.id;
   const react = (emoji) => { setPicker(false); onReact && onReact(item, emoji); };
+  const hasSheet = !!onReact || (mine && (onEdit || onDelete));
 
   return (
-    <Pressable onLongPress={() => onReact && setPicker(true)} delayLongPress={250} style={s.msg}>
+    <Pressable onLongPress={() => hasSheet && setPicker(true)} delayLongPress={250} style={s.msg}>
       <Avatar name={item.user?.name} uri={item.user?.avatar} size={36} />
       <View style={s.content}>
       <Text style={[s.author, { color: c.text }]}>
-        {item.user?.name || 'Onbekend'} <Text style={[s.time, { color: c.muted }]}>{fmt(item.created_at)}</Text>
+        {item.user?.name || 'Onbekend'} <Text style={[s.time, { color: c.muted }]}>{fmt(item.created_at)}{item.edited_at ? ' (bewerkt)' : ''}</Text>
       </Text>
 
       {!!item.body && <Markdown style={{ body: { color: c.text, fontSize: 15 }, link: { color: '#6366f1' } }}>{item.body}</Markdown>}
@@ -104,11 +106,31 @@ function MessageView({ item, c, onOpenThread, onReact }) {
       <Modal visible={picker} transparent animationType="fade" onRequestClose={() => setPicker(false)}>
         <Pressable style={s.backdrop} onPress={() => setPicker(false)}>
           <View style={[s.sheet, { backgroundColor: c.bg, borderColor: c.border }]}>
-            {QUICK.map((e) => (
-              <TouchableOpacity key={e} onPress={() => react(e)} style={s.emojiBtn}>
-                <Text style={{ fontSize: 30 }}>{e}</Text>
-              </TouchableOpacity>
-            ))}
+            {!!onReact && (
+              <View style={s.emojiRow}>
+                {QUICK.map((e) => (
+                  <TouchableOpacity key={e} onPress={() => react(e)} style={s.emojiBtn}>
+                    <Text style={{ fontSize: 30 }}>{e}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            {mine && (onEdit || onDelete) && (
+              <View style={[s.actions, { borderColor: c.border }]}>
+                {onEdit && (
+                  <TouchableOpacity style={s.actionBtn} onPress={() => { setPicker(false); onEdit(item); }}>
+                    <Feather name="edit-2" size={16} color={c.text} />
+                    <Text style={[s.actionText, { color: c.text }]}>Bewerken</Text>
+                  </TouchableOpacity>
+                )}
+                {onDelete && (
+                  <TouchableOpacity style={s.actionBtn} onPress={() => { setPicker(false); onDelete(item); }}>
+                    <Feather name="trash-2" size={16} color="#dc2626" />
+                    <Text style={[s.actionText, { color: '#dc2626' }]}>Verwijderen</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </View>
         </Pressable>
       </Modal>
@@ -126,8 +148,12 @@ const s = StyleSheet.create({
   reactionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
   chip: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 8, paddingVertical: 2 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' },
-  sheet: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, padding: 16, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, maxWidth: 320 },
+  sheet: { padding: 16, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, maxWidth: 320 },
+  emojiRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
   emojiBtn: { padding: 8 },
+  actions: { marginTop: 8, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 8 },
+  actionText: { fontSize: 15, fontWeight: '500' },
 });
 
 export default React.memo(MessageView);

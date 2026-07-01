@@ -48,7 +48,15 @@ export const chat = {
       method: 'POST',
       body: JSON.stringify({ body, mention_user_ids: mentionUserIds, parent_id: parentId }),
     }),
+  editMessage: (messageId, body, mentionUserIds = []) =>
+    apiFetch(`/api/chat/messages/${messageId}`, { method: 'PUT', body: JSON.stringify({ body, mention_user_ids: mentionUserIds }) }),
+  deleteMessage: (messageId) => apiFetch(`/api/chat/messages/${messageId}`, { method: 'DELETE' }),
   listReplies: (messageId) => apiFetch(`/api/chat/messages/${messageId}/replies`),
+  // Gedeelde notities per gesprek
+  listNotes: (id) => apiFetch(`/api/chat/conversations/${id}/notes`),
+  createNote: (id, { title = '', body = '' }) => apiFetch(`/api/chat/conversations/${id}/notes`, { method: 'POST', body: JSON.stringify({ title, body }) }),
+  updateNote: (noteId, { title = '', body = '' }) => apiFetch(`/api/chat/notes/${noteId}`, { method: 'PUT', body: JSON.stringify({ title, body }) }),
+  deleteNote: (noteId) => apiFetch(`/api/chat/notes/${noteId}`, { method: 'DELETE' }),
   activity: ({ before, limit = 30 } = {}) => {
     const qs = new URLSearchParams();
     if (before) qs.set('before', before);

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform, StyleSheet, useColorScheme } from 'react-native';
+import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform, StyleSheet, useColorScheme, Alert } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
@@ -18,6 +18,8 @@ export default function ChatScreen({ route, navigation }) {
   const [sending, setSending] = useState(false);
   const [members, setMembers] = useState([]);
   const [mentionItems, setMentionItems] = useState([]);
+  const [me, setMe] = useState(null);
+  const [editingId, setEditingId] = useState(null);
   const subRef = useRef(null);
   const draftTimer = useRef(null);
 
@@ -27,6 +29,9 @@ export default function ChatScreen({ route, navigation }) {
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+          <TouchableOpacity onPress={() => navigation.navigate('SharedNotes', { id, title: route.params?.title })}>
+            <Feather name="file-text" size={20} color="#fff" />
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('SharedFiles', { id, title: route.params?.title })}>
             <Feather name="paperclip" size={20} color="#fff" />
           </TouchableOpacity>
@@ -42,11 +47,12 @@ export default function ChatScreen({ route, navigation }) {
     let cancelled = false;
     (async () => {
       try {
-        const [res, det] = await Promise.all([chat.listMessages(id, { limit: 40 }), chat.getConversation(id)]);
+        const [res, det, meRes] = await Promise.all([chat.listMessages(id, { limit: 40 }), chat.getConversation(id), chat.me().catch(() => null)]);
         if (cancelled) return;
         const msgs = res.messages || [];
         setMessages(msgs);
         setMembers(det?.members || []);
+        if (meRes) setMe(meRes);
         if (det?.draft) setText(det.draft); // concept van een ander apparaat
         if (msgs.length) markRead(msgs[msgs.length - 1].id);
       } catch {}
@@ -95,9 +101,12 @@ export default function ChatScreen({ route, navigation }) {
     } else {
       setMentionItems([]);
     }
-    // Concept gedebounced naar de server (synct over apparaten).
-    clearTimeout(draftTimer.current);
-    draftTimer.current = setTimeout(() => { chat.saveDraft(id, t).catch(() => {}); }, 800);
+    // Concept gedebounced naar de server (synct over apparaten) — niet tijdens
+    // het bewerken van een bestaand bericht (dan is de tekst geen concept).
+    if (!editingId) {
+      clearTimeout(draftTimer.current);
+      draftTimer.current = setTimeout(() => { chat.saveDraft(id, t).catch(() => {}); }, 800);
+    }
   };
 
   const pickMention = (item) => {
@@ -145,11 +154,41 @@ export default function ChatScreen({ route, navigation }) {
     } catch {}
   }, []);
 
+  const startEdit = useCallback((msg) => {
+    setEditingId(msg.id);
+    setText(msg.body || '');
+    setMentionItems([]);
+  }, []);
+
+  const cancelEdit = () => { setEditingId(null); setText(''); };
+
+  const saveEdit = async () => {
+    const body = text.trim();
+    if (!editingId || !body) return;
+    setSending(true);
+    try {
+      const updated = await chat.editMessage(editingId, body, resolveMentionIds(body));
+      setMessages((prev) => prev.map((x) => (x.id === editingId ? updated : x)));
+      setEditingId(null);
+      setText('');
+      setMentionItems([]);
+    } catch {} finally { setSending(false); }
+  };
+
+  const handleDelete = useCallback((msg) => {
+    Alert.alert('Bericht verwijderen', 'Weet je zeker dat je dit bericht wilt verwijderen?', [
+      { text: 'Annuleren', style: 'cancel' },
+      { text: 'Verwijderen', style: 'destructive', onPress: async () => {
+        try { await chat.deleteMessage(msg.id); setMessages((prev) => prev.map((x) => (x.id === msg.id ? { ...x, deleted_at: new Date().toISOString() } : x))); } catch {}
+      } },
+    ]);
+  }, []);
+
   const openThread = useCallback((item) => navigation.navigate('Thread', { convId: id, parentId: item.id, title: 'Thread' }), [id, navigation]);
 
   const renderItem = useCallback(({ item }) => (
-    <MessageView item={item} c={c} onOpenThread={openThread} onReact={handleReact} />
-  ), [c, openThread, handleReact]);
+    <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} />
+  ), [c, me, openThread, handleReact, startEdit, handleDelete]);
 
   const data = [...messages].reverse(); // inverted: nieuwste onderaan
 
@@ -177,14 +216,23 @@ export default function ChatScreen({ route, navigation }) {
           ))}
         </View>
       )}
+      {editingId && (
+        <View style={[styles.editBar, { borderColor: c.border, backgroundColor: c.bg }]}>
+          <Feather name="edit-2" size={14} color={c.muted} />
+          <Text style={{ color: c.muted, fontSize: 13, flex: 1 }} numberOfLines={1}>Bericht bewerken…</Text>
+          <TouchableOpacity onPress={cancelEdit}><Text style={{ color: '#6366f1', fontSize: 13, fontWeight: '600' }}>Annuleren</Text></TouchableOpacity>
+        </View>
+      )}
       <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg }]}>
-        <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
-          <Feather name="hard-drive" size={20} color={c.muted} />
-        </TouchableOpacity>
+        {!editingId && (
+          <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
+            <Feather name="hard-drive" size={20} color={c.muted} />
+          </TouchableOpacity>
+        )}
         <TextInput style={[styles.input, { color: c.text, borderColor: c.border }]} value={text} onChangeText={onChangeText}
-          placeholder="Bericht…" placeholderTextColor={c.muted} multiline />
-        <TouchableOpacity style={[styles.send, (sending || !text.trim()) && { opacity: 0.4 }]} onPress={send} disabled={sending || !text.trim()}>
-          <Feather name="send" size={18} color="#fff" />
+          placeholder={editingId ? 'Bewerk je bericht…' : 'Bericht…'} placeholderTextColor={c.muted} multiline />
+        <TouchableOpacity style={[styles.send, (sending || !text.trim()) && { opacity: 0.4 }]} onPress={editingId ? saveEdit : send} disabled={sending || !text.trim()}>
+          <Feather name={editingId ? 'check' : 'send'} size={18} color="#fff" />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -192,6 +240,7 @@ export default function ChatScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  editBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth },
   composer: { flexDirection: 'row', alignItems: 'flex-end', padding: 8, borderTopWidth: StyleSheet.hairlineWidth, gap: 8 },
   input: { flex: 1, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, maxHeight: 120, fontSize: 15 },
   drive: { paddingHorizontal: 4, paddingVertical: 10, justifyContent: 'center' },
