@@ -14,6 +14,7 @@
     },
     "ios": {
       "bundleIdentifier": "nl.cafetheaterfestival.commi",
+      "buildNumber": "25",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -21,6 +22,7 @@
     },
     "android": {
       "package": "nl.cafetheaterfestival.commi",
+      "versionCode": 200,
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
