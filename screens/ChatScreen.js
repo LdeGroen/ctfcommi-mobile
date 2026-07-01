@@ -29,7 +29,9 @@ export default function ChatScreen({ route, navigation }) {
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-          <TouchableOpacity onPress={() => navigation.navigate('SharedNotes', { id, title: route.params?.title })}>
+          <TouchableOpacity onPress={async () => {
+            try { const note = await chat.placeNote(id, {}); navigation.navigate('NoteEditor', { note, convId: id }); } catch {}
+          }}>
             <Feather name="file-text" size={20} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('SharedFiles', { id, title: route.params?.title })}>
@@ -49,7 +51,10 @@ export default function ChatScreen({ route, navigation }) {
       try {
         const [res, det, meRes] = await Promise.all([chat.listMessages(id, { limit: 40 }), chat.getConversation(id), chat.me().catch(() => null)]);
         if (cancelled) return;
-        const msgs = res.messages || [];
+        // Vastgeprikte notities kunnen ouder zijn dan het venster: erbij mengen.
+        const base = res.messages || [];
+        const have = new Set(base.map((m) => m.id));
+        const msgs = [...(det?.pinned_notes || []).filter((n) => !have.has(n.id)), ...base].sort((a, b) => a.id - b.id);
         setMessages(msgs);
         setMembers(det?.members || []);
         if (meRes) setMe(meRes);
@@ -185,15 +190,29 @@ export default function ChatScreen({ route, navigation }) {
   }, []);
 
   const openThread = useCallback((item) => navigation.navigate('Thread', { convId: id, parentId: item.id, title: 'Thread' }), [id, navigation]);
+  const openNote = useCallback((item) => navigation.navigate('NoteEditor', { note: item, convId: id }), [id, navigation]);
 
   const renderItem = useCallback(({ item }) => (
-    <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} />
-  ), [c, me, openThread, handleReact, startEdit, handleDelete]);
+    <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} onOpenNote={openNote} />
+  ), [c, me, openThread, handleReact, startEdit, handleDelete, openNote]);
 
-  const data = [...messages].reverse(); // inverted: nieuwste onderaan
+  const pinnedNotes = messages.filter((m) => m.kind === 'note' && m.pinned_at && !m.deleted_at);
+  // Vastgeprikte notities tonen we in de pinbalk; niet nóg eens in de stroom.
+  const data = [...messages].filter((m) => !(m.kind === 'note' && m.pinned_at)).reverse(); // inverted: nieuwste onderaan
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}>
+      {pinnedNotes.length > 0 && (
+        <View style={[styles.pinBar, { borderColor: c.noteBorder, backgroundColor: c.noteBg }]}>
+          {pinnedNotes.map((n) => (
+            <TouchableOpacity key={n.id} style={styles.pinChip} onPress={() => openNote(n)} activeOpacity={0.7}>
+              <Feather name="bookmark" size={13} color="#f59e0b" />
+              <Text style={{ color: c.text, fontSize: 13, flex: 1 }} numberOfLines={1}>{n.title || 'Notitie'}</Text>
+              <Feather name="chevron-right" size={15} color={c.muted} />
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
       <FlatList
         inverted
         data={data}
@@ -240,6 +259,8 @@ export default function ChatScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  pinBar: { paddingHorizontal: 10, paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth, gap: 4 },
+  pinChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingHorizontal: 4 },
   editBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth },
   composer: { flexDirection: 'row', alignItems: 'flex-end', padding: 8, borderTopWidth: StyleSheet.hairlineWidth, gap: 8 },
   input: { flex: 1, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, maxHeight: 120, fontSize: 15 },

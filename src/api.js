@@ -52,11 +52,10 @@ export const chat = {
     apiFetch(`/api/chat/messages/${messageId}`, { method: 'PUT', body: JSON.stringify({ body, mention_user_ids: mentionUserIds }) }),
   deleteMessage: (messageId) => apiFetch(`/api/chat/messages/${messageId}`, { method: 'DELETE' }),
   listReplies: (messageId) => apiFetch(`/api/chat/messages/${messageId}/replies`),
-  // Gedeelde notities per gesprek
-  listNotes: (id) => apiFetch(`/api/chat/conversations/${id}/notes`),
-  createNote: (id, { title = '', body = '' }) => apiFetch(`/api/chat/conversations/${id}/notes`, { method: 'POST', body: JSON.stringify({ title, body }) }),
-  updateNote: (noteId, { title = '', body = '' }) => apiFetch(`/api/chat/notes/${noteId}`, { method: 'PUT', body: JSON.stringify({ title, body }) }),
-  deleteNote: (noteId) => apiFetch(`/api/chat/notes/${noteId}`, { method: 'DELETE' }),
+  // Gedeelde notities = berichten van soort 'note' in de stroom.
+  placeNote: (id, { title = '', body = '' } = {}) => apiFetch(`/api/chat/conversations/${id}/messages`, { method: 'POST', body: JSON.stringify({ kind: 'note', title, body }) }),
+  updateNote: (messageId, { title = '', body = '' }) => apiFetch(`/api/chat/messages/${messageId}`, { method: 'PUT', body: JSON.stringify({ title, body }) }),
+  togglePinNote: (messageId) => apiFetch(`/api/chat/messages/${messageId}/pin`, { method: 'POST' }),
   activity: ({ before, limit = 30 } = {}) => {
     const qs = new URLSearchParams();
     if (before) qs.set('before', before);
