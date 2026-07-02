@@ -67,7 +67,7 @@ export default function ChatScreen({ route, navigation }) {
       if (!echo || !active) return;
       const channel = echo.private(`conversation.${id}`);
       const onCreated = (p) => { const m = p.message; if (m.parent_id) return; setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m])); markRead(m.id); };
-      const onUpdated = (p) => setMessages((prev) => prev.map((x) => (x.id === p.message.id ? p.message : x)));
+      const onUpdated = (p) => { const m = p.message; setMessages((prev) => prev.map((x) => (x.id === m.id ? (m.body_truncated ? { ...m, body: x.body } : m) : x))); };
       const onDeleted = (p) => setMessages((prev) => prev.map((x) => (x.id === p.message.id ? { ...x, deleted_at: new Date().toISOString() } : x)));
       channel.listen('.chat.message.created', onCreated);
       channel.listen('.chat.message.updated', onUpdated);
