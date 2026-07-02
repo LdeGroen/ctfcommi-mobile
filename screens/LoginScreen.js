@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { loginWithGoogle, loginWithPassword } from '../src/auth';
 
 export default function LoginScreen({ onLoggedIn }) {
@@ -35,7 +36,14 @@ export default function LoginScreen({ onLoggedIn }) {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <LinearGradient
+      colors={['#1f3c42', '#2f5860', '#396971']}
+      locations={[0, 0.55, 1]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.gradient}
+    >
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Image source={require('../assets/icon.png')} style={styles.logo} />
       <Text style={styles.title}>CTF Commi</Text>
       <Text style={styles.subtitle}>Het interne berichtenkanaal van Café Theater Festival.</Text>
@@ -76,12 +84,14 @@ export default function LoginScreen({ onLoggedIn }) {
           </TouchableOpacity>
         </View>
       )}
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#396971', alignItems: 'center', justifyContent: 'center', padding: 32 },
+  gradient: { flex: 1 },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   logo: { width: 96, height: 96, borderRadius: 24, marginBottom: 20 },
   title: { color: '#fff', fontSize: 28, fontWeight: '700' },
   subtitle: { color: 'rgba(255,255,255,0.8)', textAlign: 'center', marginTop: 8, marginBottom: 32 },
