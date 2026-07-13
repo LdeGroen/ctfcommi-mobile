@@ -9,6 +9,7 @@ export default function NewChannelScreen({ navigation }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
+  const [announce, setAnnounce] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const create = async () => {
@@ -16,7 +17,7 @@ export default function NewChannelScreen({ navigation }) {
     if (!n || saving) return;
     setSaving(true);
     try {
-      const conv = await chat.createChannel({ name: n, description: description.trim() || null, is_private: isPrivate });
+      const conv = await chat.createChannel({ name: n, description: description.trim() || null, is_private: isPrivate, post_policy: announce ? 'admins' : 'all' });
       navigation.replace('Chat', { id: conv.id, title: conv.display_name || conv.name || n });
     } catch (e) {
       Alert.alert('Aanmaken mislukt', e.message || 'Onbekende fout');
@@ -40,6 +41,14 @@ export default function NewChannelScreen({ navigation }) {
           <Text style={{ color: c.muted, fontSize: 12 }}>Alleen leden die je toevoegt kunnen het zien.</Text>
         </View>
         <Switch value={isPrivate} onValueChange={setIsPrivate} />
+      </View>
+
+      <View style={styles.switchRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: c.text, fontSize: 15, fontWeight: '600' }}>Aankondigingskanaal</Text>
+          <Text style={{ color: c.muted, fontSize: 12 }}>Alleen de beheerder kan berichten plaatsen; de rest leest (en reageert). Berichten krijgen leesbevestiging.</Text>
+        </View>
+        <Switch value={announce} onValueChange={setAnnounce} />
       </View>
 
       <TouchableOpacity onPress={create} disabled={!name.trim() || saving}

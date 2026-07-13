@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform, StyleSheet, useColorScheme, Alert } from 'react-native';
+import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform, StyleSheet, useColorScheme, Alert, Modal, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import Avatar from '../src/Avatar';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
@@ -20,6 +21,10 @@ export default function ChatScreen({ route, navigation }) {
   const [mentionItems, setMentionItems] = useState([]);
   const [me, setMe] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [conv, setConv] = useState(null);
+  const [announce, setAnnounce] = useState(false);
+  const [remindFor, setRemindFor] = useState(null);
+  const [readsModal, setReadsModal] = useState(null);
   const subRef = useRef(null);
   const draftTimer = useRef(null);
 
@@ -52,6 +57,7 @@ export default function ChatScreen({ route, navigation }) {
         const msgs = [...(det?.pinned_notes || []).filter((n) => !have.has(n.id)), ...base].sort((a, b) => a.id - b.id);
         setMessages(msgs);
         setMembers(det?.members || []);
+        setConv(det || null);
         if (meRes) setMe(meRes);
         if (det?.draft) setText(det.draft); // concept van een ander apparaat
         if (msgs.length) markRead(msgs[msgs.length - 1].id);
@@ -122,9 +128,10 @@ export default function ChatScreen({ route, navigation }) {
     if (!body) return;
     setSending(true);
     try {
-      const sent = await chat.sendMessage(id, { body, mentionUserIds: resolveMentionIds(body) });
+      const sent = await chat.sendMessage(id, { body, mentionUserIds: resolveMentionIds(body), isAnnouncement: announce });
       setMessages((prev) => (prev.some((x) => x.id === sent.id) ? prev : [...prev, sent]));
       setText('');
+      setAnnounce(false);
       setMentionItems([]);
       clearTimeout(draftTimer.current);
       chat.saveDraft(id, '').catch(() => {});
@@ -196,9 +203,39 @@ export default function ChatScreen({ route, navigation }) {
     } catch {}
   }, []);
 
+  const openRemind = useCallback((msg) => setRemindFor(msg), []);
+  const openReads = useCallback(async (msg) => {
+    setReadsModal({ loading: true });
+    try { const r = await chat.messageReads(msg.id); setReadsModal({ loading: false, ...r }); }
+    catch { setReadsModal(null); }
+  }, []);
+
+  const fmtLocal = (d) => {
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:00`;
+  };
+  const remindOptions = () => {
+    const now = new Date();
+    const inHour = new Date(now.getTime() + 3600 * 1000);
+    const tonight = new Date(now); tonight.setHours(18, 0, 0, 0); if (tonight <= now) tonight.setDate(tonight.getDate() + 1);
+    const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(9, 0, 0, 0);
+    const week = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+    return [
+      ['Over 1 uur', inHour], ['Vanavond 18:00', tonight], ['Morgen 09:00', tomorrow], ['Volgende week', week],
+    ];
+  };
+  const setReminder = async (when) => {
+    const msg = remindFor; setRemindFor(null);
+    if (!msg) return;
+    try {
+      await chat.addReminder({ messageId: msg.id, conversationId: id, remindAt: fmtLocal(when) });
+      Alert.alert('Herinnering gezet', 'Je krijgt op dat moment een melding.');
+    } catch (e) { Alert.alert('Mislukt', e.message || ''); }
+  };
+
   const renderItem = useCallback(({ item }) => (
-    <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} onOpenNote={openNote} onToggleTodo={toggleTodo} />
-  ), [c, me, openThread, handleReact, startEdit, handleDelete, openNote, toggleTodo]);
+    <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} onOpenNote={openNote} onToggleTodo={toggleTodo} onRemind={openRemind} onShowReads={openReads} />
+  ), [c, me, openThread, handleReact, startEdit, handleDelete, openNote, toggleTodo, openRemind, openReads]);
 
   const pinnedNotes = messages.filter((m) => m.kind === 'note' && m.pinned_at && !m.deleted_at);
   // Vastgeprikte notities tonen we in de pinbalk; niet nóg eens in de stroom.
@@ -246,26 +283,74 @@ export default function ChatScreen({ route, navigation }) {
           <TouchableOpacity onPress={cancelEdit}><Text style={{ color: '#6366f1', fontSize: 13, fontWeight: '600' }}>Annuleren</Text></TouchableOpacity>
         </View>
       )}
-      <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg }]}>
-        {!editingId && (
-          <>
-            <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
-              <Feather name="hard-drive" size={20} color={c.muted} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.drive} onPress={() => placeNote('note')}>
-              <Feather name="file-text" size={20} color={c.muted} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.drive} onPress={() => placeNote('todo')}>
-              <Feather name="check-square" size={20} color={c.muted} />
-            </TouchableOpacity>
-          </>
-        )}
-        <TextInput style={[styles.input, { color: c.text, borderColor: c.border }]} value={text} onChangeText={onChangeText}
-          placeholder={editingId ? 'Bewerk je bericht…' : 'Bericht…'} placeholderTextColor={c.muted} multiline />
-        <TouchableOpacity style={[styles.send, (sending || !text.trim()) && { opacity: 0.4 }]} onPress={editingId ? saveEdit : send} disabled={sending || !text.trim()}>
-          <Feather name={editingId ? 'check' : 'send'} size={18} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      {conv && conv.can_post === false ? (
+        <View style={[styles.blockedBar, { borderColor: c.border, backgroundColor: c.bg }]}>
+          <Feather name="volume-2" size={15} color={c.muted} />
+          <Text style={{ color: c.muted, fontSize: 13, flex: 1 }}>Aankondigingskanaal — alleen de beheerder kan hier berichten plaatsen.</Text>
+        </View>
+      ) : (
+        <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg }]}>
+          {!editingId && (
+            <>
+              <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
+                <Feather name="hard-drive" size={20} color={c.muted} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.drive} onPress={() => placeNote('note')}>
+                <Feather name="file-text" size={20} color={c.muted} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.drive} onPress={() => placeNote('todo')}>
+                <Feather name="check-square" size={20} color={c.muted} />
+              </TouchableOpacity>
+              {/* Aankondiging (met leesbevestiging) — in een gewoon kanaal optioneel; in een aankondigingskanaal automatisch. */}
+              {conv?.type === 'channel' && conv?.post_policy !== 'admins' && (
+                <TouchableOpacity style={styles.drive} onPress={() => setAnnounce((v) => !v)}>
+                  <Feather name="volume-2" size={20} color={announce ? '#f59e0b' : c.muted} />
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+          <TextInput style={[styles.input, { color: c.text, borderColor: announce ? '#f59e0b' : c.border }]} value={text} onChangeText={onChangeText}
+            placeholder={editingId ? 'Bewerk je bericht…' : (announce ? 'Aankondiging…' : 'Bericht…')} placeholderTextColor={c.muted} multiline />
+          <TouchableOpacity style={[styles.send, (sending || !text.trim()) && { opacity: 0.4 }]} onPress={editingId ? saveEdit : send} disabled={sending || !text.trim()}>
+            <Feather name={editingId ? 'check' : 'send'} size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Herinner-me-opties */}
+      <Modal visible={!!remindFor} transparent animationType="fade" onRequestClose={() => setRemindFor(null)}>
+        <Pressable style={styles.backdrop} onPress={() => setRemindFor(null)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: c.bg, borderColor: c.border }]} onPress={() => {}}>
+            <Text style={[styles.modalTitle, { color: c.text }]}>Herinner me over…</Text>
+            {remindOptions().map(([label, when]) => (
+              <TouchableOpacity key={label} style={styles.modalRow} onPress={() => setReminder(when)}>
+                <Feather name="clock" size={16} color="#6366f1" />
+                <Text style={{ color: c.text, fontSize: 15 }}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Leesbevestiging: wie heeft de aankondiging gezien */}
+      <Modal visible={!!readsModal} transparent animationType="fade" onRequestClose={() => setReadsModal(null)}>
+        <Pressable style={styles.backdrop} onPress={() => setReadsModal(null)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: c.bg, borderColor: c.border }]} onPress={() => {}}>
+            <Text style={[styles.modalTitle, { color: c.text }]}>Gezien door</Text>
+            {readsModal?.loading ? <ActivityIndicator color="#6366f1" /> : (
+              <ScrollView style={{ maxHeight: 360 }}>
+                {(readsModal?.read || []).map((u) => (
+                  <View key={`r${u.id}`} style={styles.readRow}><Avatar name={u.name} uri={u.avatar} size={26} /><Text style={{ color: c.text, fontSize: 15, flex: 1 }}>{u.name}</Text><Feather name="check-circle" size={16} color="#10b981" /></View>
+                ))}
+                {(readsModal?.unread || []).length > 0 && <Text style={{ color: c.muted, fontSize: 12, marginTop: 10, marginBottom: 4 }}>Nog niet gezien</Text>}
+                {(readsModal?.unread || []).map((u) => (
+                  <View key={`u${u.id}`} style={styles.readRow}><Avatar name={u.name} uri={u.avatar} size={26} /><Text style={{ color: c.muted, fontSize: 15, flex: 1 }}>{u.name}</Text></View>
+                ))}
+              </ScrollView>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -284,4 +369,10 @@ const styles = StyleSheet.create({
   mentionAvatarText: { color: '#3730a3', fontWeight: '700', fontSize: 13 },
   mentionName: { fontSize: 15, flex: 1 },
   mentionHint: { fontSize: 12 },
+  blockedBar: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderTopWidth: StyleSheet.hairlineWidth },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalCard: { width: '100%', maxWidth: 360, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, padding: 16 },
+  modalTitle: { fontSize: 16, fontWeight: '700', marginBottom: 10 },
+  modalRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11 },
+  readRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7 },
 });

@@ -44,7 +44,7 @@ function isOverdue(iso) {
 // de thread-knop te tonen, en onReact om reageren mogelijk te maken.
 // Gememoizeerd (zie export onderaan) zodat alleen gewijzigde berichten opnieuw
 // renderen — scheelt veel werk bij lange gesprekken.
-function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onOpenNote, onToggleTodo }) {
+function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onOpenNote, onToggleTodo, onRemind, onShowReads }) {
   const [picker, setPicker] = useState(false);
 
   if (item.deleted_at) {
@@ -102,7 +102,7 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
 
   const mine = me && item.user_id === me.id;
   const react = (emoji) => { setPicker(false); onReact && onReact(item, emoji); };
-  const hasSheet = !!onReact || (mine && (onEdit || onDelete));
+  const hasSheet = !!onReact || !!onRemind || (mine && (onEdit || onDelete));
 
   return (
     <Pressable onLongPress={() => hasSheet && setPicker(true)} delayLongPress={250} style={s.msg}>
@@ -111,6 +111,13 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
       <Text style={[s.author, { color: c.text }]}>
         {item.user?.name || 'Onbekend'} <Text style={[s.time, { color: c.muted }]}>{fmt(item.created_at)}{item.edited_at ? ' (bewerkt)' : ''}</Text>
       </Text>
+
+      {item.is_announcement && (
+        <View style={s.annBadge}>
+          <Feather name="volume-2" size={12} color="#b45309" />
+          <Text style={s.annText}>Aankondiging</Text>
+        </View>
+      )}
 
       {!!item.body && <Markdown style={{ body: { color: c.text, fontSize: 15 }, link: { color: '#6366f1' } }}>{item.body}</Markdown>}
 
@@ -152,6 +159,14 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
         </View>
       )}
 
+      {item.is_announcement && item.reads && (
+        <TouchableOpacity onPress={() => onShowReads && onShowReads(item)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+          <Text style={{ color: c.muted, fontSize: 12, marginTop: 3 }}>
+            <Feather name="check-circle" size={12} color={c.muted} /> Gezien door {item.reads.count}/{item.reads.total}
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {onOpenThread && (
         <TouchableOpacity onPress={() => onOpenThread(item)}>
           <Text style={{ color: '#6366f1', marginTop: 4, fontSize: 13 }}>
@@ -175,15 +190,21 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
                 ))}
               </View>
             )}
-            {mine && (onEdit || onDelete) && (
+            {(onRemind || (mine && (onEdit || onDelete))) && (
               <View style={[s.actions, { borderColor: c.border }]}>
-                {onEdit && (
+                {onRemind && (
+                  <TouchableOpacity style={s.actionBtn} onPress={() => { setPicker(false); onRemind(item); }}>
+                    <Feather name="clock" size={16} color={c.text} />
+                    <Text style={[s.actionText, { color: c.text }]}>Herinner me</Text>
+                  </TouchableOpacity>
+                )}
+                {mine && onEdit && (
                   <TouchableOpacity style={s.actionBtn} onPress={() => { setPicker(false); onEdit(item); }}>
                     <Feather name="edit-2" size={16} color={c.text} />
                     <Text style={[s.actionText, { color: c.text }]}>Bewerken</Text>
                   </TouchableOpacity>
                 )}
-                {onDelete && (
+                {mine && onDelete && (
                   <TouchableOpacity style={s.actionBtn} onPress={() => { setPicker(false); onDelete(item); }}>
                     <Feather name="trash-2" size={16} color="#dc2626" />
                     <Text style={[s.actionText, { color: '#dc2626' }]}>Verwijderen</Text>
@@ -219,6 +240,8 @@ const s = StyleSheet.create({
   todoDone: { textDecorationLine: 'line-through' },
   todoBy: { fontSize: 11, color: '#b45309', textDecorationLine: 'none' },
   driveCard: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginTop: 4 },
+  annBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', backgroundColor: '#fef3c7', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2, marginBottom: 2 },
+  annText: { color: '#b45309', fontSize: 11, fontWeight: '700' },
   reactionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
   chip: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 8, paddingVertical: 2 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' },
