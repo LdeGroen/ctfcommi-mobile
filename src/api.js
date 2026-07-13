@@ -43,10 +43,10 @@ export const chat = {
     if (limit) qs.set('limit', limit);
     return apiFetch(`/api/chat/conversations/${id}/messages?${qs.toString()}`);
   },
-  sendMessage: (id, { body, mentionUserIds = [], parentId = null }) =>
+  sendMessage: (id, { body, mentionUserIds = [], parentId = null, isAnnouncement = false }) =>
     apiFetch(`/api/chat/conversations/${id}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ body, mention_user_ids: mentionUserIds, parent_id: parentId }),
+      body: JSON.stringify({ body, mention_user_ids: mentionUserIds, parent_id: parentId, is_announcement: isAnnouncement }),
     }),
   editMessage: (messageId, body, mentionUserIds = []) =>
     apiFetch(`/api/chat/messages/${messageId}`, { method: 'PUT', body: JSON.stringify({ body, mention_user_ids: mentionUserIds }) }),
@@ -63,7 +63,17 @@ export const chat = {
   moveTodo: (noteId, itemId, direction) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}/move`, { method: 'POST', body: JSON.stringify({ direction }) }),
   assignTodo: (noteId, itemId, userIds) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}/assignees`, { method: 'PUT', body: JSON.stringify({ user_ids: userIds }) }),
   setTodoDue: (noteId, itemId, dueOn) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}/due`, { method: 'PUT', body: JSON.stringify({ due_on: dueOn }) }),
+  setTodoRecurrence: (noteId, itemId, recurrence) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}/recurrence`, { method: 'PUT', body: JSON.stringify({ recurrence }) }),
   deleteTodo: (noteId, itemId) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}`, { method: 'DELETE' }),
+  // Mijn taken: alle aan mij toegewezen open to-do's over alle gesprekken.
+  myTodos: () => apiFetch('/api/chat/todos/mine'),
+  // Leesbevestiging van een aankondiging: wie heeft 'm wel/niet gezien.
+  messageReads: (messageId) => apiFetch(`/api/chat/messages/${messageId}/reads`),
+  // Herinner-me op een bericht/gesprek.
+  listReminders: () => apiFetch('/api/chat/reminders'),
+  addReminder: ({ messageId = null, conversationId = null, note = null, remindAt }) =>
+    apiFetch('/api/chat/reminders', { method: 'POST', body: JSON.stringify({ message_id: messageId, conversation_id: conversationId, note, remind_at: remindAt }) }),
+  deleteReminder: (id) => apiFetch(`/api/chat/reminders/${id}`, { method: 'DELETE' }),
   activity: ({ before, limit = 30 } = {}) => {
     const qs = new URLSearchParams();
     if (before) qs.set('before', before);

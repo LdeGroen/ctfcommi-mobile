@@ -167,6 +167,9 @@ export default function NoteEditorScreen({ route, navigation }) {
     setDueForId(null); setManualDue('');
     try { setNote(await chat.setTodoDue(note.id, itemId, dueOn || null)); } catch (e) { Alert.alert('Deadline mislukt', e.message || ''); }
   };
+  const setRecurItem = async (itemId, recurrence) => {
+    try { setNote(await chat.setTodoRecurrence(note.id, itemId, recurrence)); } catch (e) { Alert.alert('Herhaling mislukt', e.message || ''); }
+  };
 
   const assignItemObj = todos.find((t) => t.id === assignForId);
   const dueItemObj = todos.find((t) => t.id === dueForId);
@@ -263,9 +266,10 @@ export default function NoteEditorScreen({ route, navigation }) {
                           <Feather name="x" size={16} color={c.muted} />
                         </TouchableOpacity>
                       </View>
-                      {(it.due_on || (it.assignees || []).length > 0 || (it.done && it.done_by_name)) && (
+                      {(it.due_on || it.recurrence || (it.assignees || []).length > 0 || (it.done && it.done_by_name)) && (
                         <View style={styles.todoMeta}>
                           {it.due_on ? <Text style={[styles.dueBadge, !it.done && isOverdue(it.due_on) ? styles.dueOverdue : styles.dueNormal]}>{fmtDue(it.due_on)}</Text> : null}
+                          {it.recurrence ? <Feather name="repeat" size={12} color="#b45309" /> : null}
                           {(it.assignees || []).slice(0, 4).map((a) => (
                             <View key={a.id} style={styles.avatarWrap}><Avatar name={a.name} uri={a.avatar} size={20} /></View>
                           ))}
@@ -398,6 +402,19 @@ export default function NoteEditorScreen({ route, navigation }) {
                 <Feather name="x" size={14} color="#dc2626" /><Text style={{ color: '#dc2626', fontSize: 14 }}>Deadline wissen</Text>
               </TouchableOpacity>
             ) : null}
+
+            <Text style={[styles.modalTitle, { color: c.text, fontSize: 14, marginTop: 14 }]}>Herhaling</Text>
+            {[['Geen', null], ['Elke week', 'weekly'], ['Elke maand', 'monthly']].map(([label, val]) => {
+              const on = (dueItemObj?.recurrence || null) === val;
+              return (
+                <TouchableOpacity key={label} style={styles.memberRow} onPress={() => setRecurItem(dueForId, val)}>
+                  <Feather name={on ? 'check-circle' : 'circle'} size={16} color={on ? '#f59e0b' : c.muted} />
+                  <Text style={{ color: c.text, fontSize: 15, flex: 1 }}>{label}</Text>
+                  {val ? <Feather name="repeat" size={14} color={c.muted} /> : null}
+                </TouchableOpacity>
+              );
+            })}
+            <Text style={{ color: c.muted, fontSize: 12, marginTop: 4 }}>Bij een terugkerende taak schuift de deadline na afvinken automatisch naar de volgende keer.</Text>
           </Pressable>
         </Pressable>
       </Modal>

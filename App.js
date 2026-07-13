@@ -20,6 +20,7 @@ import NewDmScreen from './screens/NewDmScreen';
 import NieuwScreen from './screens/NieuwScreen';
 import SharedFilesScreen from './screens/SharedFilesScreen';
 import NoteEditorScreen from './screens/NoteEditorScreen';
+import MijnTakenScreen from './screens/MijnTakenScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -123,6 +124,7 @@ export default function App() {
             </Stack.Screen>
             <Stack.Screen name="SharedFiles" component={SharedFilesScreen} options={{ title: 'Gedeelde bestanden' }} />
             <Stack.Screen name="NoteEditor" component={NoteEditorScreen} options={{ title: 'Notitie' }} />
+            <Stack.Screen name="MijnTaken" component={MijnTakenScreen} options={{ title: 'Mijn taken' }} />
           </>
         )}
       </Stack.Navigator>

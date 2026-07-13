@@ -77,6 +77,9 @@ export default function ConversationsScreen({ navigation, user, onLogout }) {
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+          <TouchableOpacity onPress={() => navigation.navigate('MijnTaken')}>
+            <Feather name="check-square" size={20} color="#fff" />
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Nieuw')}>
             <Feather name="inbox" size={20} color="#fff" />
           </TouchableOpacity>
