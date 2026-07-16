@@ -3,7 +3,7 @@
     "name": "CTF Commi",
     "slug": "ctfcommi",
     "scheme": "commi",
-    "version": "0.1.11",
+    "version": "0.1.12",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -46,6 +46,7 @@
         }
       ],
       "./plugins/withFmtConstevalFix",
+      "./plugins/withOptOutEdgeToEdge",
       "expo-secure-store",
       "expo-asset",
       [
