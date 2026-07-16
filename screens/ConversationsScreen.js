@@ -141,13 +141,29 @@ export default function ConversationsScreen({ navigation, user, onLogout }) {
       renderItem={renderItem}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       ListHeaderComponent={
-        <TouchableOpacity onPress={() => navigation.navigate('Activity')} style={[styles.row, { borderColor: c.border }]}>
-          <Feather name="list" size={20} color={c.text} style={{ marginRight: 10 }} />
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.name, { color: c.text, fontWeight: '600' }]}>Overzicht</Text>
-            <Text style={[styles.preview, { color: c.muted }]}>Berichten & threads — laatste 30 dagen</Text>
-          </View>
-        </TouchableOpacity>
+        <View>
+          <TouchableOpacity onPress={() => navigation.navigate('Activity')} style={[styles.row, { borderColor: c.border }]}>
+            <Feather name="list" size={20} color={c.text} style={{ marginRight: 10 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.name, { color: c.text, fontWeight: '600' }]}>Overzicht</Text>
+              <Text style={[styles.preview, { color: c.muted }]}>Berichten & threads — laatste 30 dagen</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Activiteit')} style={[styles.row, { borderColor: c.border }]}>
+            <Feather name="activity" size={20} color={c.text} style={{ marginRight: 10 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.name, { color: c.text, fontWeight: '600' }]}>Activiteit</Text>
+              <Text style={[styles.preview, { color: c.muted }]}>Reacties, thread-antwoorden en vermeldingen</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Saved')} style={[styles.row, { borderColor: c.border }]}>
+            <Feather name="bookmark" size={20} color={c.text} style={{ marginRight: 10 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.name, { color: c.text, fontWeight: '600' }]}>Bewaren voor later</Text>
+              <Text style={[styles.preview, { color: c.muted }]}>Je bewaarde berichten</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       }
       ListEmptyComponent={<Text style={{ color: c.muted, textAlign: 'center', marginTop: 40 }}>Nog geen gesprekken.</Text>}
     />

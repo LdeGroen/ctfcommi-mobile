@@ -80,6 +80,11 @@ export const chat = {
     if (limit) qs.set('limit', limit);
     return apiFetch(`/api/chat/activity?${qs.toString()}`);
   },
+  // Persoonlijke activiteit (reacties op mij, thread-antwoorden, vermeldingen).
+  activityFeed: ({ limit = 40 } = {}) => apiFetch(`/api/chat/activity/feed?limit=${limit}`),
+  // Bewaren voor later.
+  saved: () => apiFetch('/api/chat/saved'),
+  toggleSave: (messageId) => apiFetch(`/api/chat/messages/${messageId}/save`, { method: 'POST' }),
   search: ({ q, conversationId, before, limit = 30 } = {}) => {
     const qs = new URLSearchParams();
     qs.set('q', q || '');

@@ -206,6 +206,12 @@ export default function ChatScreen({ route, navigation }) {
   }, []);
 
   const openRemind = useCallback((msg) => setRemindFor(msg), []);
+  const saveForLater = useCallback(async (msg) => {
+    try {
+      const r = await chat.toggleSave(msg.id);
+      Alert.alert(r.saved ? 'Bewaard' : 'Verwijderd', r.saved ? 'Terug te vinden onder "Bewaren voor later".' : 'Uit je bewaarlijst gehaald.');
+    } catch (e) { Alert.alert('Mislukt', e.message || ''); }
+  }, []);
   const openReads = useCallback(async (msg) => {
     setReadsModal({ loading: true });
     try { const r = await chat.messageReads(msg.id); setReadsModal({ loading: false, ...r }); }
@@ -236,8 +242,8 @@ export default function ChatScreen({ route, navigation }) {
   };
 
   const renderItem = useCallback(({ item }) => (
-    <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} onOpenNote={openNote} onToggleTodo={toggleTodo} onRemind={openRemind} onShowReads={openReads} />
-  ), [c, me, openThread, handleReact, startEdit, handleDelete, openNote, toggleTodo, openRemind, openReads]);
+    <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} onOpenNote={openNote} onToggleTodo={toggleTodo} onRemind={openRemind} onSave={saveForLater} onShowReads={openReads} />
+  ), [c, me, openThread, handleReact, startEdit, handleDelete, openNote, toggleTodo, openRemind, saveForLater, openReads]);
 
   const pinnedNotes = messages.filter((m) => m.kind === 'note' && m.pinned_at && !m.deleted_at);
   // Vastgeprikte notities tonen we in de pinbalk; niet nóg eens in de stroom.

@@ -44,7 +44,7 @@ function isOverdue(iso) {
 // de thread-knop te tonen, en onReact om reageren mogelijk te maken.
 // Gememoizeerd (zie export onderaan) zodat alleen gewijzigde berichten opnieuw
 // renderen — scheelt veel werk bij lange gesprekken.
-function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onOpenNote, onToggleTodo, onRemind, onShowReads }) {
+function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onOpenNote, onToggleTodo, onRemind, onSave, onShowReads }) {
   const [picker, setPicker] = useState(false);
 
   if (item.deleted_at) {
@@ -102,7 +102,7 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
 
   const mine = me && item.user_id === me.id;
   const react = (emoji) => { setPicker(false); onReact && onReact(item, emoji); };
-  const hasSheet = !!onReact || !!onRemind || (mine && (onEdit || onDelete));
+  const hasSheet = !!onReact || !!onRemind || !!onSave || (mine && (onEdit || onDelete));
 
   return (
     <Pressable onLongPress={() => hasSheet && setPicker(true)} delayLongPress={250} style={s.msg}>
@@ -190,12 +190,18 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
                 ))}
               </View>
             )}
-            {(onRemind || (mine && (onEdit || onDelete))) && (
+            {(onRemind || onSave || (mine && (onEdit || onDelete))) && (
               <View style={[s.actions, { borderColor: c.border }]}>
                 {onRemind && (
                   <TouchableOpacity style={s.actionBtn} onPress={() => { setPicker(false); onRemind(item); }}>
                     <Feather name="clock" size={16} color={c.text} />
                     <Text style={[s.actionText, { color: c.text }]}>Herinner me</Text>
+                  </TouchableOpacity>
+                )}
+                {onSave && (
+                  <TouchableOpacity style={s.actionBtn} onPress={() => { setPicker(false); onSave(item); }}>
+                    <Feather name="bookmark" size={16} color={c.text} />
+                    <Text style={[s.actionText, { color: c.text }]}>Bewaren voor later</Text>
                   </TouchableOpacity>
                 )}
                 {mine && onEdit && (
