@@ -7,9 +7,11 @@ import { getEcho } from '../src/echo';
 import { shareFromDrive } from '../src/drive';
 import { convertEmoticons } from '../src/emoticons';
 import MessageView, { theme } from '../src/MessageView';
+import { useBottomBarInset } from '../src/useBottomBarInset';
 
 export default function ThreadScreen({ route }) {
   const { convId, parentId } = route.params;
+  const bottomInset = useBottomBarInset();
   const dark = useColorScheme() === 'dark';
   const c = useMemo(() => theme(dark), [dark]);
   const headerHeight = useHeaderHeight();
@@ -117,7 +119,7 @@ export default function ThreadScreen({ route }) {
         windowSize={11}
         removeClippedSubviews
       />
-      <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg }]}>
+      <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
         <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
           <Feather name="hard-drive" size={20} color={c.muted} />
         </TouchableOpacity>
