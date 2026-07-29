@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, StyleSheet, useColorScheme, Alert, Modal, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import { View, FlatList, TextInput, TouchableOpacity, Text, StyleSheet, useColorScheme, Alert, Modal, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import Avatar from '../src/Avatar';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
@@ -256,7 +256,7 @@ export default function ChatScreen({ route, navigation }) {
   // 'padding' — op beide platforms. De onderste balk houdt daarnaast de
   // navigatiebalk-inset vrij via useBottomBarInset.
   return (
-    <KeyboardAvoidingView ref={kbRef} style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbOverlap }}>
+    <View ref={kbRef} collapsable={false} style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbOverlap }}>
       {pinnedNotes.length > 0 && (
         <View style={[styles.pinBar, { borderColor: c.noteBorder, backgroundColor: c.noteBg }]}>
           {pinnedNotes.map((n) => (
@@ -365,7 +365,7 @@ export default function ChatScreen({ route, navigation }) {
           </Pressable>
         </Pressable>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal, Pressable,
-  KeyboardAvoidingView, Alert, ActivityIndicator, useColorScheme,
+  Alert, ActivityIndicator, useColorScheme,
 } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
@@ -198,7 +198,7 @@ export default function NoteEditorScreen({ route, navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView ref={kbRef} style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbOverlap }}>
+    <View ref={kbRef} collapsable={false} style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbOverlap }}>
       <View style={{ flex: 1, padding: 12 }}>
         <TextInput
           value={title}
@@ -422,7 +422,7 @@ export default function NoteEditorScreen({ route, navigation }) {
           </Pressable>
         </Pressable>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

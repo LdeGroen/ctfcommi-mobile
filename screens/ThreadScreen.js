@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, StyleSheet, useColorScheme } from 'react-native';
+import { View, FlatList, TextInput, TouchableOpacity, Text, StyleSheet, useColorScheme } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
@@ -110,7 +110,7 @@ export default function ThreadScreen({ route }) {
 
   // Zie ChatScreen: edge-to-edge (targetSdk 36) → zelf omhoog schuiven.
   return (
-    <KeyboardAvoidingView ref={kbRef} style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbOverlap }}>
+    <View ref={kbRef} collapsable={false} style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbOverlap }}>
       <FlatList
         data={replies}
         keyExtractor={(x) => String(x.id)}
@@ -132,7 +132,7 @@ export default function ThreadScreen({ route }) {
           <Feather name="send" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, StyleSheet, Alert, KeyboardAvoidingView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { loginWithGoogle, loginWithPassword } from '../src/auth';
 import { useKeyboardOverlap } from '../src/useKeyboardOverlap';
@@ -47,7 +47,7 @@ export default function LoginScreen({ onLoggedIn, navigation }) {
     >
       {/* Edge-to-edge (targetSdk 36): het venster krimpt niet meer voor het
           toetsenbord, dus ook op Android zelf omhoog schuiven. */}
-      <KeyboardAvoidingView ref={kbRef} style={[styles.container, { paddingBottom: kbOverlap }]}>
+      <View ref={kbRef} collapsable={false} style={[styles.container, { paddingBottom: kbOverlap }]}>
       {/* Lang drukken op het logo opent het verborgen layout-testscherm; daarmee
           is het toetsenbord-/navigatiebalk-gedrag van de composer te testen
           zonder in te loggen (zie LayoutTestScreen). */}
@@ -93,7 +93,7 @@ export default function LoginScreen({ onLoggedIn, navigation }) {
           </TouchableOpacity>
         </View>
       )}
-      </KeyboardAvoidingView>
+      </View>
     </LinearGradient>
   );
 }

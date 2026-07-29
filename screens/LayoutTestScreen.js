@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, StyleSheet, useColorScheme } from 'react-native';
+import { View, FlatList, TextInput, TouchableOpacity, Text, StyleSheet, useColorScheme } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../src/MessageView';
@@ -44,12 +44,7 @@ export default function LayoutTestScreen() {
   }));
 
   return (
-    <KeyboardAvoidingView
-      ref={autoRef}
-      style={{ flex: 1, backgroundColor: c.bg, paddingBottom: modus.auto ? overlap : 0 }}
-      behavior={modus.auto ? undefined : modus.behavior}
-      keyboardVerticalOffset={offset}
-    >
+    <View ref={autoRef} collapsable={false} style={{ flex: 1, backgroundColor: c.bg, paddingBottom: overlap }}>
       <View style={[styles.balk, { borderColor: c.border, backgroundColor: c.noteBg }]}>
         {MODI.map((m) => (
           <TouchableOpacity
@@ -92,7 +87,7 @@ export default function LayoutTestScreen() {
         />
         <TouchableOpacity style={styles.send}><Feather name="send" size={18} color="#fff" /></TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
