@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, FlatList, TextInput, TouchableOpacity, Text, StyleSheet, useColorScheme } from 'react-native';
+import { View, FlatList, TextInput, TouchableOpacity, Text, StyleSheet, useColorScheme, PixelRatio } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../src/MessageView';
@@ -20,8 +21,10 @@ import KeyboardScreen from '../src/KeyboardScreen';
  * stand klopt.
  */
 const MODI = [
-  { id: 'geen', label: 'offset 0', offset: 0 },
-  { id: 'header', label: 'offset = header', offset: null }, // null = headerHeight
+  { id: 'geen', label: 'offset 0' },
+  { id: 'header', label: 'header' },
+  { id: 'ratio', label: 'header/ratio' },
+  { id: 'inset', label: '56+inset.top' },
 ];
 
 export default function LayoutTestScreen() {
@@ -32,8 +35,12 @@ export default function LayoutTestScreen() {
   const [modusId, setModusId] = useState('geen');
   const [text, setText] = useState('');
 
-  const modus = MODI.find((m) => m.id === modusId) || MODI[0];
-  const offset = modus.offset === null ? headerHeight : modus.offset;
+  const insets = useSafeAreaInsets();
+  const ratio = PixelRatio.get();
+  const offset = modusId === 'header' ? headerHeight
+    : modusId === 'ratio' ? headerHeight / ratio
+    : modusId === 'inset' ? 56 + insets.top
+    : 0;
 
   const rijen = Array.from({ length: 25 }, (_, i) => ({
     id: String(i),
@@ -55,6 +62,10 @@ export default function LayoutTestScreen() {
       </View>
       <Text style={{ color: c.muted, fontSize: 11, paddingHorizontal: 12, paddingBottom: 4 }}>
         header {Math.round(headerHeight)} · onderinset {Math.round(bottomInset)} · offset {Math.round(offset)}
+      </Text>
+      {/* Ruwe waarden — hiermee is te zien welke eenheid waar gebruikt wordt. */}
+      <Text style={{ color: c.muted, fontSize: 11, paddingHorizontal: 12, paddingBottom: 4 }}>
+        ratio {ratio} · inset.top {Math.round(insets.top)} · inset.bottom {Math.round(insets.bottom)}
       </Text>
 
       <FlatList
