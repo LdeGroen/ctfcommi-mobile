@@ -9,11 +9,10 @@ import { shareFromDrive } from '../src/drive';
 import { convertEmoticons } from '../src/emoticons';
 import MessageView, { theme } from '../src/MessageView';
 import { useBottomBarInset } from '../src/useBottomBarInset';
-import { useKeyboardOverlap } from '../src/useKeyboardOverlap';
+import KeyboardScreen from '../src/KeyboardScreen';
 
 export default function ChatScreen({ route, navigation }) {
   const bottomInset = useBottomBarInset();
-  const { ref: kbRef, lift: kbLift, onLayout: kbLayout } = useKeyboardOverlap();
   const { id } = route.params;
   const dark = useColorScheme() === 'dark';
   const c = useMemo(() => theme(dark), [dark]);
@@ -256,7 +255,7 @@ export default function ChatScreen({ route, navigation }) {
   // 'padding' — op beide platforms. De onderste balk houdt daarnaast de
   // navigatiebalk-inset vrij via useBottomBarInset.
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbLift }}>
+    <KeyboardScreen style={{ flex: 1, backgroundColor: c.bg }}>
       {pinnedNotes.length > 0 && (
         <View style={[styles.pinBar, { borderColor: c.noteBorder, backgroundColor: c.noteBg }]}>
           {pinnedNotes.map((n) => (
@@ -298,12 +297,12 @@ export default function ChatScreen({ route, navigation }) {
         </View>
       )}
       {conv && conv.can_post === false ? (
-        <View ref={kbRef} onLayout={kbLayout} collapsable={false} style={[styles.blockedBar, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 14 + bottomInset }]}>
+        <View style={[styles.blockedBar, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 14 + bottomInset }]}>
           <Feather name="volume-2" size={15} color={c.muted} />
           <Text style={{ color: c.muted, fontSize: 13, flex: 1 }}>Aankondigingskanaal — alleen de beheerder kan hier berichten plaatsen.</Text>
         </View>
       ) : (
-        <View ref={kbRef} onLayout={kbLayout} collapsable={false} style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
+        <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
           {!editingId && (
             <>
               <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
@@ -365,7 +364,7 @@ export default function ChatScreen({ route, navigation }) {
           </Pressable>
         </Pressable>
       </Modal>
-    </View>
+    </KeyboardScreen>
   );
 }
 

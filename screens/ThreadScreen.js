@@ -8,12 +8,11 @@ import { shareFromDrive } from '../src/drive';
 import { convertEmoticons } from '../src/emoticons';
 import MessageView, { theme } from '../src/MessageView';
 import { useBottomBarInset } from '../src/useBottomBarInset';
-import { useKeyboardOverlap } from '../src/useKeyboardOverlap';
+import KeyboardScreen from '../src/KeyboardScreen';
 
 export default function ThreadScreen({ route }) {
   const { convId, parentId } = route.params;
   const bottomInset = useBottomBarInset();
-  const { ref: kbRef, lift: kbLift, onLayout: kbLayout } = useKeyboardOverlap();
   const dark = useColorScheme() === 'dark';
   const c = useMemo(() => theme(dark), [dark]);
   const headerHeight = useHeaderHeight();
@@ -110,7 +109,7 @@ export default function ThreadScreen({ route }) {
 
   // Zie ChatScreen: edge-to-edge (targetSdk 36) → zelf omhoog schuiven.
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbLift }}>
+    <KeyboardScreen style={{ flex: 1, backgroundColor: c.bg }}>
       <FlatList
         data={replies}
         keyExtractor={(x) => String(x.id)}
@@ -122,7 +121,7 @@ export default function ThreadScreen({ route }) {
         windowSize={11}
         removeClippedSubviews
       />
-      <View ref={kbRef} onLayout={kbLayout} collapsable={false} style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
+      <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
         <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
           <Feather name="hard-drive" size={20} color={c.muted} />
         </TouchableOpacity>
@@ -132,7 +131,7 @@ export default function ThreadScreen({ route }) {
           <Feather name="send" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardScreen>
   );
 }
 

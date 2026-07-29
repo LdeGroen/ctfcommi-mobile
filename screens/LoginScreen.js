@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { loginWithGoogle, loginWithPassword } from '../src/auth';
-import { useKeyboardOverlap } from '../src/useKeyboardOverlap';
+import KeyboardScreen from '../src/KeyboardScreen';
 
 export default function LoginScreen({ onLoggedIn, navigation }) {
-  const { ref: kbRef, lift: kbLift, onLayout: kbLayout } = useKeyboardOverlap();
   const [busy, setBusy] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
   const [email, setEmail] = useState('');
@@ -45,9 +44,7 @@ export default function LoginScreen({ onLoggedIn, navigation }) {
       end={{ x: 1, y: 1 }}
       style={styles.gradient}
     >
-      {/* Edge-to-edge (targetSdk 36): het venster krimpt niet meer voor het
-          toetsenbord, dus ook op Android zelf omhoog schuiven. */}
-      <View style={[styles.container, { paddingBottom: kbLift }]}>
+      <KeyboardScreen style={styles.container}>
       {/* Lang drukken op het logo opent het verborgen layout-testscherm; daarmee
           is het toetsenbord-/navigatiebalk-gedrag van de composer te testen
           zonder in te loggen (zie LayoutTestScreen). */}
@@ -66,7 +63,7 @@ export default function LoginScreen({ onLoggedIn, navigation }) {
           <Text style={styles.linkText}>Inloggen met e-mail</Text>
         </TouchableOpacity>
       ) : (
-        <View ref={kbRef} onLayout={kbLayout} collapsable={false} style={styles.emailBox}>
+        <View style={styles.emailBox}>
           <TextInput
             style={styles.input}
             value={email}
@@ -93,7 +90,7 @@ export default function LoginScreen({ onLoggedIn, navigation }) {
           </TouchableOpacity>
         </View>
       )}
-      </View>
+      </KeyboardScreen>
     </LinearGradient>
   );
 }

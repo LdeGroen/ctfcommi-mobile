@@ -4,7 +4,7 @@ import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../src/MessageView';
 import { useBottomBarInset } from '../src/useBottomBarInset';
-import { useKeyboardOverlap } from '../src/useKeyboardOverlap';
+import KeyboardScreen from '../src/KeyboardScreen';
 
 /**
  * Verborgen layout-testscherm (lang drukken op het logo in het inlogscherm).
@@ -16,14 +16,12 @@ import { useKeyboardOverlap } from '../src/useKeyboardOverlap';
  * ruimte niet opvalt. Met dit scherm kan het gedrag getest worden zonder in te
  * loggen — handig bij Android-upgrades (edge-to-edge, targetSdk).
  *
- * De schakelaars bovenin wisselen tussen de mogelijke KeyboardAvoidingView-
- * standen, zodat je in één build kunt zien welke stand klopt.
+ * De schakelaars bovenin wisselen de offset, zodat in één build te zien is welke
+ * stand klopt.
  */
 const MODI = [
-  { id: 'auto', label: 'auto (meten)', auto: true },
-  { id: 'geen', label: 'geen', behavior: undefined, offset: 0 },
-  { id: 'padding', label: 'padding', behavior: 'padding', offset: 0 },
-  { id: 'padding+offset', label: 'padding+offset', behavior: 'padding', offset: null }, // null = headerHeight
+  { id: 'geen', label: 'offset 0', offset: 0 },
+  { id: 'header', label: 'offset = header', offset: null }, // null = headerHeight
 ];
 
 export default function LayoutTestScreen() {
@@ -31,12 +29,11 @@ export default function LayoutTestScreen() {
   const c = theme(dark);
   const headerHeight = useHeaderHeight();
   const bottomInset = useBottomBarInset();
-  const [modusId, setModusId] = useState('auto');
+  const [modusId, setModusId] = useState('geen');
   const [text, setText] = useState('');
-  const { ref: kbRef, lift, onLayout: kbLayout, diag } = useKeyboardOverlap();
 
   const modus = MODI.find((m) => m.id === modusId) || MODI[0];
-  const offset = modus.offset === null ? headerHeight : (modus.offset || 0);
+  const offset = modus.offset === null ? headerHeight : modus.offset;
 
   const rijen = Array.from({ length: 25 }, (_, i) => ({
     id: String(i),
@@ -44,7 +41,7 @@ export default function LayoutTestScreen() {
   }));
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg, paddingBottom: lift }}>
+    <KeyboardScreen style={{ flex: 1, backgroundColor: c.bg }} offset={offset}>
       <View style={[styles.balk, { borderColor: c.border, backgroundColor: c.noteBg }]}>
         {MODI.map((m) => (
           <TouchableOpacity
@@ -57,12 +54,7 @@ export default function LayoutTestScreen() {
         ))}
       </View>
       <Text style={{ color: c.muted, fontSize: 11, paddingHorizontal: 12, paddingBottom: 4 }}>
-        header {Math.round(headerHeight)} · onderinset {Math.round(bottomInset)} · offset {Math.round(offset)} · lift {Math.round(lift)}
-      </Text>
-      {/* Ruwe meetwaarden — hiermee is te zien wélke waarde niet klopt als de
-          composer toch niet netjes boven het toetsenbord uitkomt. */}
-      <Text style={{ color: c.muted, fontSize: 11, paddingHorizontal: 12, paddingBottom: 4 }}>
-        {diag ? `scherm ${diag.scherm} · venster ${diag.venster} · kbH ${diag.kbH} · screenY ${diag.screenY} · top ${diag.top ?? '-'} · onder ${diag.onder ?? '-'}` : 'nog niet gemeten'}
+        header {Math.round(headerHeight)} · onderinset {Math.round(bottomInset)} · offset {Math.round(offset)}
       </Text>
 
       <FlatList
@@ -78,7 +70,7 @@ export default function LayoutTestScreen() {
       />
 
       {/* Exact dezelfde composer-opzet als in ChatScreen. */}
-      <View ref={kbRef} onLayout={kbLayout} collapsable={false} style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
+      <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
         <TouchableOpacity style={styles.knop}><Feather name="hard-drive" size={20} color={c.muted} /></TouchableOpacity>
         <TouchableOpacity style={styles.knop}><Feather name="file-text" size={20} color={c.muted} /></TouchableOpacity>
         <TouchableOpacity style={styles.knop}><Feather name="check-square" size={20} color={c.muted} /></TouchableOpacity>
@@ -92,7 +84,7 @@ export default function LayoutTestScreen() {
         />
         <TouchableOpacity style={styles.send}><Feather name="send" size={18} color="#fff" /></TouchableOpacity>
       </View>
-    </View>
+    </KeyboardScreen>
   );
 }
 

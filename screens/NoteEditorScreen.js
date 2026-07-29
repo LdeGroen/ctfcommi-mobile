@@ -9,7 +9,7 @@ import Markdown from 'react-native-markdown-display';
 import Avatar from '../src/Avatar';
 import { chat } from '../src/api';
 import { getEcho } from '../src/echo';
-import { useKeyboardOverlap } from '../src/useKeyboardOverlap';
+import KeyboardScreen from '../src/KeyboardScreen';
 
 function fmtDue(iso) {
   if (!iso) return '';
@@ -45,7 +45,6 @@ export default function NoteEditorScreen({ route, navigation }) {
   const dark = useColorScheme() === 'dark';
   const c = theme(dark);
   const headerHeight = useHeaderHeight();
-  const { ref: kbRef, lift: kbLift, onLayout: kbLayout } = useKeyboardOverlap();
   const initial = route.params?.note || {};
   const convId = route.params?.convId ?? initial.conversation_id;
   const members = route.params?.members || [];
@@ -198,7 +197,7 @@ export default function NoteEditorScreen({ route, navigation }) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbLift }}>
+    <KeyboardScreen style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={{ flex: 1, padding: 12 }}>
         <TextInput
           value={title}
@@ -344,7 +343,7 @@ export default function NoteEditorScreen({ route, navigation }) {
           </>
         )}
 
-        <View ref={kbRef} onLayout={kbLayout} collapsable={false} style={styles.actions}>
+        <View style={styles.actions}>
           <TouchableOpacity onPress={save} disabled={saving} style={[styles.saveBtn, saving && { opacity: 0.5 }]}>
             {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveText}>Opslaan</Text>}
           </TouchableOpacity>
@@ -422,7 +421,7 @@ export default function NoteEditorScreen({ route, navigation }) {
           </Pressable>
         </Pressable>
       </Modal>
-    </View>
+    </KeyboardScreen>
   );
 }
 

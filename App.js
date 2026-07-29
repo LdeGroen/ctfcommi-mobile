@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
@@ -106,6 +107,10 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+    {/* Leest de echte toetsenbord-inset uit Android/iOS zelf; nodig sinds
+        edge-to-edge (targetSdk 36), waar de standaard KeyboardAvoidingView
+        er per toestel naast zit. */}
+    <KeyboardProvider>
     <NavigationContainer ref={navRef} onReady={() => setNavReady(true)}>
       <StatusBar style="light" />
       <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: '#396971' }, headerTintColor: '#fff', headerTitleStyle: { fontWeight: '700' } }}>
@@ -142,6 +147,7 @@ export default function App() {
         )}
       </Stack.Navigator>
     </NavigationContainer>
+    </KeyboardProvider>
     </SafeAreaProvider>
     </GestureHandlerRootView>
   );
