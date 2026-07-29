@@ -45,7 +45,7 @@ export default function NoteEditorScreen({ route, navigation }) {
   const dark = useColorScheme() === 'dark';
   const c = theme(dark);
   const headerHeight = useHeaderHeight();
-  const { ref: kbRef, overlap: kbOverlap } = useKeyboardOverlap();
+  const { ref: kbRef, lift: kbLift, onLayout: kbLayout } = useKeyboardOverlap();
   const initial = route.params?.note || {};
   const convId = route.params?.convId ?? initial.conversation_id;
   const members = route.params?.members || [];
@@ -198,7 +198,7 @@ export default function NoteEditorScreen({ route, navigation }) {
   };
 
   return (
-    <View ref={kbRef} collapsable={false} style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbOverlap }}>
+    <View style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbLift }}>
       <View style={{ flex: 1, padding: 12 }}>
         <TextInput
           value={title}
@@ -344,7 +344,7 @@ export default function NoteEditorScreen({ route, navigation }) {
           </>
         )}
 
-        <View style={styles.actions}>
+        <View ref={kbRef} onLayout={kbLayout} collapsable={false} style={styles.actions}>
           <TouchableOpacity onPress={save} disabled={saving} style={[styles.saveBtn, saving && { opacity: 0.5 }]}>
             {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveText}>Opslaan</Text>}
           </TouchableOpacity>

@@ -13,7 +13,7 @@ import { useKeyboardOverlap } from '../src/useKeyboardOverlap';
 export default function ThreadScreen({ route }) {
   const { convId, parentId } = route.params;
   const bottomInset = useBottomBarInset();
-  const { ref: kbRef, overlap: kbOverlap } = useKeyboardOverlap();
+  const { ref: kbRef, lift: kbLift, onLayout: kbLayout } = useKeyboardOverlap();
   const dark = useColorScheme() === 'dark';
   const c = useMemo(() => theme(dark), [dark]);
   const headerHeight = useHeaderHeight();
@@ -110,7 +110,7 @@ export default function ThreadScreen({ route }) {
 
   // Zie ChatScreen: edge-to-edge (targetSdk 36) → zelf omhoog schuiven.
   return (
-    <View ref={kbRef} collapsable={false} style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbOverlap }}>
+    <View style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbLift }}>
       <FlatList
         data={replies}
         keyExtractor={(x) => String(x.id)}
@@ -122,7 +122,7 @@ export default function ThreadScreen({ route }) {
         windowSize={11}
         removeClippedSubviews
       />
-      <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
+      <View ref={kbRef} onLayout={kbLayout} collapsable={false} style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
         <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
           <Feather name="hard-drive" size={20} color={c.muted} />
         </TouchableOpacity>

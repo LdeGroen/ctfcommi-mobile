@@ -5,7 +5,7 @@ import { loginWithGoogle, loginWithPassword } from '../src/auth';
 import { useKeyboardOverlap } from '../src/useKeyboardOverlap';
 
 export default function LoginScreen({ onLoggedIn, navigation }) {
-  const { ref: kbRef, overlap: kbOverlap } = useKeyboardOverlap();
+  const { ref: kbRef, lift: kbLift, onLayout: kbLayout } = useKeyboardOverlap();
   const [busy, setBusy] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
   const [email, setEmail] = useState('');
@@ -47,7 +47,7 @@ export default function LoginScreen({ onLoggedIn, navigation }) {
     >
       {/* Edge-to-edge (targetSdk 36): het venster krimpt niet meer voor het
           toetsenbord, dus ook op Android zelf omhoog schuiven. */}
-      <View ref={kbRef} collapsable={false} style={[styles.container, { paddingBottom: kbOverlap }]}>
+      <View style={[styles.container, { paddingBottom: kbLift }]}>
       {/* Lang drukken op het logo opent het verborgen layout-testscherm; daarmee
           is het toetsenbord-/navigatiebalk-gedrag van de composer te testen
           zonder in te loggen (zie LayoutTestScreen). */}
@@ -66,7 +66,7 @@ export default function LoginScreen({ onLoggedIn, navigation }) {
           <Text style={styles.linkText}>Inloggen met e-mail</Text>
         </TouchableOpacity>
       ) : (
-        <View style={styles.emailBox}>
+        <View ref={kbRef} onLayout={kbLayout} collapsable={false} style={styles.emailBox}>
           <TextInput
             style={styles.input}
             value={email}

@@ -33,7 +33,7 @@ export default function LayoutTestScreen() {
   const bottomInset = useBottomBarInset();
   const [modusId, setModusId] = useState('auto');
   const [text, setText] = useState('');
-  const { ref: autoRef, overlap } = useKeyboardOverlap();
+  const { ref: kbRef, lift, onLayout: kbLayout } = useKeyboardOverlap();
 
   const modus = MODI.find((m) => m.id === modusId) || MODI[0];
   const offset = modus.offset === null ? headerHeight : (modus.offset || 0);
@@ -44,7 +44,7 @@ export default function LayoutTestScreen() {
   }));
 
   return (
-    <View ref={autoRef} collapsable={false} style={{ flex: 1, backgroundColor: c.bg, paddingBottom: overlap }}>
+    <View style={{ flex: 1, backgroundColor: c.bg, paddingBottom: lift }}>
       <View style={[styles.balk, { borderColor: c.border, backgroundColor: c.noteBg }]}>
         {MODI.map((m) => (
           <TouchableOpacity
@@ -57,7 +57,7 @@ export default function LayoutTestScreen() {
         ))}
       </View>
       <Text style={{ color: c.muted, fontSize: 11, paddingHorizontal: 12, paddingBottom: 4 }}>
-        header {Math.round(headerHeight)} · onderinset {Math.round(bottomInset)} · offset {Math.round(offset)} · overlap {Math.round(overlap)}
+        header {Math.round(headerHeight)} · onderinset {Math.round(bottomInset)} · offset {Math.round(offset)} · lift {Math.round(lift)}
       </Text>
 
       <FlatList
@@ -73,7 +73,7 @@ export default function LayoutTestScreen() {
       />
 
       {/* Exact dezelfde composer-opzet als in ChatScreen. */}
-      <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
+      <View ref={kbRef} onLayout={kbLayout} collapsable={false} style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
         <TouchableOpacity style={styles.knop}><Feather name="hard-drive" size={20} color={c.muted} /></TouchableOpacity>
         <TouchableOpacity style={styles.knop}><Feather name="file-text" size={20} color={c.muted} /></TouchableOpacity>
         <TouchableOpacity style={styles.knop}><Feather name="check-square" size={20} color={c.muted} /></TouchableOpacity>

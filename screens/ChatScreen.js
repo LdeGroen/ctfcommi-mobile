@@ -13,7 +13,7 @@ import { useKeyboardOverlap } from '../src/useKeyboardOverlap';
 
 export default function ChatScreen({ route, navigation }) {
   const bottomInset = useBottomBarInset();
-  const { ref: kbRef, overlap: kbOverlap } = useKeyboardOverlap();
+  const { ref: kbRef, lift: kbLift, onLayout: kbLayout } = useKeyboardOverlap();
   const { id } = route.params;
   const dark = useColorScheme() === 'dark';
   const c = useMemo(() => theme(dark), [dark]);
@@ -256,7 +256,7 @@ export default function ChatScreen({ route, navigation }) {
   // 'padding' — op beide platforms. De onderste balk houdt daarnaast de
   // navigatiebalk-inset vrij via useBottomBarInset.
   return (
-    <View ref={kbRef} collapsable={false} style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbOverlap }}>
+    <View style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbLift }}>
       {pinnedNotes.length > 0 && (
         <View style={[styles.pinBar, { borderColor: c.noteBorder, backgroundColor: c.noteBg }]}>
           {pinnedNotes.map((n) => (
@@ -298,12 +298,12 @@ export default function ChatScreen({ route, navigation }) {
         </View>
       )}
       {conv && conv.can_post === false ? (
-        <View style={[styles.blockedBar, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 14 + bottomInset }]}>
+        <View ref={kbRef} onLayout={kbLayout} collapsable={false} style={[styles.blockedBar, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 14 + bottomInset }]}>
           <Feather name="volume-2" size={15} color={c.muted} />
           <Text style={{ color: c.muted, fontSize: 13, flex: 1 }}>Aankondigingskanaal — alleen de beheerder kan hier berichten plaatsen.</Text>
         </View>
       ) : (
-        <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
+        <View ref={kbRef} onLayout={kbLayout} collapsable={false} style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
           {!editingId && (
             <>
               <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
