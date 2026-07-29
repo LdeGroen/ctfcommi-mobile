@@ -4,9 +4,10 @@ iOS + Android client voor de interne chat. Web/desktop = repo `ctfcommi`,
 backend (Laravel) = repo `ctfbackend` (zie chat-sectie in die CLAUDE.md).
 
 ## Stack
-Expo SDK 52 (RN 0.76), React Navigation native-stack, expo-notifications/
+Expo SDK 54 (RN 0.81, React 19), React Navigation native-stack, expo-notifications/
 secure-store/web-browser/linking, pusher-js (realtime), react-native-markdown-display,
-@expo/vector-icons (Feather).
+@expo/vector-icons (Feather), react-native-keyboard-controller (+ reanimated/worklets)
+voor het toetsenbord — zie `src/KeyboardScreen.js`.
 
 ## Builds & store-submit
 - **Android (geen EAS-wachtrij):** `.github/workflows/android-gradle.yml` bouwt de
@@ -61,16 +62,22 @@ eas submit --platform ios --path ~/build-commi.ipa --profile production --non-in
 ### Valkuilen / wat we tegenkwamen
 - **`EAS_NO_VCS=1`** is nodig als de build vanuit een map zonder/los van git draait
   (anders: "Failed to get Git root path"). Met de git-clone is het verder prima.
-- **Node-versie:** pin **Node 22** (Expo SDK 52). Brew installeerde eerst Node 26 → die
+- **Node-versie:** pin **Node 22** (Expo SDK 54). Brew installeerde eerst Node 26 → die
   niet gebruiken; vandaar `node@22` met expliciet PATH.
-- **Certificaat-conflict (belangrijk):** stond er in de **login-keychain** van de mini nóg
-  een `Apple Distribution: Stichting CafeTheaterFestival`-certificaat (ander serienr. dan
-  dat van EAS), dan koos Xcode dat → archive faalt met *"Provisioning profile … doesn't
-  include signing certificate …"*. Fix: dat oude cert weghalen zodat alleen het
-  EAS-certificaat (in de tijdelijke build-keychain) overblijft:
-  `security find-identity -v -p codesigning` → de stray
-  `security delete-identity -Z <SHA1> ~/Library/Keychains/login.keychain-db`.
-  (De desktop-app gebruikt een **Developer ID**-cert — ander type, niet aankomen.)
+- **Certificaat-conflict (belangrijk):** vindt Xcode nóg een `Apple Distribution:
+  Stichting CafeTheaterFestival`-certificaat (ander serienr. dan dat van EAS), dan kiest
+  het dat → archive faalt met *"Provisioning profile … doesn't include signing
+  certificate …"*. Op de mini zat dat cert **niet** in de login-keychain maar in
+  `~/Library/Keychains/chriskatten.keychain-db`, die vóór login in de zoeklijst stond.
+  Fix zonder iets weg te gooien — die keychain uit de zoeklijst halen:
+  ```bash
+  security list-keychains -d user            # controleren wat er in staat
+  security list-keychains -d user -s ~/Library/Keychains/login.keychain-db
+  ```
+  Daarna blijft alleen het EAS-certificaat (in de tijdelijke build-keychain) over.
+  Terugzetten kan met hetzelfde commando met beide paden erachter.
+  Zoeken waar een cert woont: `security find-certificate -a -c "<naam>" | grep keychain`.
+  (De desktop-app gebruikt een **Developer ID**-cert — ander type, blijft in login staan.)
 - **buildNumber** wordt door EAS remote automatisch opgehoogd (autoIncrement); geen
   handmatige actie nodig.
 - De mini moet wakker + ingelogd zijn (FileVault aan, auto-login uit) en op Tailscale.
