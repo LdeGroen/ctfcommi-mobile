@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, StyleSheet, Alert, KeyboardAvoidingView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { loginWithGoogle, loginWithPassword } from '../src/auth';
 
@@ -43,7 +43,9 @@ export default function LoginScreen({ onLoggedIn }) {
       end={{ x: 1, y: 1 }}
       style={styles.gradient}
     >
-      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {/* Edge-to-edge (targetSdk 36): het venster krimpt niet meer voor het
+          toetsenbord, dus ook op Android zelf omhoog schuiven. */}
+      <KeyboardAvoidingView style={styles.container} behavior="padding">
       <Image source={require('../assets/icon.png')} style={styles.logo} />
       <Text style={styles.title}>CTF Commi</Text>
       <Text style={styles.subtitle}>Het interne berichtenkanaal van Café Theater Festival.</Text>

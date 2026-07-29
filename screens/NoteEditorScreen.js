@@ -1,8 +1,9 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal, Pressable,
-  KeyboardAvoidingView, Platform, Alert, ActivityIndicator, useColorScheme,
+  KeyboardAvoidingView, Alert, ActivityIndicator, useColorScheme,
 } from 'react-native';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
 import Avatar from '../src/Avatar';
@@ -42,6 +43,7 @@ function fmt(iso) {
 export default function NoteEditorScreen({ route, navigation }) {
   const dark = useColorScheme() === 'dark';
   const c = theme(dark);
+  const headerHeight = useHeaderHeight();
   const initial = route.params?.note || {};
   const convId = route.params?.convId ?? initial.conversation_id;
   const members = route.params?.members || [];
@@ -194,7 +196,7 @@ export default function NoteEditorScreen({ route, navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior="padding" keyboardVerticalOffset={headerHeight}>
       <View style={{ flex: 1, padding: 12 }}>
         <TextInput
           value={title}
