@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, Styl
 import { LinearGradient } from 'expo-linear-gradient';
 import { loginWithGoogle, loginWithPassword } from '../src/auth';
 
-export default function LoginScreen({ onLoggedIn }) {
+export default function LoginScreen({ onLoggedIn, navigation }) {
   const [busy, setBusy] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
   const [email, setEmail] = useState('');
@@ -46,7 +46,12 @@ export default function LoginScreen({ onLoggedIn }) {
       {/* Edge-to-edge (targetSdk 36): het venster krimpt niet meer voor het
           toetsenbord, dus ook op Android zelf omhoog schuiven. */}
       <KeyboardAvoidingView style={styles.container} behavior="padding">
-      <Image source={require('../assets/icon.png')} style={styles.logo} />
+      {/* Lang drukken op het logo opent het verborgen layout-testscherm; daarmee
+          is het toetsenbord-/navigatiebalk-gedrag van de composer te testen
+          zonder in te loggen (zie LayoutTestScreen). */}
+      <TouchableOpacity activeOpacity={1} delayLongPress={800} onLongPress={() => navigation?.navigate('LayoutTest')}>
+        <Image source={require('../assets/icon.png')} style={styles.logo} />
+      </TouchableOpacity>
       <Text style={styles.title}>CTF Commi</Text>
       <Text style={styles.subtitle}>Het interne berichtenkanaal van Café Theater Festival.</Text>
 

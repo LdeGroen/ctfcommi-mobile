@@ -22,6 +22,7 @@ import NieuwScreen from './screens/NieuwScreen';
 import SharedFilesScreen from './screens/SharedFilesScreen';
 import NoteEditorScreen from './screens/NoteEditorScreen';
 import MijnTakenScreen from './screens/MijnTakenScreen';
+import LayoutTestScreen from './screens/LayoutTestScreen';
 import ActiviteitScreen from './screens/ActiviteitScreen';
 import SavedScreen from './screens/SavedScreen';
 
@@ -109,9 +110,15 @@ export default function App() {
       <StatusBar style="light" />
       <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: '#396971' }, headerTintColor: '#fff', headerTitleStyle: { fontWeight: '700' } }}>
         {!user ? (
-          <Stack.Screen name="Login" options={{ headerShown: false }}>
-            {(props) => <LoginScreen {...props} onLoggedIn={loadUser} />}
-          </Stack.Screen>
+          <>
+            <Stack.Screen name="Login" options={{ headerShown: false }}>
+              {(props) => <LoginScreen {...props} onLoggedIn={loadUser} />}
+            </Stack.Screen>
+            {/* Verborgen: lang drukken op het logo. Zelfde opbouw als een
+                chatscherm (header + lijst + composer) om het toetsenbord-gedrag
+                te kunnen testen zonder in te loggen. */}
+            <Stack.Screen name="LayoutTest" component={LayoutTestScreen} options={{ title: 'Layout-test' }} />
+          </>
         ) : (
           <>
             <Stack.Screen name="Conversations" options={{ title: 'CTF Commi' }}>
