@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform, StyleSheet, useColorScheme, Alert, Modal, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import { View, FlatList, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, StyleSheet, useColorScheme, Alert, Modal, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import Avatar from '../src/Avatar';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
@@ -249,8 +249,12 @@ export default function ChatScreen({ route, navigation }) {
   // Vastgeprikte notities tonen we in de pinbalk; niet nóg eens in de stroom.
   const data = [...messages].filter((m) => !(m.kind === 'note' && m.pinned_at)).reverse(); // inverted: nieuwste onderaan
 
+  // Sinds targetSdk 36 tekent Android edge-to-edge: het venster krimpt niet meer
+  // voor het toetsenbord (adjustResize doet niets), dus we schuiven zelf omhoog met
+  // 'padding' — op beide platforms. De onderste balk houdt daarnaast de
+  // navigatiebalk-inset vrij via useBottomBarInset.
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior="padding" keyboardVerticalOffset={headerHeight}>
       {pinnedNotes.length > 0 && (
         <View style={[styles.pinBar, { borderColor: c.noteBorder, backgroundColor: c.noteBg }]}>
           {pinnedNotes.map((n) => (

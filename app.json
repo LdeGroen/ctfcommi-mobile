@@ -3,7 +3,7 @@
     "name": "CTF Commi",
     "slug": "ctfcommi",
     "scheme": "commi",
-    "version": "0.1.12",
+    "version": "0.1.13",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -40,13 +40,12 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36
           }
         }
       ],
       "./plugins/withFmtConstevalFix",
-      "./plugins/withOptOutEdgeToEdge",
       "expo-secure-store",
       "expo-asset",
       [
