@@ -44,7 +44,8 @@ export default function LoginScreen({ onLoggedIn, navigation }) {
       end={{ x: 1, y: 1 }}
       style={styles.gradient}
     >
-      <KeyboardScreen style={styles.container}>
+      {/* Het inlogscherm heeft geen navigatie-header, dus geen offset. */}
+      <KeyboardScreen metHeader={false} style={styles.container}>
       {/* Lang drukken op het logo opent het verborgen layout-testscherm; daarmee
           is het toetsenbord-/navigatiebalk-gedrag van de composer te testen
           zonder in te loggen (zie LayoutTestScreen). */}

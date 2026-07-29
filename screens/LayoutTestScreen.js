@@ -21,10 +21,9 @@ import KeyboardScreen from '../src/KeyboardScreen';
  * stand klopt.
  */
 const MODI = [
+  { id: 'standaard', label: 'standaard' },
   { id: 'geen', label: 'offset 0' },
-  { id: 'header', label: 'header' },
-  { id: 'ratio', label: 'header/ratio' },
-  { id: 'inset', label: '56+inset.top' },
+  { id: 'header', label: 'useHeaderHeight' },
 ];
 
 export default function LayoutTestScreen() {
@@ -32,15 +31,13 @@ export default function LayoutTestScreen() {
   const c = theme(dark);
   const headerHeight = useHeaderHeight();
   const bottomInset = useBottomBarInset();
-  const [modusId, setModusId] = useState('geen');
+  const [modusId, setModusId] = useState('standaard');
   const [text, setText] = useState('');
 
   const insets = useSafeAreaInsets();
   const ratio = PixelRatio.get();
-  const offset = modusId === 'header' ? headerHeight
-    : modusId === 'ratio' ? headerHeight / ratio
-    : modusId === 'inset' ? 56 + insets.top
-    : 0;
+  // undefined = de standaardberekening van KeyboardScreen zelf.
+  const offset = modusId === 'header' ? headerHeight : modusId === 'geen' ? 0 : undefined;
 
   const rijen = Array.from({ length: 25 }, (_, i) => ({
     id: String(i),
@@ -61,7 +58,7 @@ export default function LayoutTestScreen() {
         ))}
       </View>
       <Text style={{ color: c.muted, fontSize: 11, paddingHorizontal: 12, paddingBottom: 4 }}>
-        header {Math.round(headerHeight)} · onderinset {Math.round(bottomInset)} · offset {Math.round(offset)}
+        header {Math.round(headerHeight)} · onderinset {Math.round(bottomInset)} · offset {offset === undefined ? `standaard (${Math.round(56 + insets.top)})` : Math.round(offset)}
       </Text>
       {/* Ruwe waarden — hiermee is te zien welke eenheid waar gebruikt wordt. */}
       <Text style={{ color: c.muted, fontSize: 11, paddingHorizontal: 12, paddingBottom: 4 }}>
