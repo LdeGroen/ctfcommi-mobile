@@ -9,9 +9,11 @@ import { shareFromDrive } from '../src/drive';
 import { convertEmoticons } from '../src/emoticons';
 import MessageView, { theme } from '../src/MessageView';
 import { useBottomBarInset } from '../src/useBottomBarInset';
+import { useKeyboardOverlap } from '../src/useKeyboardOverlap';
 
 export default function ChatScreen({ route, navigation }) {
   const bottomInset = useBottomBarInset();
+  const { ref: kbRef, overlap: kbOverlap } = useKeyboardOverlap();
   const { id } = route.params;
   const dark = useColorScheme() === 'dark';
   const c = useMemo(() => theme(dark), [dark]);
@@ -254,7 +256,7 @@ export default function ChatScreen({ route, navigation }) {
   // 'padding' — op beide platforms. De onderste balk houdt daarnaast de
   // navigatiebalk-inset vrij via useBottomBarInset.
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior="padding" keyboardVerticalOffset={headerHeight}>
+    <KeyboardAvoidingView ref={kbRef} style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbOverlap }}>
       {pinnedNotes.length > 0 && (
         <View style={[styles.pinBar, { borderColor: c.noteBorder, backgroundColor: c.noteBg }]}>
           {pinnedNotes.map((n) => (

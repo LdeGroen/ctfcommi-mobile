@@ -8,10 +8,12 @@ import { shareFromDrive } from '../src/drive';
 import { convertEmoticons } from '../src/emoticons';
 import MessageView, { theme } from '../src/MessageView';
 import { useBottomBarInset } from '../src/useBottomBarInset';
+import { useKeyboardOverlap } from '../src/useKeyboardOverlap';
 
 export default function ThreadScreen({ route }) {
   const { convId, parentId } = route.params;
   const bottomInset = useBottomBarInset();
+  const { ref: kbRef, overlap: kbOverlap } = useKeyboardOverlap();
   const dark = useColorScheme() === 'dark';
   const c = useMemo(() => theme(dark), [dark]);
   const headerHeight = useHeaderHeight();
@@ -108,7 +110,7 @@ export default function ThreadScreen({ route }) {
 
   // Zie ChatScreen: edge-to-edge (targetSdk 36) → zelf omhoog schuiven.
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior="padding" keyboardVerticalOffset={headerHeight}>
+    <KeyboardAvoidingView ref={kbRef} style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbOverlap }}>
       <FlatList
         data={replies}
         keyExtractor={(x) => String(x.id)}

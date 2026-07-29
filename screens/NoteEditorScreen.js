@@ -9,6 +9,7 @@ import Markdown from 'react-native-markdown-display';
 import Avatar from '../src/Avatar';
 import { chat } from '../src/api';
 import { getEcho } from '../src/echo';
+import { useKeyboardOverlap } from '../src/useKeyboardOverlap';
 
 function fmtDue(iso) {
   if (!iso) return '';
@@ -44,6 +45,7 @@ export default function NoteEditorScreen({ route, navigation }) {
   const dark = useColorScheme() === 'dark';
   const c = theme(dark);
   const headerHeight = useHeaderHeight();
+  const { ref: kbRef, overlap: kbOverlap } = useKeyboardOverlap();
   const initial = route.params?.note || {};
   const convId = route.params?.convId ?? initial.conversation_id;
   const members = route.params?.members || [];
@@ -196,7 +198,7 @@ export default function NoteEditorScreen({ route, navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior="padding" keyboardVerticalOffset={headerHeight}>
+    <KeyboardAvoidingView ref={kbRef} style={{ flex: 1, backgroundColor: c.bg, paddingBottom: kbOverlap }}>
       <View style={{ flex: 1, padding: 12 }}>
         <TextInput
           value={title}

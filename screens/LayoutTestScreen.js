@@ -4,6 +4,7 @@ import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../src/MessageView';
 import { useBottomBarInset } from '../src/useBottomBarInset';
+import { useKeyboardOverlap } from '../src/useKeyboardOverlap';
 
 /**
  * Verborgen layout-testscherm (lang drukken op het logo in het inlogscherm).
@@ -19,10 +20,10 @@ import { useBottomBarInset } from '../src/useBottomBarInset';
  * standen, zodat je in één build kunt zien welke stand klopt.
  */
 const MODI = [
+  { id: 'auto', label: 'auto (meten)', auto: true },
   { id: 'geen', label: 'geen', behavior: undefined, offset: 0 },
   { id: 'padding', label: 'padding', behavior: 'padding', offset: 0 },
   { id: 'padding+offset', label: 'padding+offset', behavior: 'padding', offset: null }, // null = headerHeight
-  { id: 'height', label: 'height', behavior: 'height', offset: 0 },
 ];
 
 export default function LayoutTestScreen() {
@@ -30,11 +31,12 @@ export default function LayoutTestScreen() {
   const c = theme(dark);
   const headerHeight = useHeaderHeight();
   const bottomInset = useBottomBarInset();
-  const [modusId, setModusId] = useState('geen');
+  const [modusId, setModusId] = useState('auto');
   const [text, setText] = useState('');
+  const { ref: autoRef, overlap } = useKeyboardOverlap();
 
   const modus = MODI.find((m) => m.id === modusId) || MODI[0];
-  const offset = modus.offset === null ? headerHeight : modus.offset;
+  const offset = modus.offset === null ? headerHeight : (modus.offset || 0);
 
   const rijen = Array.from({ length: 25 }, (_, i) => ({
     id: String(i),
@@ -43,8 +45,9 @@ export default function LayoutTestScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: c.bg }}
-      behavior={modus.behavior}
+      ref={autoRef}
+      style={{ flex: 1, backgroundColor: c.bg, paddingBottom: modus.auto ? overlap : 0 }}
+      behavior={modus.auto ? undefined : modus.behavior}
       keyboardVerticalOffset={offset}
     >
       <View style={[styles.balk, { borderColor: c.border, backgroundColor: c.noteBg }]}>
@@ -59,7 +62,7 @@ export default function LayoutTestScreen() {
         ))}
       </View>
       <Text style={{ color: c.muted, fontSize: 11, paddingHorizontal: 12, paddingBottom: 4 }}>
-        header {Math.round(headerHeight)} · onderinset {Math.round(bottomInset)} · offset {Math.round(offset)}
+        header {Math.round(headerHeight)} · onderinset {Math.round(bottomInset)} · offset {Math.round(offset)} · overlap {Math.round(overlap)}
       </Text>
 
       <FlatList
