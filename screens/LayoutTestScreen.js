@@ -33,7 +33,7 @@ export default function LayoutTestScreen() {
   const bottomInset = useBottomBarInset();
   const [modusId, setModusId] = useState('auto');
   const [text, setText] = useState('');
-  const { ref: kbRef, lift, onLayout: kbLayout } = useKeyboardOverlap();
+  const { ref: kbRef, lift, onLayout: kbLayout, diag } = useKeyboardOverlap();
 
   const modus = MODI.find((m) => m.id === modusId) || MODI[0];
   const offset = modus.offset === null ? headerHeight : (modus.offset || 0);
@@ -58,6 +58,11 @@ export default function LayoutTestScreen() {
       </View>
       <Text style={{ color: c.muted, fontSize: 11, paddingHorizontal: 12, paddingBottom: 4 }}>
         header {Math.round(headerHeight)} · onderinset {Math.round(bottomInset)} · offset {Math.round(offset)} · lift {Math.round(lift)}
+      </Text>
+      {/* Ruwe meetwaarden — hiermee is te zien wélke waarde niet klopt als de
+          composer toch niet netjes boven het toetsenbord uitkomt. */}
+      <Text style={{ color: c.muted, fontSize: 11, paddingHorizontal: 12, paddingBottom: 4 }}>
+        {diag ? `scherm ${diag.scherm} · venster ${diag.venster} · kbH ${diag.kbH} · screenY ${diag.screenY} · top ${diag.top ?? '-'} · onder ${diag.onder ?? '-'}` : 'nog niet gemeten'}
       </Text>
 
       <FlatList
