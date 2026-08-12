@@ -27,6 +27,16 @@ export default function ConversationsScreen({ navigation, user, onLogout }) {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  // Een geopend gesprek is gelezen: teller en app-badge meteen bijwerken,
+  // zonder te wachten op de server.
+  const markGeopend = useCallback((convId) => {
+    setItems((prev) => {
+      const next = prev.map((x) => (x.id === convId ? { ...x, unread_count: 0 } : x));
+      Notifications.setBadgeCountAsync(next.reduce((s, x) => s + (x.unread_count || 0), 0)).catch(() => {});
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     if (!user?.id) return;
     let active = true; let sub = null;
@@ -130,7 +140,7 @@ export default function ConversationsScreen({ navigation, user, onLogout }) {
         </View>
       );
     }
-    return <Row item={item} c={c} navigation={navigation} onHide={hideConv} onFav={toggleFav} />;
+    return <Row item={item} c={c} navigation={navigation} onHide={hideConv} onFav={toggleFav} onGeopend={markGeopend} />;
   };
 
   return (
@@ -172,7 +182,7 @@ export default function ConversationsScreen({ navigation, user, onLogout }) {
 
 // Eén gespreksrij met swipe-acties: rechts swipen = verbergen (alleen DM),
 // links swipen = favoriet (DM + channel).
-function Row({ item, c, navigation, onHide, onFav }) {
+function Row({ item, c, navigation, onHide, onFav, onGeopend }) {
   const ref = useRef(null);
   const unread = item.unread_count || 0;
   const name = item.display_name || item.name || 'Gesprek';
@@ -207,7 +217,12 @@ function Row({ item, c, navigation, onHide, onFav }) {
     <Swipeable ref={ref} renderLeftActions={renderLeft} renderRightActions={renderRight}
                onSwipeableOpen={onOpen} friction={2} leftThreshold={60} rightThreshold={60}>
       <TouchableOpacity style={[styles.row, { backgroundColor: c.bg, borderColor: c.border }]}
-        onPress={() => navigation.navigate('Chat', { id: item.id, title: name })}>
+        onPress={() => {
+          // Meteen op 0 zetten: wachten op de server maakt dat de teller nog
+          // even blijft staan terwijl je het gesprek al open hebt.
+          onGeopend(item.id);
+          navigation.navigate('Chat', { id: item.id, title: name });
+        }}>
         {isDm && <View style={{ marginRight: 10 }}><Avatar name={name} uri={item.peer_avatar} size={38} /></View>}
         <View style={{ flex: 1 }}>
           <Text style={[styles.name, { color: c.text, fontWeight: unread ? '700' : '500' }]} numberOfLines={1}>

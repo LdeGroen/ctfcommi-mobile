@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { View, FlatList, TextInput, TouchableOpacity, Text, StyleSheet, useColorScheme, Alert, Modal, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import Avatar from '../src/Avatar';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
 import { getEcho } from '../src/echo';
@@ -33,6 +34,10 @@ export default function ChatScreen({ route, navigation }) {
 
   const markRead = (lastId) => chat.markRead(id, lastId).catch(() => {});
 
+  // Ook bij terugkeren in dit scherm (uit een thread, of vanuit de achtergrond)
+  // opnieuw als gelezen melden — er kan intussen van alles zijn binnengekomen.
+  useFocusEffect(useCallback(() => { markRead(); }, [id]));
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -63,7 +68,11 @@ export default function ChatScreen({ route, navigation }) {
         setConv(det || null);
         if (meRes) setMe(meRes);
         if (det?.draft) setText(det.draft); // concept van een ander apparaat
-        if (msgs.length) markRead(msgs[msgs.length - 1].id);
+        // Zonder id: de server neemt het hoogste bericht van dit gesprek.
+        // Met het laatst geladen bericht bleef de teller staan zodra er nog een
+        // nieuwer thread-antwoord was — die staan niet in deze lijst, maar
+        // tellen wel mee in het aantal ongelezen.
+        markRead();
       } catch {}
     })();
     return () => { cancelled = true; };
