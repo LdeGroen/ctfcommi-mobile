@@ -6,6 +6,8 @@ import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-c
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Feather } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
@@ -26,8 +28,50 @@ import MijnTakenScreen from './screens/MijnTakenScreen';
 import LayoutTestScreen from './screens/LayoutTestScreen';
 import ActiviteitScreen from './screens/ActiviteitScreen';
 import SavedScreen from './screens/SavedScreen';
+import ThreadsScreen from './screens/ThreadsScreen';
+import MeerScreen from './screens/MeerScreen';
 
 const Stack = createNativeStackNavigator();
+const Tabs = createBottomTabNavigator();
+
+/**
+ * Onderin een tabbalk, zoals in Slack. Voorheen liep alles via de
+ * gesprekkenlijst: overzicht, activiteit en taken stonden als rijen bovenaan
+ * die lijst of achter een icoon in de kopbalk, en waren daardoor lastig te
+ * vinden. De schermen zelf zijn ongewijzigd — alleen de weg ernaartoe.
+ */
+function HoofdTabs({ user, onLogout }) {
+  const iconen = {
+    Chats: 'message-square',
+    Threads: 'message-circle',
+    Activiteit: 'activity',
+    Taken: 'check-square',
+    Meer: 'more-horizontal',
+  };
+
+  return (
+    <Tabs.Navigator
+      screenOptions={({ route }) => ({
+        // Elke tab houdt zijn eigen kopbalk, in dezelfde kleur als de rest.
+        headerStyle: { backgroundColor: '#396971' },
+        headerTintColor: '#fff',
+        headerTitleStyle: { fontWeight: '700' },
+        tabBarActiveTintColor: '#4f46e5',
+        tabBarIcon: ({ color, size }) => <Feather name={iconen[route.name]} size={size} color={color} />,
+      })}
+    >
+      <Tabs.Screen name="Chats" options={{ title: 'CTF Commi' }}>
+        {(props) => <ConversationsScreen {...props} user={user} onLogout={onLogout} />}
+      </Tabs.Screen>
+      <Tabs.Screen name="Threads" component={ThreadsScreen} />
+      <Tabs.Screen name="Activiteit" component={ActiviteitScreen} />
+      <Tabs.Screen name="Taken" component={MijnTakenScreen} options={{ title: 'Mijn taken' }} />
+      <Tabs.Screen name="Meer">
+        {(props) => <MeerScreen {...props} user={user} onLogout={onLogout} />}
+      </Tabs.Screen>
+    </Tabs.Navigator>
+  );
+}
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -126,8 +170,8 @@ export default function App() {
           </>
         ) : (
           <>
-            <Stack.Screen name="Conversations" options={{ title: 'CTF Commi' }}>
-              {(props) => <ConversationsScreen {...props} user={user} onLogout={() => setUser(null)} />}
+            <Stack.Screen name="Conversations" options={{ headerShown: false }}>
+              {(props) => <HoofdTabs {...props} user={user} onLogout={() => setUser(null)} />}
             </Stack.Screen>
             <Stack.Screen name="Chat" component={ChatScreen} options={({ route }) => ({ title: route.params?.title || 'Gesprek' })} />
             <Stack.Screen name="Thread" component={ThreadScreen} options={{ title: 'Thread' }} />

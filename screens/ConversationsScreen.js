@@ -5,8 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import { chat } from '../src/api';
-import { logout } from '../src/auth';
-import { disconnectEcho, getEcho } from '../src/echo';
+import { getEcho } from '../src/echo';
 import Avatar from '../src/Avatar';
 
 export default function ConversationsScreen({ navigation, user, onLogout }) {
@@ -83,23 +82,14 @@ export default function ConversationsScreen({ navigation, user, onLogout }) {
     };
   }, [user?.id, load]);
 
+  // Taken en Nieuw zitten nu in de tabbalk resp. onder Meer; in de kopbalk
+  // blijft alleen zoeken, want dat hoort bij de gesprekkenlijst zelf.
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-          <TouchableOpacity onPress={() => navigation.navigate('MijnTaken')}>
-            <Feather name="check-square" size={20} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Nieuw')}>
-            <Feather name="inbox" size={20} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Search')}>
-            <Feather name="search" size={20} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={async () => { await logout(); disconnectEcho(); onLogout(); }}>
-            <Text style={{ color: '#fff' }}>Uitloggen</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={() => navigation.navigate('Search')} style={{ paddingHorizontal: 4 }}>
+          <Feather name="search" size={20} color="#fff" />
+        </TouchableOpacity>
       ),
     });
   }, [navigation, onLogout]);
@@ -165,31 +155,6 @@ export default function ConversationsScreen({ navigation, user, onLogout }) {
       keyExtractor={(x, i) => (x._section ? `s-${x._section}` : String(x.id))}
       renderItem={renderItem}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      ListHeaderComponent={
-        <View>
-          <TouchableOpacity onPress={() => navigation.navigate('Activity')} style={[styles.row, { borderColor: c.border }]}>
-            <Feather name="list" size={20} color={c.text} style={{ marginRight: 10 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.name, { color: c.text, fontWeight: '600' }]}>Overzicht</Text>
-              <Text style={[styles.preview, { color: c.muted }]}>Berichten & threads — laatste 30 dagen</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Activiteit')} style={[styles.row, { borderColor: c.border }]}>
-            <Feather name="activity" size={20} color={c.text} style={{ marginRight: 10 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.name, { color: c.text, fontWeight: '600' }]}>Activiteit</Text>
-              <Text style={[styles.preview, { color: c.muted }]}>Reacties, thread-antwoorden en vermeldingen</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Saved')} style={[styles.row, { borderColor: c.border }]}>
-            <Feather name="bookmark" size={20} color={c.text} style={{ marginRight: 10 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.name, { color: c.text, fontWeight: '600' }]}>Bewaren voor later</Text>
-              <Text style={[styles.preview, { color: c.muted }]}>Je bewaarde berichten</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      }
       ListEmptyComponent={<Text style={{ color: c.muted, textAlign: 'center', marginTop: 40 }}>Nog geen gesprekken.</Text>}
       ListFooterComponent={<VerborgenGesprekken c={c} onHersteld={load} />}
     />
