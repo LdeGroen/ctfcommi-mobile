@@ -388,7 +388,10 @@ const styles = StyleSheet.create({
   pinChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingHorizontal: 4 },
   editBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth },
   composer: { flexDirection: 'row', alignItems: 'flex-end', padding: 8, borderTopWidth: StyleSheet.hairlineWidth, gap: 8 },
-  input: { flex: 1, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, maxHeight: 120, fontSize: 15 },
+  // Ruimer typveld: begint op ruim twee regels en groeit verder mee. Het oude
+  // veld was één regel hoog, waardoor je bij een langer bericht door een kiertje
+  // zat te typen.
+  input: { flex: 1, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, minHeight: 44, maxHeight: 180, fontSize: 16, lineHeight: 21 },
   drive: { paddingHorizontal: 4, paddingVertical: 10, justifyContent: 'center' },
   send: { backgroundColor: '#4f46e5', borderRadius: 18, paddingHorizontal: 18, paddingVertical: 10 },
   mentionBox: { borderTopWidth: StyleSheet.hairlineWidth, maxHeight: 220 },

@@ -149,7 +149,8 @@ export default function ThreadScreen({ route }) {
 const styles = StyleSheet.create({
   divider: { fontSize: 12, paddingBottom: 6, marginBottom: 6, borderBottomWidth: StyleSheet.hairlineWidth },
   composer: { flexDirection: 'row', alignItems: 'flex-end', padding: 8, borderTopWidth: StyleSheet.hairlineWidth, gap: 8 },
-  input: { flex: 1, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, maxHeight: 120, fontSize: 15 },
+  // Zelfde ruimere maat als in het chatscherm.
+  input: { flex: 1, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, minHeight: 44, maxHeight: 180, fontSize: 16, lineHeight: 21 },
   drive: { paddingHorizontal: 4, paddingVertical: 10, justifyContent: 'center' },
   send: { backgroundColor: '#4f46e5', borderRadius: 18, paddingHorizontal: 18, paddingVertical: 10 },
 });
