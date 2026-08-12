@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, TextInput, TouchableOpacity, Text, StyleSheet, useColorScheme } from 'react-native';
+import { View, FlatList, TextInput, TouchableOpacity, Text, StyleSheet, useColorScheme, Alert } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
@@ -42,7 +42,7 @@ export default function ThreadScreen({ route }) {
       if (!echo || !active) return;
       const channel = echo.private(`conversation.${convId}`);
       const onCreated = (p) => { const m = p.message; if (m.parent_id !== parentId) return; setReplies((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m])); };
-      const onUpdated = (p) => { const m = p.message; if (m.id === parentId) { setParent(m); return; } if (m.parent_id !== parentId) return; setReplies((prev) => prev.map((x) => (x.id === m.id ? m : x))); };
+      const onUpdated = (p) => { const m = p.message; if (m.id === parentId) { setParent(m); return; } if (m.parent_id !== parentId) return; setReplies((prev) => prev.map((x) => (x.id === m.id ? { ...m, is_saved: x.is_saved } : x))); };
       const onDeleted = (p) => setReplies((prev) => prev.map((x) => (x.id === p.message.id ? { ...x, deleted_at: new Date().toISOString() } : x)));
       channel.listen('.chat.message.created', onCreated);
       channel.listen('.chat.message.updated', onUpdated);
@@ -71,9 +71,20 @@ export default function ThreadScreen({ route }) {
     } catch {}
   }, [parentId]);
 
+  // Bewaren kon in een thread nog niet op de telefoon, terwijl juist daar de
+  // dingen staan die je later terug wilt zoeken.
+  const saveForLater = useCallback(async (msg) => {
+    try {
+      const r = await chat.toggleSave(msg.id);
+      if (msg.id === parentId) setParent((prev) => (prev ? { ...prev, is_saved: r.saved } : prev));
+      else setReplies((prev) => prev.map((x) => (x.id === msg.id ? { ...x, is_saved: r.saved } : x)));
+      Alert.alert(r.saved ? 'Bewaard' : 'Verwijderd', r.saved ? 'Terug te vinden onder "Bewaren voor later".' : 'Uit je bewaarlijst gehaald.');
+    } catch (e) { Alert.alert('Mislukt', e.message || ''); }
+  }, [parentId]);
+
   const renderReply = useCallback(({ item }) => (
-    <MessageView item={item} c={c} onReact={handleReact} />
-  ), [c, handleReact]);
+    <MessageView item={item} c={c} onReact={handleReact} onSave={saveForLater} />
+  ), [c, handleReact, saveForLater]);
 
   const send = async () => {
     const body = text.trim();
@@ -100,7 +111,7 @@ export default function ThreadScreen({ route }) {
 
   const Header = () => (
     <View>
-      {parent && <MessageView item={parent} c={c} onReact={handleReact} />}
+      {parent && <MessageView item={parent} c={c} onReact={handleReact} onSave={saveForLater} />}
       <Text style={[styles.divider, { color: c.muted, borderColor: c.border }]}>
         {replies.length} {replies.length === 1 ? 'antwoord' : 'antwoorden'}
       </Text>

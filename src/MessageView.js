@@ -110,6 +110,7 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
       <View style={s.content}>
       <Text style={[s.author, { color: c.text }]}>
         {item.user?.name || 'Onbekend'} <Text style={[s.time, { color: c.muted }]}>{fmt(item.created_at)}{item.edited_at ? ' (bewerkt)' : ''}</Text>
+        {item.is_saved ? <Text> <Feather name="bookmark" size={12} color="#f59e0b" /></Text> : null}
       </Text>
 
       {item.is_announcement && (
@@ -200,8 +201,10 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
                 )}
                 {onSave && (
                   <TouchableOpacity style={s.actionBtn} onPress={() => { setPicker(false); onSave(item); }}>
-                    <Feather name="bookmark" size={16} color={c.text} />
-                    <Text style={[s.actionText, { color: c.text }]}>Bewaren voor later</Text>
+                    <Feather name="bookmark" size={16} color={item.is_saved ? '#f59e0b' : c.text} />
+                    <Text style={[s.actionText, { color: item.is_saved ? '#f59e0b' : c.text }]}>
+                      {item.is_saved ? 'Niet meer bewaren' : 'Bewaren voor later'}
+                    </Text>
                   </TouchableOpacity>
                 )}
                 {mine && onEdit && (

@@ -76,7 +76,9 @@ export default function ChatScreen({ route, navigation }) {
       if (!echo || !active) return;
       const channel = echo.private(`conversation.${id}`);
       const onCreated = (p) => { const m = p.message; if (m.parent_id) return; setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m])); markRead(m.id); };
-      const onUpdated = (p) => { const m = p.message; setMessages((prev) => prev.map((x) => (x.id === m.id ? (m.body_truncated ? { ...m, body: x.body } : m) : x))); };
+      // is_saved uit de eigen weergave overnemen: een uitzending gaat naar
+      // iedereen tegelijk en weet dus niet wie wat bewaard heeft.
+      const onUpdated = (p) => { const m = p.message; setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...(m.body_truncated ? { ...m, body: x.body } : m), is_saved: x.is_saved } : x))); };
       const onDeleted = (p) => setMessages((prev) => prev.map((x) => (x.id === p.message.id ? { ...x, deleted_at: new Date().toISOString() } : x)));
       channel.listen('.chat.message.created', onCreated);
       channel.listen('.chat.message.updated', onUpdated);
@@ -210,6 +212,10 @@ export default function ChatScreen({ route, navigation }) {
   const saveForLater = useCallback(async (msg) => {
     try {
       const r = await chat.toggleSave(msg.id);
+      // Ook het bericht in beeld bijwerken, anders blijft het icoon staan alsof
+      // er niets gebeurd is en weet je bij de volgende keer openen niet meer
+      // wat je bewaard had.
+      setMessages((prev) => prev.map((x) => (x.id === msg.id ? { ...x, is_saved: r.saved } : x)));
       Alert.alert(r.saved ? 'Bewaard' : 'Verwijderd', r.saved ? 'Terug te vinden onder "Bewaren voor later".' : 'Uit je bewaarlijst gehaald.');
     } catch (e) { Alert.alert('Mislukt', e.message || ''); }
   }, []);
