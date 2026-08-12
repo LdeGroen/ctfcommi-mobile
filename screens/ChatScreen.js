@@ -11,6 +11,7 @@ import { convertEmoticons } from '../src/emoticons';
 import MessageView, { theme } from '../src/MessageView';
 import { useBottomBarInset } from '../src/useBottomBarInset';
 import KeyboardScreen from '../src/KeyboardScreen';
+import PersonCard from '../src/PersonCard';
 
 export default function ChatScreen({ route, navigation }) {
   const bottomInset = useBottomBarInset();
@@ -29,6 +30,7 @@ export default function ChatScreen({ route, navigation }) {
   const [announce, setAnnounce] = useState(false);
   const [remindFor, setRemindFor] = useState(null);
   const [readsModal, setReadsModal] = useState(null);
+  const [profielId, setProfielId] = useState(null); // open profielkaartje
   const subRef = useRef(null);
   const draftTimer = useRef(null);
 
@@ -258,8 +260,8 @@ export default function ChatScreen({ route, navigation }) {
   };
 
   const renderItem = useCallback(({ item }) => (
-    <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} onOpenNote={openNote} onToggleTodo={toggleTodo} onRemind={openRemind} onSave={saveForLater} onShowReads={openReads} />
-  ), [c, me, openThread, handleReact, startEdit, handleDelete, openNote, toggleTodo, openRemind, saveForLater, openReads]);
+    <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} onOpenNote={openNote} onToggleTodo={toggleTodo} onRemind={openRemind} onSave={saveForLater} onShowReads={openReads} onOpenProfile={setProfielId} />
+  ), [c, me, openThread, handleReact, startEdit, handleDelete, openNote, toggleTodo, openRemind, saveForLater, openReads, setProfielId]);
 
   const pinnedNotes = messages.filter((m) => m.kind === 'note' && m.pinned_at && !m.deleted_at);
   // Vastgeprikte notities tonen we in de pinbalk; niet nóg eens in de stroom.
@@ -361,6 +363,17 @@ export default function ChatScreen({ route, navigation }) {
       </Modal>
 
       {/* Leesbevestiging: wie heeft de aankondiging gezien */}
+      <PersonCard
+        userId={profielId}
+        onClose={() => setProfielId(null)}
+        onStartDm={async (uid) => {
+          try {
+            const conv = await chat.startDm([uid]);
+            navigation.navigate('Chat', { id: conv.id, title: conv.display_name || 'Gesprek' });
+          } catch {}
+        }}
+      />
+
       <Modal visible={!!readsModal} transparent animationType="fade" onRequestClose={() => setReadsModal(null)}>
         <Pressable style={styles.backdrop} onPress={() => setReadsModal(null)}>
           <Pressable style={[styles.modalCard, { backgroundColor: c.bg, borderColor: c.border }]} onPress={() => {}}>

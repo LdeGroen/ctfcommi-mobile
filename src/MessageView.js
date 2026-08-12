@@ -44,7 +44,7 @@ function isOverdue(iso) {
 // de thread-knop te tonen, en onReact om reageren mogelijk te maken.
 // Gememoizeerd (zie export onderaan) zodat alleen gewijzigde berichten opnieuw
 // renderen — scheelt veel werk bij lange gesprekken.
-function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onOpenNote, onToggleTodo, onRemind, onSave, onShowReads }) {
+function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onOpenNote, onToggleTodo, onRemind, onSave, onShowReads, onOpenProfile }) {
   const [picker, setPicker] = useState(false);
 
   if (item.deleted_at) {
@@ -106,9 +106,12 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
 
   return (
     <Pressable onLongPress={() => hasSheet && setPicker(true)} delayLongPress={250} style={s.msg}>
-      <Avatar name={item.user?.name} uri={item.user?.avatar} size={36} />
+      {/* Avatar en naam openen het profiel: wie is dit, en hoe bereik ik ze. */}
+      <Pressable onPress={() => onOpenProfile?.(item.user?.id)}>
+        <Avatar name={item.user?.name} uri={item.user?.avatar} size={36} />
+      </Pressable>
       <View style={s.content}>
-      <Text style={[s.author, { color: c.text }]}>
+      <Text style={[s.author, { color: c.text }]} onPress={() => onOpenProfile?.(item.user?.id)}>
         {item.user?.name || 'Onbekend'} <Text style={[s.time, { color: c.muted }]}>{fmt(item.created_at)}{item.edited_at ? ' (bewerkt)' : ''}</Text>
         {item.is_saved ? <Text> <Feather name="bookmark" size={12} color="#f59e0b" /></Text> : null}
       </Text>

@@ -75,6 +75,7 @@ export const chat = {
     apiFetch('/api/chat/reminders', { method: 'POST', body: JSON.stringify({ message_id: messageId, conversation_id: conversationId, note, remind_at: remindAt }) }),
   deleteReminder: (id) => apiFetch(`/api/chat/reminders/${id}`, { method: 'DELETE' }),
   threads: ({ limit = 30 } = {}) => apiFetch(`/api/chat/threads?limit=${limit}`),
+  userProfile: (id) => apiFetch(`/api/chat/users/${id}/profile`),
   activity: ({ before, limit = 30 } = {}) => {
     const qs = new URLSearchParams();
     if (before) qs.set('before', before);
