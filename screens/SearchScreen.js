@@ -44,7 +44,7 @@ export default function SearchScreen({ route, navigation }) {
 
   useEffect(() => {
     const query = q.trim();
-    if (query.length < 2) { setItems([]); setSearched(false); return; }
+    if (query.length < 2) { setItems([]); setSearched(false); setLoading(false); return; }
     let active = true;
     setLoading(true); setSearched(true);
     const t = setTimeout(async () => {
@@ -86,15 +86,27 @@ export default function SearchScreen({ route, navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
+      {/* Naast het veld staat altijd een uitweg. Met het toetsenbord omhoog is
+          de terugpijl in de header makkelijk over het hoofd te zien, en wie
+          niets invulde bleef daardoor in het zoekscherm hangen. */}
       <View style={styles.searchBar}>
         <View style={[styles.inputWrap, { borderColor: c.border, backgroundColor: dark ? '#111827' : '#f3f4f6' }]}>
           <Feather name="search" size={16} color={c.muted} />
           <TextInput
             autoFocus value={q} onChangeText={setQ}
             placeholder="Typ een woord of zin…" placeholderTextColor={c.muted}
+            returnKeyType="search"
             style={{ flex: 1, color: c.text, fontSize: 15, paddingVertical: 6 }}
           />
+          {q.length > 0 && (
+            <TouchableOpacity onPress={() => setQ('')} hitSlop={10} accessibilityLabel="Zoekterm wissen">
+              <Feather name="x-circle" size={16} color={c.muted} />
+            </TouchableOpacity>
+          )}
         </View>
+        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={10} style={styles.cancel}>
+          <Text style={{ color: '#6366f1', fontSize: 15 }}>Annuleren</Text>
+        </TouchableOpacity>
       </View>
       <FlatList
         data={items}
@@ -112,8 +124,9 @@ export default function SearchScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  searchBar: { padding: 12 },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12 },
+  searchBar: { padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  inputWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12 },
+  cancel: { paddingVertical: 6 },
   row: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth },
   conv: { fontSize: 12, fontWeight: '600' },
   author: { fontSize: 14, fontWeight: '600', marginTop: 2 },
