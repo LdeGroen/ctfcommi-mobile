@@ -96,6 +96,8 @@ export const chat = {
   markRead: (id, lastReadMessageId) =>
     apiFetch(`/api/chat/conversations/${id}/read`, { method: 'POST', body: JSON.stringify({ last_read_message_id: lastReadMessageId }) }),
   hideConversation: (id) => apiFetch(`/api/chat/conversations/${id}/hide`, { method: 'POST' }),
+  hiddenConversations: () => apiFetch('/api/chat/conversations/hidden'),
+  unhideConversation: (id) => apiFetch(`/api/chat/conversations/${id}/unhide`, { method: 'POST' }),
   favoriteConversation: (id) => apiFetch(`/api/chat/conversations/${id}/favorite`, { method: 'POST' }),
   saveDraft: (id, body) => apiFetch(`/api/chat/conversations/${id}/draft`, { method: 'PUT', body: JSON.stringify({ body }) }),
   conversationAttachments: (id) => apiFetch(`/api/chat/conversations/${id}/attachments`),

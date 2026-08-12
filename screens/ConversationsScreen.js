@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, useColorScheme } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, useColorScheme, Alert } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
@@ -106,9 +106,24 @@ export default function ConversationsScreen({ navigation, user, onLogout }) {
 
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
+  // Eerst vragen: een swipe is zo gemaakt, en het zag eruit als weggooien.
   const hideConv = (id) => {
-    setItems((prev) => prev.filter((x) => x.id !== id));
-    chat.hideConversation(id).catch(() => {});
+    const naam = items.find((x) => x.id === id)?.display_name || 'dit gesprek';
+    Alert.alert(
+      `${naam} verbergen?`,
+      'Het gesprek blijft bestaan. Je haalt het terug via "Verborgen gesprekken" onderaan deze lijst.',
+      [
+        { text: 'Annuleren', style: 'cancel' },
+        {
+          text: 'Verbergen',
+          style: 'destructive',
+          onPress: () => {
+            setItems((prev) => prev.filter((x) => x.id !== id));
+            chat.hideConversation(id).catch(() => {});
+          },
+        },
+      ]
+    );
   };
   const toggleFav = (id) => {
     setItems((prev) => prev.map((x) => (x.id === id ? { ...x, is_favorite: !x.is_favorite } : x)));
@@ -176,7 +191,56 @@ export default function ConversationsScreen({ navigation, user, onLogout }) {
         </View>
       }
       ListEmptyComponent={<Text style={{ color: c.muted, textAlign: 'center', marginTop: 40 }}>Nog geen gesprekken.</Text>}
+      ListFooterComponent={<VerborgenGesprekken c={c} onHersteld={load} />}
     />
+  );
+}
+
+/**
+ * Onderaan de lijst: wat je zelf hebt verborgen, met een knop om het terug te
+ * halen. Verbergen gooit niets weg, maar zonder dit lijstje kwam een gesprek
+ * alleen terug als iemand anders wat stuurde.
+ */
+function VerborgenGesprekken({ c, onHersteld }) {
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState(null); // null = nog niet geladen
+
+  const openen = async () => {
+    const nu = !open;
+    setOpen(nu);
+    if (!nu) return;
+    try { const res = await chat.hiddenConversations(); setItems(res.conversations || []); }
+    catch { setItems([]); }
+  };
+
+  const herstel = (id) => {
+    setItems((prev) => (prev || []).filter((x) => x.id !== id));
+    chat.unhideConversation(id).catch(() => {}).then(() => onHersteld?.());
+  };
+
+  return (
+    <View style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
+      <TouchableOpacity onPress={openen} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} hitSlop={8}>
+        <Feather name="eye-off" size={14} color={c.muted} />
+        <Text style={{ color: c.muted, fontSize: 13 }}>Verborgen gesprekken</Text>
+        <Feather name={open ? 'chevron-up' : 'chevron-down'} size={14} color={c.muted} />
+      </TouchableOpacity>
+      {open && (
+        <View style={{ marginTop: 8 }}>
+          {items === null && <Text style={{ color: c.muted, fontSize: 13 }}>Laden…</Text>}
+          {items?.length === 0 && <Text style={{ color: c.muted, fontSize: 13 }}>Je hebt niets verborgen.</Text>}
+          {items?.map((x) => (
+            <View key={x.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, gap: 10 }}>
+              <Text style={{ color: c.text, flex: 1 }} numberOfLines={1}>{x.display_name || x.name || 'Gesprek'}</Text>
+              <TouchableOpacity onPress={() => herstel(x.id)} hitSlop={10} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Feather name="rotate-ccw" size={14} color="#6366f1" />
+                <Text style={{ color: '#6366f1', fontSize: 13 }}>Terugzetten</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
   );
 }
 
