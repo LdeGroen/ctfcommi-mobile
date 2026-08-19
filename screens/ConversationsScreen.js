@@ -257,6 +257,9 @@ function Row({ item, c, navigation, onHide, onFav, onGeopend }) {
           <Text style={[styles.name, { color: c.text, fontWeight: unread ? '700' : '500' }]} numberOfLines={1}>
             {item.is_favorite ? <><Feather name="star" size={12} color="#f59e0b" /> </> : null}
             {isChannel && <><Feather name={item.is_private ? 'lock' : 'hash'} size={13} color={c.muted} /> </>}{name}
+            {item.peer_status ? (
+              <Text style={{ color: c.muted, fontSize: 13, fontWeight: '400' }}>  {item.peer_status}</Text>
+            ) : null}
           </Text>
           {item.last_message?.body ? (
             <Text style={[styles.preview, { color: c.muted }]} numberOfLines={1}>

@@ -55,6 +55,24 @@ export default function ChatScreen({ route, navigation }) {
     });
   }, [navigation, id, route.params?.title]);
 
+  // De status van je gesprekspartner onder zijn naam in de kop. Alleen bij een
+  // gesprek met één ander; de server stuurt hem alleen dan mee.
+  useLayoutEffect(() => {
+    if (!conv?.peer_status) return;
+    navigation.setOptions({
+      headerTitle: () => (
+        <View>
+          <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600' }} numberOfLines={1}>
+            {route.params?.title || conv.display_name || 'Gesprek'}
+          </Text>
+          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }} numberOfLines={1}>
+            {conv.peer_status}
+          </Text>
+        </View>
+      ),
+    });
+  }, [navigation, conv?.peer_status, conv?.display_name, route.params?.title]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
