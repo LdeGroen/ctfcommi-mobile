@@ -35,6 +35,7 @@ export async function apiFetch(path, options = {}) {
 
 export const chat = {
   me: () => apiFetch('/api/chat/me'),
+  updateSettings: (data) => apiFetch('/api/chat/me/settings', { method: 'PUT', body: JSON.stringify(data) }),
   listConversations: () => apiFetch('/api/chat/conversations'),
   getConversation: (id) => apiFetch(`/api/chat/conversations/${id}`),
   listMessages: (id, { before, limit = 30 } = {}) => {

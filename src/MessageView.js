@@ -112,7 +112,9 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
       </Pressable>
       <View style={s.content}>
       <Text style={[s.author, { color: c.text }]} onPress={() => onOpenProfile?.(item.user?.id)}>
-        {item.user?.name || 'Onbekend'} <Text style={[s.time, { color: c.muted }]}>{fmt(item.created_at)}{item.edited_at ? ' (bewerkt)' : ''}</Text>
+        {item.user?.name || 'Onbekend'}
+        {item.user?.status ? <Text style={[s.time, { color: c.muted }]}> {item.user.status}</Text> : null}
+        <Text style={[s.time, { color: c.muted }]}> {fmt(item.created_at)}{item.edited_at ? ' (bewerkt)' : ''}</Text>
         {item.is_saved ? <Text> <Feather name="bookmark" size={12} color="#f59e0b" /></Text> : null}
       </Text>
 
