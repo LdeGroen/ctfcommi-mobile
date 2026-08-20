@@ -48,18 +48,22 @@ jobs:
             exit 0
           fi
 
-          VORIGE=$(git tag -l 'v*' --sort=-v:refname | head -n 1)
-          VORIGE="${VORIGE#v}"
-          [ -z "$VORIGE" ] && VORIGE="0.0.0"
+          VANTAG=$(git tag -l 'v*' --sort=-v:refname | head -n 1)
+          VANTAG="${VANTAG#v}"
+          INBESTAND=$(node -p "require('./app.json').expo.version")
           NIEUW=$(node -e "
-            const [a, b, c] = process.argv[1].split('.').map(Number);
-            const soort = process.argv[2];
+            const soort = process.argv[3];
+            const naar = (v) => (v || '0.0.0').split('.').map(Number).map((n) => n || 0);
+            const hoogste = [process.argv[1], process.argv[2]]
+              .map(naar)
+              .sort((x, y) => (y[0] - x[0]) || (y[1] - x[1]) || (y[2] - x[2]))[0];
+            const [a, b, c] = hoogste;
             console.log(soort === 'major' ? [a + 1, 0, 0].join('.')
                       : soort === 'minor' ? [a, b + 1, 0].join('.')
                       : [a, b, c + 1].join('.'));
-          " "$VORIGE" "${{ inputs.uitgave }}")
+          " "$VANTAG" "$INBESTAND" "${{ inputs.uitgave }}")
 
-          echo "Vorige uitgave: $VORIGE → nieuwe: $NIEUW"
+          echo "Laatste tag: ${VANTAG:-geen} · in het bestand: $INBESTAND → nieuwe: $NIEUW"
           git tag "v$NIEUW"
           git push origin "v$NIEUW"
           echo "VERSIE=$NIEUW" >> "$GITHUB_ENV"
