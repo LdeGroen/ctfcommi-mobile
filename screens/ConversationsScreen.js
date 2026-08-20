@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import { chat } from '../src/api';
+import UpdateMelding from '../src/UpdateMelding';
 import { getEcho } from '../src/echo';
 import Avatar from '../src/Avatar';
 
@@ -154,6 +155,9 @@ export default function ConversationsScreen({ navigation, user, onLogout }) {
       data={data}
       keyExtractor={(x, i) => (x._section ? `s-${x._section}` : String(x.id))}
       renderItem={renderItem}
+      // De updatemelding bovenaan de lijst: hij is er zelden, en dan wil je
+      // hem meteen zien zonder ergens heen te hoeven.
+      ListHeaderComponent={<UpdateMelding c={c} />}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       ListEmptyComponent={<Text style={{ color: c.muted, textAlign: 'center', marginTop: 40 }}>Nog geen gesprekken.</Text>}
       ListFooterComponent={<VerborgenGesprekken c={c} onHersteld={load} />}

@@ -42,6 +42,25 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      # De tag is leidend voor het versienummer, zodat de app en de store
+      # hetzelfde nummer noemen als de updatecheck.
+      - name: Versie uit de tag overnemen
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          VERSIE="${GITHUB_REF_NAME#v}"
+          echo "Versie wordt: $VERSIE"
+          node -e "
+            const fs = require('fs');
+            const versie = process.argv[1];
+            const j = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            j.expo.version = versie;
+            fs.writeFileSync('app.json', JSON.stringify(j, null, 2) + '\n');
+            const pk = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pk.version = versie;
+            fs.writeFileSync('package.json', JSON.stringify(pk, null, 2) + '\n');
+          " "$VERSIE"
+
       - name: Build (+ optioneel indienen) op EAS
         run: |
           PLATFORM="${{ github.event.inputs.platform || 'all' }}"
@@ -49,7 +68,28 @@ jobs:
           # --wait: GitHub wacht op de EAS-build en wordt rood als die faalt
           # (anders zie je een fout pas op EAS). De job draait dan langer.
           if [ "${{ github.ref_type }}" = "tag" ] || [ "$SUBMIT" = "true" ]; then
-            eas build --platform "$PLATFORM" --profile production --non-interactive --wait --auto-submit
+            eas build --platform "$PLATFORM" --profile production --non-interactive --wait
+
+      # De app vraagt de backend of hij achterloopt; hier melden we wat er net
+      # is uitgebracht. Alleen bij een tag én als het ook echt is ingediend —
+      # anders staat het in de store nog niet klaar en stuur je mensen voor
+      # niets naar een versie die er nog niet is.
+      - name: Nieuwe versie melden aan de backend
+        if: ${{ startsWith(github.ref, 'refs/tags/') || inputs.submit }}
+        continue-on-error: true
+        shell: bash
+        env:
+          OPS_TOKEN: ${{ secrets.OPS_TOKEN }}
+        run: |
+          if [ -z "$OPS_TOKEN" ]; then echo "geen OPS_TOKEN — overgeslagen"; exit 0; fi
+          VERSIE=$(node -p "require('./app.json').expo.version")
+          for PLAT in android ios; do
+            code=$(curl -sS -o antwoord.txt -w '%{http_code}' --max-time 30 -X POST \
+              -H "X-Ops-Token: $OPS_TOKEN" -H "Content-Type: application/json" -H "Accept: application/json" \
+              -d "{\"platform\":\"$PLAT\",\"versie\":\"$VERSIE\"}" \
+              "https://backend.cafetheaterfestival.nl/api/ops/app-versie") || code=000
+            echo "$PLAT melden: HTTP $code · $(cat antwoord.txt)"
+          done --auto-submit
           else
             eas build --platform "$PLATFORM" --profile production --non-interactive --wait
           fi
