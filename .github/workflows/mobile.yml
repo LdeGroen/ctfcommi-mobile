@@ -113,7 +113,10 @@ jobs:
           # --wait: GitHub wacht op de EAS-build en wordt rood als die faalt
           # (anders zie je een fout pas op EAS). De job draait dan langer.
           if [ "${{ github.ref_type }}" = "tag" ] || [ "$SUBMIT" = "true" ]; then
+            eas build --platform "$PLATFORM" --profile production --non-interactive --wait --auto-submit
+          else
             eas build --platform "$PLATFORM" --profile production --non-interactive --wait
+          fi
 
       # De app vraagt de backend of hij achterloopt; hier melden we wat er net
       # is uitgebracht. Alleen bij een tag én als het ook echt is ingediend —
@@ -134,7 +137,4 @@ jobs:
               -d "{\"platform\":\"$PLAT\",\"versie\":\"$VERSIE\"}" \
               "https://backend.cafetheaterfestival.nl/api/ops/app-versie") || code=000
             echo "$PLAT melden: HTTP $code · $(cat antwoord.txt)"
-          done --auto-submit
-          else
-            eas build --platform "$PLATFORM" --profile production --non-interactive --wait
-          fi
+          done
