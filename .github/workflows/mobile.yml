@@ -9,6 +9,11 @@ on:
         type: choice
         options: [all, ios, android]
         default: all
+      uitgave:
+        description: 'Soort uitgave (bepaalt zelf het nieuwe versienummer)'
+        type: choice
+        options: [patch, minor, major, geen]
+        default: patch
       submit:
         description: 'Direct indienen bij de stores?'
         type: boolean
@@ -16,11 +21,48 @@ on:
   push:
     tags: ['v*']
 
+permissions:
+  contents: write   # tag pushen bij een uitgave
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # we hebben de tags nodig om te kunnen ophogen
+
+      # Welk versienummer wordt het? Bij een handmatige uitgave hoogt de
+      # workflow zelf op en zet de tag; push je zelf een tag, dan is die
+      # leidend. Zo hoeft er met de hand niets meer getagd te worden.
+      - name: Versienummer bepalen
+        id: versie
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "VERSIE=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if [ "${{ inputs.uitgave }}" = "geen" ]; then
+            echo "Geen versieverhoging — bouwt op het huidige nummer."
+            exit 0
+          fi
+
+          VORIGE=$(git tag -l 'v*' --sort=-v:refname | head -n 1)
+          VORIGE="${VORIGE#v}"
+          [ -z "$VORIGE" ] && VORIGE="0.0.0"
+          NIEUW=$(node -e "
+            const [a, b, c] = process.argv[1].split('.').map(Number);
+            const soort = process.argv[2];
+            console.log(soort === 'major' ? [a + 1, 0, 0].join('.')
+                      : soort === 'minor' ? [a, b + 1, 0].join('.')
+                      : [a, b, c + 1].join('.'));
+          " "$VORIGE" "${{ inputs.uitgave }}")
+
+          echo "Vorige uitgave: $VORIGE → nieuwe: $NIEUW"
+          git tag "v$NIEUW"
+          git push origin "v$NIEUW"
+          echo "VERSIE=$NIEUW" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
@@ -44,11 +86,10 @@ jobs:
 
       # De tag is leidend voor het versienummer, zodat de app en de store
       # hetzelfde nummer noemen als de updatecheck.
-      - name: Versie uit de tag overnemen
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Versienummer invullen
+        if: env.VERSIE != ''
         shell: bash
         run: |
-          VERSIE="${GITHUB_REF_NAME#v}"
           echo "Versie wordt: $VERSIE"
           node -e "
             const fs = require('fs');
@@ -75,7 +116,7 @@ jobs:
       # anders staat het in de store nog niet klaar en stuur je mensen voor
       # niets naar een versie die er nog niet is.
       - name: Nieuwe versie melden aan de backend
-        if: ${{ startsWith(github.ref, 'refs/tags/') || inputs.submit }}
+        if: ${{ env.VERSIE != '' && (github.event_name == 'push' || inputs.submit) }}
         continue-on-error: true
         shell: bash
         env:
