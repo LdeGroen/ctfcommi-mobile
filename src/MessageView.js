@@ -44,7 +44,74 @@ function isOverdue(iso) {
 // de thread-knop te tonen, en onReact om reageren mogelijk te maken.
 // Gememoizeerd (zie export onderaan) zodat alleen gewijzigde berichten opnieuw
 // renderen — scheelt veel werk bij lange gesprekken.
-function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onOpenNote, onToggleTodo, onRemind, onSave, onShowReads, onOpenProfile }) {
+/**
+ * Een link aangetikt.
+ *
+ * false teruggeven betekent "wij hebben het afgehandeld"; true laat de app de
+ * link normaal openen. Zo blijven gewone http-links gewoon werken.
+ */
+function tikOpLink(url, onOpenChannel, onOpenProfile) {
+  const k = /^commi-channel:(\d+)$/.exec(url || '');
+  if (k && onOpenChannel) {
+    onOpenChannel(Number(k[1]));
+    return false;
+  }
+  const p = /^commi-mention:(\d+)$/.exec(url || '');
+  if (p && onOpenProfile) {
+    onOpenProfile(Number(p[1]));
+    return false;
+  }
+  return true;
+}
+
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Zet @<naam> van getagde leden om naar een aantikbare link.
+ *
+ * Welke mensen getagd zijn staat in het bericht zelf (mention_user_ids), dus
+ * daar hoeven we niet naar te raden — anders dan bij kanalen.
+ */
+function metPersoonLinks(tekst, leden, getagd) {
+  if (!tekst || !leden?.length || !getagd?.length || !tekst.includes('@')) return tekst;
+  let uit = tekst;
+  leden
+    .filter((m) => m.name && getagd.includes(m.user_id ?? m.id))
+    .sort((a, b) => b.name.length - a.name.length)
+    .forEach((m) => {
+      const re = new RegExp(`@${escapeRe(m.name)}`, 'g');
+      uit = uit.replace(re, `[@${m.name}](commi-mention:${m.user_id ?? m.id})`);
+    });
+  return uit;
+}
+
+/**
+ * Zet #<kanaalnaam> om naar een link waar je op kunt tikken.
+ *
+ * Dezelfde regels als op web: alleen kanalen die je zelf hebt, langste naam
+ * eerst, en geen treffer midden in een woord. De link krijgt het schema
+ * commi-channel:, dat we in onLinkPress onderscheppen.
+ */
+function metKanaalLinks(tekst, kanalen) {
+  if (!tekst || !kanalen?.length || !tekst.includes('#')) return tekst;
+  let uit = tekst;
+  [...kanalen]
+    .filter((k) => k.name)
+    .sort((a, b) => b.name.length - a.name.length)
+    .forEach((k) => {
+      const re = new RegExp(`(^|[^\\w])#${escapeRe(k.name)}(?![\\w-])`, 'g');
+      uit = uit.replace(re, (heel, voor) => `${voor}[#${k.name}](commi-channel:${k.id})`);
+    });
+  return uit;
+}
+
+function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onOpenNote, onToggleTodo, onRemind, onSave, onShowReads, onOpenProfile, channels = [], onOpenChannel, members = [] }) {
+  // Eerst de personen, dan de kanalen: ze bijten elkaar niet, maar zo staat de
+  // volgorde vast en is het resultaat voorspelbaar.
+  const opgemaakt = (tekst) => metKanaalLinks(
+    metPersoonLinks(tekst, members, item.mention_user_ids || []),
+    channels,
+  );
   const [picker, setPicker] = useState(false);
 
   if (item.deleted_at) {
@@ -91,7 +158,7 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
           )) : <Text style={{ color: c.muted, fontStyle: 'italic', fontSize: 13 }}>Nog geen items — tik om toe te voegen</Text>
         ) : (
           item.body?.trim()
-            ? <Markdown style={{ body: { color: c.text, fontSize: 14 }, link: { color: '#6366f1' } }}>{item.body.length > 400 ? item.body.slice(0, 400) + '…' : item.body}</Markdown>
+            ? <Markdown style={{ body: { color: c.text, fontSize: 14 }, link: { color: '#6366f1' } }} onLinkPress={(url) => tikOpLink(url, onOpenChannel, onOpenProfile)}>{opgemaakt(item.body.length > 400 ? item.body.slice(0, 400) + '…' : item.body)}</Markdown>
             : <Text style={{ color: c.muted, fontStyle: 'italic', fontSize: 13 }}>Leeg — tik om te schrijven</Text>
         )}
 
@@ -125,7 +192,7 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
         </View>
       )}
 
-      {!!item.body && <Markdown style={{ body: { color: c.text, fontSize: 15 }, link: { color: '#6366f1' } }}>{item.body}</Markdown>}
+      {!!item.body && <Markdown style={{ body: { color: c.text, fontSize: 15 }, link: { color: '#6366f1' } }} onLinkPress={(url) => tikOpLink(url, onOpenChannel, onOpenProfile)}>{opgemaakt(item.body)}</Markdown>}
 
       {item.attachments?.map((a) => (
         a.source === 'drive' ? (

@@ -27,6 +27,9 @@ export default function ChatScreen({ route, navigation }) {
   const [me, setMe] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [conv, setConv] = useState(null);
+  // De kanalen van deze gebruiker, om #kanaalnaam in een bericht te herkennen.
+  // Eén keer per scherm ophalen; het is een korte lijst en hij verandert zelden.
+  const [kanalen, setKanalen] = useState([]);
   const [announce, setAnnounce] = useState(false);
   const [remindFor, setRemindFor] = useState(null);
   const [readsModal, setReadsModal] = useState(null);
@@ -131,13 +134,22 @@ export default function ChatScreen({ route, navigation }) {
   const onChangeText = (raw) => {
     const t = convertEmoticons(raw);
     setText(t);
-    // @-suggesties tonen wanneer je een naam aan het typen bent na een @.
+    // Suggesties tonen: na @ personen, na # kanalen. Kanaalnamen mogen één
+    // spatie bevatten ("CTF Utrecht"), namen blijven één woord.
     const m = t.match(/(?:^|\s)@([\w-]*)$/);
+    const k = t.match(/(?:^|\s)#([\w-]*(?: [\w-]*)?)$/);
+
     if (m) {
       const q = m[1].toLowerCase();
       const list = members.filter((mm) => (mm.name || '').toLowerCase().includes(q)).slice(0, 6);
       if ('channel'.includes(q) || 'iedereen'.includes(q)) list.unshift({ name: 'channel', _channel: true });
       setMentionItems(list);
+    } else if (k) {
+      const q = k[1].toLowerCase();
+      setMentionItems(kanalen
+        .filter((kk) => (kk.name || '').toLowerCase().includes(q))
+        .slice(0, 8)
+        .map((kk) => ({ ...kk, _kanaal: true })));
     } else {
       setMentionItems([]);
     }
@@ -150,7 +162,9 @@ export default function ChatScreen({ route, navigation }) {
   };
 
   const pickMention = (item) => {
-    setText((prev) => prev.replace(/(^|\s)@([\w-]*)$/, (full, pre) => `${pre}@${item.name} `));
+    setText((prev) => (item._kanaal
+      ? prev.replace(/(^|\s)#([\w-]*(?: [\w-]*)?)$/, (full, pre) => `${pre}#${item.name} `)
+      : prev.replace(/(^|\s)@([\w-]*)$/, (full, pre) => `${pre}@${item.name} `)));
     setMentionItems([]);
   };
 
@@ -277,9 +291,25 @@ export default function ChatScreen({ route, navigation }) {
     } catch (e) { Alert.alert('Mislukt', e.message || ''); }
   };
 
+  useEffect(() => {
+    let actief = true;
+    chat.listConversations()
+      .then((r) => {
+        if (actief) setKanalen((r.conversations || []).filter((k) => k.type === 'channel'));
+      })
+      .catch(() => { /* zonder lijst blijft #naam gewoon tekst */ });
+    return () => { actief = false; };
+  }, []);
+
+  const openKanaal = useCallback((kanaalId) => {
+    if (kanaalId === id) return;
+    const k = kanalen.find((x) => x.id === kanaalId);
+    navigation.push('Chat', { id: kanaalId, title: k?.name || 'Kanaal' });
+  }, [navigation, kanalen, id]);
+
   const renderItem = useCallback(({ item }) => (
-    <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} onOpenNote={openNote} onToggleTodo={toggleTodo} onRemind={openRemind} onSave={saveForLater} onShowReads={openReads} onOpenProfile={setProfielId} />
-  ), [c, me, openThread, handleReact, startEdit, handleDelete, openNote, toggleTodo, openRemind, saveForLater, openReads, setProfielId]);
+    <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} onOpenNote={openNote} onToggleTodo={toggleTodo} onRemind={openRemind} onSave={saveForLater} onShowReads={openReads} onOpenProfile={setProfielId} channels={kanalen} onOpenChannel={openKanaal} members={members} />
+  ), [c, me, openThread, handleReact, startEdit, handleDelete, openNote, toggleTodo, openRemind, saveForLater, openReads, setProfielId, kanalen, openKanaal, members]);
 
   const pinnedNotes = messages.filter((m) => m.kind === 'note' && m.pinned_at && !m.deleted_at);
   // Vastgeprikte notities tonen we in de pinbalk; niet nóg eens in de stroom.
@@ -316,9 +346,9 @@ export default function ChatScreen({ route, navigation }) {
       {mentionItems.length > 0 && (
         <View style={[styles.mentionBox, { backgroundColor: c.bg, borderColor: c.border }]}>
           {mentionItems.map((item) => (
-            <TouchableOpacity key={item._channel ? 'channel' : (item.user_id ?? item.id)} style={styles.mentionRow} onPress={() => pickMention(item)}>
-              <View style={styles.mentionAvatar}><Text style={styles.mentionAvatarText}>{item._channel ? '#' : (item.name || '?').charAt(0).toUpperCase()}</Text></View>
-              <Text style={[styles.mentionName, { color: c.text }]} numberOfLines={1}>@{item.name}</Text>
+            <TouchableOpacity key={item._channel ? 'channel' : ((item._kanaal ? 'k' : 'u') + (item.user_id ?? item.id))} style={styles.mentionRow} onPress={() => pickMention(item)}>
+              <View style={styles.mentionAvatar}><Text style={styles.mentionAvatarText}>{(item._channel || item._kanaal) ? '#' : (item.name || '?').charAt(0).toUpperCase()}</Text></View>
+              <Text style={[styles.mentionName, { color: c.text }]} numberOfLines={1}>{item._kanaal ? '#' : '@'}{item.name}</Text>
               {item._channel && <Text style={[styles.mentionHint, { color: c.muted }]}>iedereen</Text>}
             </TouchableOpacity>
           ))}
