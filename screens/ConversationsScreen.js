@@ -8,6 +8,7 @@ import { chat } from '../src/api';
 import UpdateMelding from '../src/UpdateMelding';
 import { getEcho } from '../src/echo';
 import Avatar from '../src/Avatar';
+import { useOnline } from '../src/aanwezig';
 
 export default function ConversationsScreen({ navigation, user, onLogout }) {
   const dark = useColorScheme() === 'dark';
@@ -216,6 +217,7 @@ function VerborgenGesprekken({ c, onHersteld }) {
 // Eén gespreksrij met swipe-acties: rechts swipen = verbergen (alleen DM),
 // links swipen = favoriet (DM + channel).
 function Row({ item, c, navigation, onHide, onFav, onGeopend }) {
+  const online = useOnline();
   const ref = useRef(null);
   const unread = item.unread_count || 0;
   const name = item.display_name || item.name || 'Gesprek';
@@ -256,7 +258,7 @@ function Row({ item, c, navigation, onHide, onFav, onGeopend }) {
           onGeopend(item.id);
           navigation.navigate('Chat', { id: item.id, title: name });
         }}>
-        {isDm && <View style={{ marginRight: 10 }}><Avatar name={name} uri={item.peer_avatar} size={38} /></View>}
+        {isDm && <View style={{ marginRight: 10 }}><Avatar name={name} uri={item.peer_avatar} size={38} online={online.has(Number(item.peer_user_id))} /></View>}
         <View style={{ flex: 1 }}>
           <Text style={[styles.name, { color: c.text, fontWeight: unread ? '700' : '500' }]} numberOfLines={1}>
             {item.is_favorite ? <><Feather name="star" size={12} color="#f59e0b" /> </> : null}

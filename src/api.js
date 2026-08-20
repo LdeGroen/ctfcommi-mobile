@@ -37,6 +37,9 @@ export const chat = {
   me: () => apiFetch('/api/chat/me'),
   // Publiek: welke appversie is de nieuwste (voor de updatemelding).
   appVersies: () => apiFetch('/api/app-versies'),
+
+  // Wie zit er nu in de app? Zegt tegelijk dat jij er bent.
+  aanwezig: () => apiFetch('/api/chat/aanwezig', { method: 'POST' }),
   updateSettings: (data) => apiFetch('/api/chat/me/settings', { method: 'PUT', body: JSON.stringify(data) }),
   listConversations: () => apiFetch('/api/chat/conversations'),
   getConversation: (id) => apiFetch(`/api/chat/conversations/${id}`),

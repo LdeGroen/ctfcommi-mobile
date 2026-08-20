@@ -3,6 +3,7 @@ import { View, Text, Modal, TouchableOpacity, Linking, StyleSheet, useColorSchem
 import { Feather } from '@expo/vector-icons';
 import { chat } from './api';
 import Avatar from './Avatar';
+import { useIsOnline } from './aanwezig';
 import { theme } from './MessageView';
 
 /**
@@ -16,6 +17,7 @@ export default function PersonCard({ userId, onClose, onStartDm }) {
   const c = theme(dark);
   const [profiel, setProfiel] = useState(null);
   const [fout, setFout] = useState(false);
+  const isOnline = useIsOnline(userId);
 
   useEffect(() => {
     let actief = true;
@@ -42,7 +44,7 @@ export default function PersonCard({ userId, onClose, onStartDm }) {
       <TouchableOpacity activeOpacity={1} onPress={onClose} style={styles.overlay}>
         <TouchableOpacity activeOpacity={1} style={[styles.kaart, { backgroundColor: c.bg }]}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-            <Avatar name={profiel?.name} uri={profiel?.avatar} size={52} />
+            <Avatar name={profiel?.name} uri={profiel?.avatar} size={52} online={isOnline} />
             <View style={{ flex: 1 }}>
               <Text style={{ color: c.text, fontWeight: '700', fontSize: 17 }} numberOfLines={1}>
                 {profiel?.name || 'Laden…'}

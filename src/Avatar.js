@@ -17,14 +17,31 @@ function initial(name) {
   return t ? t.charAt(0).toUpperCase() : '?';
 }
 
-export default function Avatar({ name, uri, size = 36 }) {
+export default function Avatar({ name, uri, size = 36, online = false }) {
   const radius = size / 2;
-  if (uri) {
-    return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: radius, backgroundColor: '#e5e7eb' }} />;
-  }
+
+  const beeld = uri
+    ? <Image source={{ uri }} style={{ width: size, height: size, borderRadius: radius, backgroundColor: '#e5e7eb' }} />
+    : (
+      <View style={[styles.fallback, { width: size, height: size, borderRadius: radius, backgroundColor: colorFor(name) }]}>
+        <Text style={{ color: '#fff', fontSize: size * 0.42, fontWeight: '700' }}>{initial(name)}</Text>
+      </View>
+    );
+
+  if (!online) return beeld;
+
+  // Het bolletje schaalt mee: een vaste maat zou op een klein plaatje het
+  // halve gezicht bedekken. Het witte randje houdt het leesbaar op een
+  // donkere foto.
+  const stip = Math.max(8, Math.round(size * 0.28));
   return (
-    <View style={[styles.fallback, { width: size, height: size, borderRadius: radius, backgroundColor: colorFor(name) }]}>
-      <Text style={{ color: '#fff', fontSize: size * 0.42, fontWeight: '700' }}>{initial(name)}</Text>
+    <View style={{ width: size, height: size }}>
+      {beeld}
+      <View style={{
+        position: 'absolute', right: -1, bottom: -1,
+        width: stip, height: stip, borderRadius: stip / 2,
+        backgroundColor: '#10b981', borderWidth: 2, borderColor: '#fff',
+      }} />
     </View>
   );
 }
