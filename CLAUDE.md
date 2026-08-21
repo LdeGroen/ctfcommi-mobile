@@ -91,7 +91,10 @@ eas submit --platform ios --path ~/build-commi.ipa --profile production --non-in
 | `src/push.js` | `registerForPush` + **één** `setNotificationHandler` (SDK52-keys) + Android-kanaal |
 | `src/echo.js` | pusher-js realtime singleton (`getEcho`) |
 | `src/drive.js` | `shareFromDrive` → opent gehoste picker-pagina (`<webUrl>/drive-picker.html`) in in-app browser, deelt server-side, deeplink terug |
-| `src/Avatar.js` | avatar (foto of gekleurde initiaal-cirkel) |
+| `src/Avatar.js` | avatar (foto of gekleurde initiaal-cirkel), met groen bolletje als die persoon online is |
+| `src/aanwezig.js` | één klok voor de hele app: elke minuut "ik ben er" + wie er nog meer zijn; stopt in de achtergrond |
+| `src/UpdateMelding.js` | balk als je een oude versie draait, met een knop naar de store (mobiel kan zichzelf niet installeren) |
+| `src/PersonCard.js` | kaartje met contactgegevens bij een naam of avatar |
 | `src/MessageView.js` | bericht-weergave (avatar, markdown, reacties, thread, drive-bijlage); **`export const theme`** (gedeeld kleurschema — Chat/Thread importeren dit!); component is `React.memo` |
 | `screens/ConversationsScreen.js` | lijst met sectiekoppen (Kanalen/DM's), **realtime via `user.{id}`**, avatars bij DM's, zoek-icoon |
 | `screens/ChatScreen.js` | gesprek; Drive-knop; zoek-icoon; FlatList-tuning; KeyboardAvoidingView |
@@ -99,12 +102,24 @@ eas submit --platform ios --path ~/build-commi.ipa --profile production --non-in
 | `screens/SearchScreen.js` | zoeken globaal (zonder params) of per gesprek (`conversationId`) |
 | `screens/ActivityScreen.js` | overzicht laatste 30 dagen |
 
-## Versiebeleid (AFSPRAAK)
-- `versionName` = `app.json` → `expo.version` (handmatig). versionCode loopt
-  automatisch op in de Gradle-build (epoch/60).
-- **Bij elke nieuwe versie de patch met 1 ophogen** (0.1.1 → 0.1.2 → 0.1.3 …),
-  **totdat de gebruiker expliciet zegt dat het 0.2 mag worden.** Houd
-  `app.json` en `package.json` in sync. Huidige versie: **0.1.6**.
+## Uitbrengen en versiebeleid
+
+**Uitbrengen = Actions → "Build & submit mobile (EAS)" → Run workflow → kies
+patch/minor/major.** De workflow bepaalt zelf het nieuwe versienummer (het
+hoogste van de laatste tag en `app.json`, plus één), zet de tag, vult
+`app.json` en `package.json` in, bouwt, dient in en meldt de nieuwe versie aan
+de backend. Met de hand taggen of nummers bijwerken hoeft dus niet meer.
+
+- Blijf patch ophogen (0.1.1 → 0.1.2 → …) **totdat de gebruiker zegt dat het
+  0.2 mag worden**; kies dan "minor".
+- `versionCode` (Android) en `buildNumber` (iOS) lopen automatisch op.
+- Kies "geen" als je wilt bouwen zonder het versienummer te verhogen. Let op:
+  dan blijft `app.json` staan waar hij staat, dus doe dat niet vlak ná een
+  uitgave — dan bouw je het oude nummer opnieuw.
+- **Android komt in de gesloten test-track (alpha)**, niet in productie. Doorzetten
+  doe je zelf in Play Console. iOS gaat naar App Store Connect.
+- Zet de "Wat is er nieuw"-tekst met de hand in beide consoles; EAS stuurt die
+  niet mee. De tekst staat klaar in `CHANGELOG.md`.
 
 ## Aandachtspunten / valkuilen
 - **Feather-iconen (Gradle-build):** in de prebuild/Gradle-build laadt
@@ -130,3 +145,7 @@ Feather-iconen; Google Drive delen (via gehoste picker-pagina); avatars; zoeken
 (globaal + per gesprek); sectiekoppen; realtime gesprekkenlijst; scroll-perf
 (memo + FlatList-tuning); fixes: notificatie-tik-crash, theme-export-crash,
 toetsenbord (pan-modus).
+
+Later: status bij je naam; personenkaartje; `@persoon`- en `#kanaal`-tags in
+berichten (aanklikbaar, `#kanaal` navigeert erheen); melding als je achterloopt;
+groen bolletje bij wie nu in de app zit.
