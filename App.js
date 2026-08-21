@@ -12,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
 import { chat, getToken, setToken, opSessieVerlopen } from './src/api';
+import { wisselInlogcodeIn } from './src/auth';
 import { registerForPush } from './src/push';
 import LoginScreen from './screens/LoginScreen';
 import ConversationsScreen from './screens/ConversationsScreen';
@@ -103,7 +104,13 @@ export default function App() {
       const { queryParams } = Linking.parse(url);
       const pick = (v) => (Array.isArray(v) ? v[0] : v);
       const token = pick(queryParams?.token);
-      if (token) { await setToken(token); loadUser(); }
+      if (token) { await setToken(token); loadUser(); return; }
+
+      const code = pick(queryParams?.code);
+      if (code) {
+        const ingewisseld = await wisselInlogcodeIn(code);
+        if (ingewisseld) { await setToken(ingewisseld); loadUser(); }
+      }
     };
     const sub = Linking.addEventListener('url', (e) => handleUrl(e.url));
     Linking.getInitialURL().then(handleUrl).catch(() => {});
