@@ -17,12 +17,29 @@ export async function getToken() {
 export async function setToken(t) { cachedToken = t; await SecureStore.setItemAsync(TOKEN_KEY, t); }
 export async function clearToken() { cachedToken = null; await SecureStore.deleteItemAsync(TOKEN_KEY); }
 
+// Wordt aangeroepen zodra de server ons token afwijst. App.js hangt hier het
+// terugvallen naar het loginscherm aan; zonder dat merk je pas bij een
+// herstart dat je sessie voorbij is.
+let bijSessieEinde = null;
+export function opSessieVerlopen(fn) { bijSessieEinde = fn; }
+
 export async function apiFetch(path, options = {}) {
   const token = await getToken();
   const headers = { Accept: 'application/json', ...(options.headers || {}) };
   if (token) headers.Authorization = `Bearer ${token}`;
   if (options.body && !(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+
+  // Sanctum-tokens leven een maand. Verlopen of ingetrokken: opruimen en
+  // meteen terug naar inloggen.
+  if (res.status === 401 && token) {
+    await clearToken();
+    bijSessieEinde?.();
+    const e = new Error('Je sessie is verlopen. Log opnieuw in.');
+    e.status = 401;
+    throw e;
+  }
+
   if (res.status === 204) return null;
   const ct = res.headers.get('content-type') || '';
   const body = ct.includes('application/json') ? await res.json() : await res.text();

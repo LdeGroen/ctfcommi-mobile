@@ -11,7 +11,7 @@ import { Feather } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
-import { chat, getToken, setToken } from './src/api';
+import { chat, getToken, setToken, opSessieVerlopen } from './src/api';
 import { registerForPush } from './src/push';
 import LoginScreen from './screens/LoginScreen';
 import ConversationsScreen from './screens/ConversationsScreen';
@@ -75,6 +75,9 @@ function HoofdTabs({ user, onLogout }) {
 
 export default function App() {
   const [user, setUser] = useState(null);
+
+  // Wijst de server ons token af, dan meteen terug naar het loginscherm.
+  useEffect(() => { opSessieVerlopen(() => setUser(null)); }, []);
   const [loading, setLoading] = useState(true);
   const [navReady, setNavReady] = useState(false);
   const navRef = useRef(null);
