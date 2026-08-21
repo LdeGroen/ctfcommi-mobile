@@ -13,14 +13,40 @@ const WEB_URL = (extra.webUrl || 'https://commi.cafetheaterfestival.nl').replace
  *
  * @returns {Promise<'shared'|'cancel'|'dismissed'>}
  */
+/**
+ * Kortlevende toegang voor de pickerpagina.
+ *
+ * Die pagina kreeg hiervoor het gewone token in zijn URL, en dat leeft een
+ * maand. In een in-app browser belandt zo'n URL in de geschiedenis en in
+ * verwijzende adressen. Nu een code die één keer werkt en een token oplevert
+ * dat na een kwartier vervalt — zelfde flow als web en desktop al gebruiken.
+ */
+async function haalPickerCode() {
+  try {
+    const token = await getToken();
+    if (!token) return null;
+
+    const res = await fetch(`${API_URL}/api/auth/picker-code`, {
+      method: 'POST',
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+
+    return json?.code || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function shareFromDrive({ conversationId, parentId = null }) {
-  const token = await getToken();
-  if (!token) return 'cancel';
+  const code = await haalPickerCode();
+  if (!code) return 'cancel';
 
   const returnUrl = Linking.createURL('drive-done');
   const params = new URLSearchParams({
     api: API_URL,
-    t: token,
+    code,
     c: String(conversationId),
     r: returnUrl,
   });
