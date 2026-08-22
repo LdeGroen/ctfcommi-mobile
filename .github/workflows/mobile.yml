@@ -131,10 +131,43 @@ jobs:
         run: |
           if [ -z "$OPS_TOKEN" ]; then echo "geen OPS_TOKEN — overgeslagen"; exit 0; fi
           VERSIE=$(node -p "require('./app.json').expo.version")
+
+          # De notities van deze versie meesturen, zodat de updatemelding in de
+          # app niet alleen zegt dát er iets nieuws is maar ook wát. Ze komen uit
+          # het kopje in CHANGELOG.md dat bij dit versienummer hoort; staat dat
+          # er (nog) niet, dan gaat het zonder notities — een release tegenhouden
+          # om een ontbrekende tekst is erger dan de tekst missen.
+          LADING=$(VERSIE="$VERSIE" node -e "
+            const fs = require('fs');
+            const versie = process.env.VERSIE;
+            let notities = null;
+            try {
+              const c = fs.readFileSync('CHANGELOG.md', 'utf8');
+              const start = c.indexOf('## ' + versie);
+              if (start >= 0) {
+                const rest = c.slice(start);
+                const eind = rest.indexOf('\n## ', 3);
+                notities = (eind < 0 ? rest : rest.slice(0, eind))
+                  .split('\n').slice(1).join('\n').trim() || null;
+              }
+            } catch (e) { /* geen changelog is geen reden om te stoppen */ }
+            process.stdout.write(JSON.stringify({
+              versie,
+              notities,
+              url: 'https://github.com/${{ github.repository }}/releases/tag/v' + versie,
+            }));
+          ")
+
           for PLAT in android ios; do
+            echo "$LADING" | node -e "
+              let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>{
+                const j = JSON.parse(d); j.platform = process.argv[1];
+                require('fs').writeFileSync('lading.json', JSON.stringify(j));
+              });
+            " "$PLAT"
             code=$(curl -sS -o antwoord.txt -w '%{http_code}' --max-time 30 -X POST \
               -H "X-Ops-Token: $OPS_TOKEN" -H "Content-Type: application/json" -H "Accept: application/json" \
-              -d "{\"platform\":\"$PLAT\",\"versie\":\"$VERSIE\"}" \
+              --data-binary @lading.json \
               "https://backend.cafetheaterfestival.nl/api/ops/app-versie") || code=000
             echo "$PLAT melden: HTTP $code · $(cat antwoord.txt)"
           done
