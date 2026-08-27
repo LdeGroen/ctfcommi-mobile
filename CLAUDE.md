@@ -38,13 +38,21 @@ Drie dingen om te weten:
 - **De APK werkt zichzelf niet bij.** Er zit geen updatecontrole in de mobiele app
   (anders dan bij desktop). Bij een nieuwe versie draai je `wat=apk` opnieuw en
   installeert de gebruiker er zelf overheen; ingelogd blijven ze.
-- **De uploadgrenzen op de server zijn hiervoor opgehoogd** naar 200 MB
-  (`client_max_body_size` in de vhost van backend.cafetheaterfestival.nl, en
-  `php_admin_value[upload_max_filesize]`/`[post_max_size]` in de FPM-pool). Ze
-  stonden op 64 MB (nginx) en 100 MB (PHP), terwijl de route voor de
-  desktop-installers al 200 MB accepteerde — dat gat had niemand nog geraakt.
-  **Let op: CloudPanel kan die bestanden overschrijven** als de site in het paneel
-  wordt bijgewerkt; er staat een `.bak-<datum>` naast.
+- **De uploadgrenzen op de server zijn hiervoor opgehoogd** naar 200 MB. Twee
+  plekken, en de tweede is een valkuil:
+  1. `client_max_body_size` in de nginx-vhost van backend.cafetheaterfestival.nl
+     (stond op 64 MB).
+  2. **`post_max_size` en `upload_max_filesize` in het `fastcgi_param PHP_VALUE`-blok
+     van diezelfde vhost** — niet in `php.ini` en niet in de FPM-pool. CloudPanel
+     zet de PHP-instellingen per site daar neer, en die regel wint van allebei.
+     Zet je het in de pool, dan zegt `php-fpm -tt` netjes 200M terwijl een verzoek
+     gewoon 64M ziet. Te controleren met `ini_get('post_max_size')` in een verzoek
+     (`get_cfg_var` geeft de php.ini-waarde en verraadt het verschil).
+     Het hoort thuis in **CloudPanel → site → PHP Settings**; met de hand in de
+     vhost werkt, maar het paneel kan dat bestand overschrijven.
+
+  De route voor de desktop-installers accepteerde al 200 MB, dus dat gat zat er
+  al — het was alleen nog nooit geraakt, want die pakketten zijn klein.
 - **iOS (PRIMAIRE route — lokaal op de Mac mini):** `eas build --platform ios --local`
   op de mini, buiten de EAS-cloudwachtrij/limiet om (lokale builds tellen NIET mee voor
   het gratis plan). Zie sectie **"iOS bouwen op de Mac mini"** hieronder. EAS beheert nog
