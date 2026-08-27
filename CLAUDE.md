@@ -17,6 +17,34 @@ voor het toetsenbord — zie `src/KeyboardScreen.js`.
   via fastlane direct naar de Play **gesloten test-track (alpha)** pushen
   (track staat in `eas.json` → submit.production.android.track). versionCode = epoch/60
   (altijd oplopend). target/compileSdk 35 via `expo-build-properties`.
+  De invoer `wat` kiest **aab**, **apk** of **beide**; met *beide* komen ze uit
+  dezelfde commit en met hetzelfde versienummer.
+
+### De APK voor wie geen Play Store gebruikt
+
+Een AAB is een pakket voor Google, geen installeerbare app. Wie de Play Store niet
+gebruikt kwam er dus niet in. Sinds 27-8-2026 zet `wat=apk` de universele APK ook
+op de backend (`POST /api/ops/commi-apk`, secret `OPS_TOKEN`), die hem aanbiedt op
+**<https://backend.cafetheaterfestival.nl/commi>** — een pagina met downloadknop en
+installatie-uitleg. Een GitHub-artifact volstond niet: die is alleen te halen met
+toegang tot deze privé-repo en verdwijnt na negentig dagen.
+
+Drie dingen om te weten:
+
+- **Deze APK en de Play-versie kunnen niet naast elkaar.** Wie een AAB uploadt zit
+  verplicht aan Play App Signing, dus Google hertekent het pakket met een andere
+  sleutel dan de upload-keystore die deze workflow gebruikt. Android weigert dan de
+  installatie over de ander heen. Wisselen betekent eerst verwijderen.
+- **De APK werkt zichzelf niet bij.** Er zit geen updatecontrole in de mobiele app
+  (anders dan bij desktop). Bij een nieuwe versie draai je `wat=apk` opnieuw en
+  installeert de gebruiker er zelf overheen; ingelogd blijven ze.
+- **De uploadgrenzen op de server zijn hiervoor opgehoogd** naar 200 MB
+  (`client_max_body_size` in de vhost van backend.cafetheaterfestival.nl, en
+  `php_admin_value[upload_max_filesize]`/`[post_max_size]` in de FPM-pool). Ze
+  stonden op 64 MB (nginx) en 100 MB (PHP), terwijl de route voor de
+  desktop-installers al 200 MB accepteerde — dat gat had niemand nog geraakt.
+  **Let op: CloudPanel kan die bestanden overschrijven** als de site in het paneel
+  wordt bijgewerkt; er staat een `.bak-<datum>` naast.
 - **iOS (PRIMAIRE route — lokaal op de Mac mini):** `eas build --platform ios --local`
   op de mini, buiten de EAS-cloudwachtrij/limiet om (lokale builds tellen NIET mee voor
   het gratis plan). Zie sectie **"iOS bouwen op de Mac mini"** hieronder. EAS beheert nog
