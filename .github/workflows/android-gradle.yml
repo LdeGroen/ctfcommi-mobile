@@ -5,10 +5,14 @@ name: Android build (Gradle — geen EAS-wachtrij)
 on:
   workflow_dispatch:
     inputs:
-      apk:
-        description: 'Test-APK bouwen (installeerbaar op telefoon, NIET naar Play)?'
-        type: boolean
-        default: false
+      wat:
+        description: 'Wat bouwen?'
+        type: choice
+        options:
+          - aab            # voor de Play Store
+          - apk            # los installeerbaar bestand, komt op /commi
+          - beide
+        default: aab
       submit:
         description: 'Direct indienen bij Play (gesloten test / alpha)? (alleen bij AAB)'
         type: boolean
@@ -53,7 +57,7 @@ jobs:
 
       # --- Test-APK (installeerbaar via sideload, gaat NIET naar Play) ---
       - name: APK bouwen (gesigneerd, test)
-        if: ${{ github.event.inputs.apk == 'true' }}
+        if: ${{ github.event.inputs.wat == 'apk' || github.event.inputs.wat == 'beide' }}
         working-directory: android
         run: |
           chmod +x ./gradlew
@@ -64,16 +68,35 @@ jobs:
             -Pandroid.injected.signing.key.password="${{ secrets.ANDROID_KEY_PASSWORD }}"
 
       - name: APK als artifact bewaren
-        if: ${{ github.event.inputs.apk == 'true' }}
+        if: ${{ github.event.inputs.wat == 'apk' || github.event.inputs.wat == 'beide' }}
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
           path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
 
+      # Een artifact kan alleen iemand met toegang tot deze (privé) repo ophalen,
+      # en na negentig dagen is het weg. Voor wie geen Play Store gebruikt zetten
+      # we het bestand daarom op de backend; die serveert het op /commi.
+      - name: APK klaarzetten op backend.cafetheaterfestival.nl/commi
+        if: ${{ github.event.inputs.wat == 'apk' || github.event.inputs.wat == 'beide' }}
+        env:
+          OPS_TOKEN: ${{ secrets.OPS_TOKEN }}
+        run: |
+          if [ -z "$OPS_TOKEN" ]; then echo "geen OPS_TOKEN - overgeslagen"; exit 0; fi
+          APK=$(ls android/app/build/outputs/apk/release/*.apk | head -n1)
+          VERSIE=$(node -p "require('./app.json').expo.version")
+          echo "versie $VERSIE, $(du -h "$APK" | cut -f1)"
+          code=$(curl -sS -o /tmp/antwoord.txt -w '%{http_code}' \
+            -H "X-Ops-Token: $OPS_TOKEN" -H "Accept: application/json" \
+            -F "versie=$VERSIE" -F "apk=@$APK" \
+            "https://backend.cafetheaterfestival.nl/api/ops/commi-apk") || code=000
+          echo "antwoord $code"; cat /tmp/antwoord.txt; echo
+          [ "$code" = "200" ]
+
       # --- AAB (voor Play; standaard) ---
       - name: AAB bouwen (gesigneerd)
-        if: ${{ github.event.inputs.apk != 'true' }}
+        if: ${{ github.event.inputs.wat == 'aab' || github.event.inputs.wat == 'beide' }}
         working-directory: android
         run: |
           chmod +x ./gradlew
@@ -84,7 +107,7 @@ jobs:
             -Pandroid.injected.signing.key.password="${{ secrets.ANDROID_KEY_PASSWORD }}"
 
       - name: AAB als artifact bewaren
-        if: ${{ github.event.inputs.apk != 'true' }}
+        if: ${{ github.event.inputs.wat == 'aab' || github.event.inputs.wat == 'beide' }}
         uses: actions/upload-artifact@v4
         with:
           name: app-release-aab
@@ -92,14 +115,14 @@ jobs:
           if-no-files-found: error
 
       - name: EAS CLI (alleen bij indienen)
-        if: ${{ github.event.inputs.apk != 'true' && github.event.inputs.submit == 'true' }}
+        if: ${{ (github.event.inputs.wat == 'aab' || github.event.inputs.wat == 'beide') && github.event.inputs.submit == 'true' }}
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Indienen bij Play (track uit eas.json — gesloten test/alpha)
-        if: ${{ github.event.inputs.apk != 'true' && github.event.inputs.submit == 'true' }}
+        if: ${{ (github.event.inputs.wat == 'aab' || github.event.inputs.wat == 'beide') && github.event.inputs.submit == 'true' }}
         run: |
           AAB=$(ls android/app/build/outputs/bundle/release/*.aab | head -n1)
           eas submit --platform android --profile production --non-interactive --path "$AAB"
