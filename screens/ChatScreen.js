@@ -44,7 +44,15 @@ export default function ChatScreen({ route, navigation }) {
 
   // Ook bij terugkeren in dit scherm (uit een thread, of vanuit de achtergrond)
   // opnieuw als gelezen melden — er kan intussen van alles zijn binnengekomen.
-  useFocusEffect(useCallback(() => { markRead(); }, [id]));
+  // Bij het openen doet de laadfunctie dit zelf, ná het vastzetten van de
+  // streep "Nieuw". Zou het hier ook meteen gebeuren, dan is de leesstand al
+  // bijgewerkt voordat we weten waar je gebleven was. Bij een terugkeer (uit
+  // een thread bijvoorbeeld) moet het wél.
+  const eersteFocus = useRef(true);
+  useFocusEffect(useCallback(() => {
+    if (eersteFocus.current) { eersteFocus.current = false; return; }
+    markRead();
+  }, [id]));
 
   useLayoutEffect(() => {
     navigation.setOptions({
