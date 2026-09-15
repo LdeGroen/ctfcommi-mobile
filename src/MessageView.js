@@ -113,6 +113,28 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
     channels,
   );
   const [picker, setPicker] = useState(false);
+  // Welke reactie wordt uitgelegd? null = geen. Een aanraakscherm kent geen
+  // aanwijzen, dus hier opent een lange druk de namenlijst; een gewone tik
+  // blijft je eigen reactie aan- of uitzetten.
+  const [wieReageerde, setWieReageerde] = useState(null);
+
+  // De server stuurt de namen mee bij elke reactie. Komt een bericht nog uit een
+  // oudere cache zonder `users`, dan valt hij terug op de ledenlijst -- en
+  // anders op "Onbekend", want iemand die het kanaal verliet staat daar niet
+  // meer in. Jezelf staat bovenaan en heet "Jij".
+  const wieReageerdeNamen = (() => {
+    if (!wieReageerde) return [];
+    const ruw = (wieReageerde.users && wieReageerde.users.length)
+      ? wieReageerde.users.map((u) => ({ id: u.id, naam: u.name }))
+      : (wieReageerde.user_ids || []).map((id) => ({
+          id,
+          naam: members.find((m) => (m.user_id ?? m.id) === id)?.name || 'Onbekend',
+        }));
+
+    return ruw
+      .sort((a, b) => (a.id === me?.id ? -1 : b.id === me?.id ? 1 : 0))
+      .map((n) => ({ ...n, naam: n.id === me?.id ? 'Jij' : n.naam }));
+  })();
 
   if (item.deleted_at) {
     return <Text style={[s.deleted, { color: c.muted }]}>bericht verwijderd</Text>;
@@ -225,7 +247,13 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
       {item.reactions?.length > 0 && (
         <View style={s.reactionRow}>
           {item.reactions.map((r) => (
-            <TouchableOpacity key={r.emoji} onPress={() => onReact && onReact(item, r.emoji)} style={[s.chip, { borderColor: c.border }]}>
+            <TouchableOpacity
+              key={r.emoji}
+              onPress={() => onReact && onReact(item, r.emoji)}
+              onLongPress={() => setWieReageerde(r)}
+              delayLongPress={350}
+              style={[s.chip, { borderColor: c.border }]}
+            >
               <Text style={{ color: c.text, fontSize: 13 }}>{r.emoji} {r.count}</Text>
             </TouchableOpacity>
           ))}
@@ -250,6 +278,22 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
       )}
 
       </View>
+
+      <Modal visible={!!wieReageerde} transparent animationType="fade" onRequestClose={() => setWieReageerde(null)}>
+        <Pressable style={s.backdrop} onPress={() => setWieReageerde(null)}>
+          <View style={[s.sheet, { backgroundColor: c.bg, borderColor: c.border }]}>
+            <Text style={{ fontSize: 34, textAlign: 'center', marginBottom: 6 }}>{wieReageerde?.emoji}</Text>
+            {wieReageerdeNamen.map((n) => (
+              <Text key={n.id} style={{ color: c.text, fontSize: 15, paddingVertical: 4, textAlign: 'center' }}>
+                {n.naam}
+              </Text>
+            ))}
+            <Text style={{ color: c.muted, fontSize: 12, textAlign: 'center', marginTop: 6 }}>
+              {wieReageerdeNamen.length === 1 ? 'reageerde' : 'reageerden'} met {wieReageerde?.emoji}
+            </Text>
+          </View>
+        </Pressable>
+      </Modal>
 
       <Modal visible={picker} transparent animationType="fade" onRequestClose={() => setPicker(false)}>
         <Pressable style={s.backdrop} onPress={() => setPicker(false)}>
