@@ -35,6 +35,9 @@ export default function ChatScreen({ route, navigation }) {
   const [kanalen, setKanalen] = useState([]);
   const [announce, setAnnounce] = useState(false);
   const [remindFor, setRemindFor] = useState(null);
+  // Later versturen: het keuzevenster en wat er in dit gesprek klaarstaat.
+  const [planOpen, setPlanOpen] = useState(false);
+  const [ingepland, setIngepland] = useState([]);
   const [readsModal, setReadsModal] = useState(null);
   const [profielId, setProfielId] = useState(null); // open profielkaartje
   const subRef = useRef(null);
@@ -186,19 +189,66 @@ export default function ChatScreen({ route, navigation }) {
   const resolveMentionIds = (body) =>
     members.filter((mm) => mm.name && body.includes(`@${mm.name}`)).map((mm) => mm.user_id ?? mm.id);
 
-  const send = async () => {
+  const send = async (scheduledFor = null) => {
     const body = text.trim();
     if (!body) return;
     setSending(true);
     try {
-      const sent = await chat.sendMessage(id, { body, mentionUserIds: resolveMentionIds(body), isAnnouncement: announce });
-      setMessages((prev) => (prev.some((x) => x.id === sent.id) ? prev : [...prev, sent]));
+      const sent = await chat.sendMessage(id, { body, mentionUserIds: resolveMentionIds(body), isAnnouncement: announce, scheduledFor });
+      // Een ingepland bericht hoort niet in de lijst: het is nog niet verstuurd.
+      // Het komt in de balk boven de typebalk te staan tot het moment daar is.
+      if (scheduledFor) setIngepland((prev) => [...prev, sent].sort((a, b) => (a.scheduled_for || '').localeCompare(b.scheduled_for || '')));
+      else setMessages((prev) => (prev.some((x) => x.id === sent.id) ? prev : [...prev, sent]));
       setText('');
       setAnnounce(false);
       setMentionItems([]);
+      setPlanOpen(false);
       clearTimeout(draftTimer.current);
       chat.saveDraft(id, '').catch(() => {});
     } catch {} finally { setSending(false); }
+  };
+
+  const laadIngepland = useCallback(async () => {
+    try { setIngepland((await chat.listScheduled(id)).messages || []); }
+    catch { setIngepland([]); }
+  }, [id]);
+
+  useEffect(() => { laadIngepland(); }, [laadIngepland]);
+
+  const nuVersturen = async (m) => {
+    try {
+      const sent = await chat.sendScheduledNow(m.id);
+      setIngepland((prev) => prev.filter((x) => x.id !== m.id));
+      setMessages((prev) => (prev.some((x) => x.id === sent.id) ? prev : [...prev, sent]));
+    } catch (e) { Alert.alert('Mislukt', e.message || ''); }
+  };
+
+  const planWeggooien = (m) => {
+    Alert.alert('Weggooien?', 'Dit bericht is nog niet verstuurd, dus niemand heeft het gezien.', [
+      { text: 'Laat staan', style: 'cancel' },
+      { text: 'Weggooien', style: 'destructive', onPress: async () => {
+        try {
+          await chat.deleteScheduled(m.id);
+          setIngepland((prev) => prev.filter((x) => x.id !== m.id));
+        } catch (e) { Alert.alert('Mislukt', e.message || ''); }
+      } },
+    ]);
+  };
+
+  /** "morgen om 09:00" — kort genoeg om naast een regel te passen. */
+  const wanneer = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const nu = new Date();
+    const minuten = Math.round((d - nu) / 60000);
+    if (minuten < 1) return 'zo meteen';
+    if (minuten < 60) return `over ${minuten} min`;
+    const tijd = d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    const zelfdeDag = (a, b) => a.toDateString() === b.toDateString();
+    const morgen = new Date(nu); morgen.setDate(morgen.getDate() + 1);
+    if (zelfdeDag(d, nu)) return `vandaag ${tijd}`;
+    if (zelfdeDag(d, morgen)) return `morgen ${tijd}`;
+    return `${d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })} ${tijd}`;
   };
 
   const [driveBusy, setDriveBusy] = useState(false);
@@ -395,6 +445,28 @@ export default function ChatScreen({ route, navigation }) {
           <TouchableOpacity onPress={cancelEdit}><Text style={{ color: '#6366f1', fontSize: 13, fontWeight: '600' }}>Annuleren</Text></TouchableOpacity>
         </View>
       )}
+      {/* Wat er in dit gesprek klaarstaat om later uit te gaan. Boven de
+          typebalk, want het hoort bij wat je nog gaat versturen -- niet bij
+          wat er al gezegd is. */}
+      {ingepland.length > 0 && !editingId && (
+        <View style={[styles.ingeplandBalk, { borderColor: c.border }]}>
+          {ingepland.map((m) => (
+            <View key={m.id} style={styles.ingeplandRegel}>
+              <Feather name="clock" size={13} color="#6366f1" />
+              <Text style={{ color: c.text, fontSize: 12, flex: 1 }} numberOfLines={1}>
+                {(m.body || '').replace(/\s+/g, ' ').trim()}
+              </Text>
+              <Text style={{ color: '#6366f1', fontSize: 11 }}>{wanneer(m.scheduled_for)}</Text>
+              <TouchableOpacity onPress={() => nuVersturen(m)} hitSlop={8}>
+                <Text style={{ color: '#6366f1', fontSize: 11, fontWeight: '600' }}>Nu</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => planWeggooien(m)} hitSlop={8}>
+                <Feather name="x" size={14} color={c.muted} />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
       {conv && conv.can_post === false ? (
         <View style={[styles.blockedBar, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 14 + bottomInset }]}>
           <Feather name="volume-2" size={15} color={c.muted} />
@@ -419,6 +491,12 @@ export default function ChatScreen({ route, navigation }) {
                   <Feather name="volume-2" size={20} color={announce ? '#f59e0b' : c.muted} />
                 </TouchableOpacity>
               )}
+              {/* Later versturen. Uitgeschakeld zonder tekst: inplannen wat er
+                  niet is, levert alleen een foutmelding op. */}
+              <TouchableOpacity style={[styles.drive, !text.trim() && { opacity: 0.4 }]}
+                                onPress={() => text.trim() && setPlanOpen(true)} disabled={!text.trim()}>
+                <Feather name="clock" size={20} color={c.muted} />
+              </TouchableOpacity>
             </>
           )}
           <TextInput style={[styles.input, { color: c.text, borderColor: announce ? '#f59e0b' : c.border }]} value={text} onChangeText={onChangeText}
@@ -428,6 +506,21 @@ export default function ChatScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Wat er klaarstaat om later uit te gaan */}
+      <Modal visible={planOpen} transparent animationType="fade" onRequestClose={() => setPlanOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setPlanOpen(false)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: c.bg, borderColor: c.border }]} onPress={() => {}}>
+            <Text style={[styles.modalTitle, { color: c.text }]}>Versturen om…</Text>
+            {remindOptions().map(([label, when]) => (
+              <TouchableOpacity key={label} style={styles.modalRow} onPress={() => send(fmtLocal(when))}>
+                <Feather name="clock" size={16} color="#6366f1" />
+                <Text style={{ color: c.text, fontSize: 15 }}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Herinner-me-opties */}
       <Modal visible={!!remindFor} transparent animationType="fade" onRequestClose={() => setRemindFor(null)}>
@@ -498,6 +591,13 @@ const styles = StyleSheet.create({
   blockedBar: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderTopWidth: StyleSheet.hairlineWidth },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   modalCard: { width: '100%', maxWidth: 360, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, padding: 16 },
+  ingeplandBalk: {
+    borderTopWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(99,102,241,0.08)',
+  },
+  ingeplandRegel: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 },
   modalTitle: { fontSize: 16, fontWeight: '700', marginBottom: 10 },
   modalRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11 },
   readRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7 },

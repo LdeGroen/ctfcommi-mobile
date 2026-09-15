@@ -66,11 +66,21 @@ export const chat = {
     if (limit) qs.set('limit', limit);
     return apiFetch(`/api/chat/conversations/${id}/messages?${qs.toString()}`);
   },
-  sendMessage: (id, { body, mentionUserIds = [], parentId = null, isAnnouncement = false }) =>
+  // scheduledFor: lokale wandtijd ('2026-09-16 09:00:00'). Staat die erin, dan
+  // wordt het bericht wel aangemaakt maar pas op dat moment verstuurd -- en tot
+  // die tijd ziet niemand anders het.
+  sendMessage: (id, { body, mentionUserIds = [], parentId = null, isAnnouncement = false, scheduledFor = null }) =>
     apiFetch(`/api/chat/conversations/${id}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ body, mention_user_ids: mentionUserIds, parent_id: parentId, is_announcement: isAnnouncement }),
+      body: JSON.stringify({ body, mention_user_ids: mentionUserIds, parent_id: parentId, is_announcement: isAnnouncement, scheduled_for: scheduledFor }),
     }),
+
+  // Eigen berichten die nog klaarstaan. Alleen van jezelf: een ander kan ze niet
+  // zien en dus ook niet tegenhouden.
+  listScheduled: (conversationId = null) =>
+    apiFetch(`/api/chat/ingepland${conversationId ? `?conversation_id=${conversationId}` : ''}`),
+  sendScheduledNow: (messageId) => apiFetch(`/api/chat/ingepland/${messageId}/nu`, { method: 'POST' }),
+  deleteScheduled: (messageId) => apiFetch(`/api/chat/ingepland/${messageId}`, { method: 'DELETE' }),
   editMessage: (messageId, body, mentionUserIds = []) =>
     apiFetch(`/api/chat/messages/${messageId}`, { method: 'PUT', body: JSON.stringify({ body, mention_user_ids: mentionUserIds }) }),
   deleteMessage: (messageId) => apiFetch(`/api/chat/messages/${messageId}`, { method: 'DELETE' }),
