@@ -9,6 +9,7 @@ import { getEcho } from '../src/echo';
 import { shareFromDrive } from '../src/drive';
 import { convertEmoticons } from '../src/emoticons';
 import MessageView, { theme } from '../src/MessageView';
+import { DagStreep, NieuwStreep, dagSleutel } from '../src/DagScheiding';
 import { useBottomBarInset } from '../src/useBottomBarInset';
 import KeyboardScreen from '../src/KeyboardScreen';
 import PersonCard from '../src/PersonCard';
@@ -18,6 +19,8 @@ export default function ChatScreen({ route, navigation }) {
   const { id } = route.params;
   const dark = useColorScheme() === 'dark';
   const c = useMemo(() => theme(dark), [dark]);
+  const [nieuwVanaf, setNieuwVanaf] = useState(0);
+  const dataRef = useRef([]);
   const headerHeight = useHeaderHeight();
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
@@ -89,6 +92,10 @@ export default function ChatScreen({ route, navigation }) {
         setMessages(msgs);
         setMembers(det?.members || []);
         setConv(det || null);
+        // Waar de streep "Nieuw" komt. Eenmalig vastzetten: markRead() hieronder
+        // schuift de leesstand meteen door, en dan zou de streep verdwijnen
+        // voordat je hem gezien hebt.
+        setNieuwVanaf(Number(det?.last_read_message_id || 0));
         if (meRes) setMe(meRes);
         if (det?.draft) setText(det.draft); // concept van een ander apparaat
         // Zonder id: de server neemt het hoogste bericht van dit gesprek.
@@ -307,13 +314,32 @@ export default function ChatScreen({ route, navigation }) {
     navigation.push('Chat', { id: kanaalId, title: k?.name || 'Kanaal' });
   }, [navigation, kanalen, id]);
 
-  const renderItem = useCallback(({ item }) => (
-    <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} onOpenNote={openNote} onToggleTodo={toggleTodo} onRemind={openRemind} onSave={saveForLater} onShowReads={openReads} onOpenProfile={setProfielId} channels={kanalen} onOpenChannel={openKanaal} members={members} />
-  ), [c, me, openThread, handleReact, startEdit, handleDelete, openNote, toggleTodo, openRemind, saveForLater, openReads, setProfielId, kanalen, openKanaal, members]);
+  // De lijst staat op `inverted`: data[0] is het nieuwste en staat onderaan,
+  // dus het chronologisch vorige bericht is data[index + 1]. Binnen een cel
+  // draait React Native de inhoud terug om, zodat wat hier bovenaan staat ook
+  // bovenaan het bericht verschijnt.
+  const renderItem = useCallback(({ item, index }) => {
+    const vorige = dataRef.current[index + 1];
+    const nieuweDag = item.created_at
+      && (!vorige || dagSleutel(vorige.created_at) !== dagSleutel(item.created_at));
+    const ongelezen = (m) => m && nieuwVanaf > 0 && m.id > nieuwVanaf && m.user_id !== me?.id;
+    const eersteNieuwe = ongelezen(item) && !ongelezen(vorige);
+
+    return (
+      <View>
+        {nieuweDag ? <DagStreep iso={item.created_at} c={c} /> : null}
+        {eersteNieuwe ? <NieuwStreep c={c} /> : null}
+        <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} onOpenNote={openNote} onToggleTodo={toggleTodo} onRemind={openRemind} onSave={saveForLater} onShowReads={openReads} onOpenProfile={setProfielId} channels={kanalen} onOpenChannel={openKanaal} members={members} />
+      </View>
+    );
+  }, [c, me, nieuwVanaf, openThread, handleReact, startEdit, handleDelete, openNote, toggleTodo, openRemind, saveForLater, openReads, setProfielId, kanalen, openKanaal, members]);
 
   const pinnedNotes = messages.filter((m) => m.kind === 'note' && m.pinned_at && !m.deleted_at);
   // Vastgeprikte notities tonen we in de pinbalk; niet nóg eens in de stroom.
   const data = [...messages].filter((m) => !(m.kind === 'note' && m.pinned_at)).reverse(); // inverted: nieuwste onderaan
+  // renderItem krijgt alleen het item en de index; via deze ref kan hij bij de
+  // buurman om te zien of de dag wisselt.
+  dataRef.current = data;
 
   // Sinds targetSdk 36 tekent Android edge-to-edge: het venster krimpt niet meer
   // voor het toetsenbord (adjustResize doet niets), dus we schuiven zelf omhoog met
