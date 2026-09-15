@@ -20,6 +20,35 @@ voor het toetsenbord — zie `src/KeyboardScreen.js`.
   De invoer `wat` kiest **aab**, **apk** of **beide**; met *beide* komen ze uit
   dezelfde commit en met hetzelfde versienummer.
 
+### Twee versiesporen, en ze lopen uit elkaar
+
+Er zijn twee plekken waar een versienummer vandaan komt, en ze weten niets van
+elkaar:
+
+| | Bron | Wie leest het |
+|---|---|---|
+| `mobile.yml` (uitgave) | de **git-tag**, of `app.json` als die hoger is | meldt het aan `POST /api/ops/app-versie` → het register |
+| `android-gradle.yml` (bouw) | **alleen `app.json`** | zet dat label op de APK en op `/commi` |
+
+Gevolg: `app.json` mag achterlopen op de tags -- `mobile.yml` neemt de hoogste
+van de twee -- maar `android-gradle.yml` doet dat **niet**. Stond er 0.1.17 in
+het bestand terwijl de laatste tag v0.1.20 was, dan kreeg de APK het label
+0.1.17.
+
+**Dat is niet onschuldig.** `UpdateMelding.js` vergelijkt de eigen versie met
+het register en toont een balk *"Versie 0.1.20 staat klaar — jij draait
+0.1.17"*, met een link naar de GitHub-releasepagina. Die repo is privé, dus
+daar kan niemand bij: een melding die je niet weg krijgt en die nergens heen
+gaat.
+
+**Kijk dus vóór een `wat=apk`-bouw naar `git tag -l 'v*' --sort=-v:refname`** en
+zet `app.json` daarboven. Op 15-9-2026 ging dat mis (0.1.18 gebouwd terwijl het
+register op 0.1.20 stond) en is de bouw overgedaan als 0.1.21.
+
+Het register bewust **niet** door de APK-bouw laten bijwerken: `android` in dat
+register geldt ook voor wie via Play installeert, en die zou dan naar een versie
+worden gestuurd die alleen op `/commi` bestaat.
+
 ### De APK voor wie geen Play Store gebruikt
 
 Een AAB is een pakket voor Google, geen installeerbare app. Wie de Play Store niet
