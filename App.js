@@ -123,16 +123,43 @@ export default function App() {
   navReadyRef.current = navReady;
   const openFromNotification = (data) => {
     try {
-      const cid = data && data.conversation_id;
-      if (!cid) return;
-      const params = { id: Number(cid), title: data.title || 'Gesprek' };
+      // De samenvatting ("je hebt 7 nieuwe berichten") gaat niet over één
+      // gesprek, dus die opent het overzicht Nieuw.
+      const doel = data && data.type === 'chat_samenvatting'
+        ? { scherm: 'Nieuw', params: undefined }
+        : (data && data.conversation_id
+            ? { scherm: 'Chat', params: { id: Number(data.conversation_id), title: data.title || 'Gesprek' } }
+            : null);
+      if (!doel) return;
+
       if (navRef.current && navReadyRef.current && userRef.current) {
-        navRef.current.navigate('Chat', params);
+        navRef.current.navigate(doel.scherm, doel.params);
       } else {
-        pendingNavRef.current = params; // later afhandelen (zie onReady/login-effect)
+        pendingNavRef.current = doel; // later afhandelen (zie onReady/login-effect)
       }
     } catch (e) { /* nooit de app laten crashen op een notificatie-tik */ }
   };
+
+  // Komt de samenvatting binnen, haal dan de losse berichtmeldingen weg: die
+  // gaan over dezelfde berichten en samen zijn het er alleen maar meer. De
+  // samenvatting zelf blijft staan.
+  //
+  // Dit lukt alleen als de app draait of op de achtergrond staat. Is hij
+  // afgesloten, dan blijven de eerste drie meldingen staan naast de
+  // samenvatting -- hinderlijk noch eindeloos, want de server stuurt er daarna
+  // geen meer bij.
+  useEffect(() => {
+    const sub = Notifications.addNotificationReceivedListener(async (melding) => {
+      try {
+        if (melding?.request?.content?.data?.type !== 'chat_samenvatting') return;
+        const staande = await Notifications.getPresentedNotificationsAsync();
+        await Promise.all(staande
+          .filter((n) => n?.request?.content?.data?.type !== 'chat_samenvatting')
+          .map((n) => Notifications.dismissNotificationAsync(n.request.identifier)));
+      } catch (e) { /* opruimen mag nooit een melding in de weg zitten */ }
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
@@ -148,9 +175,9 @@ export default function App() {
   // Pending navigatie afhandelen zodra navigator klaar is én user ingelogd.
   useEffect(() => {
     if (navReady && user && pendingNavRef.current && navRef.current) {
-      const p = pendingNavRef.current;
+      const doel = pendingNavRef.current;
       pendingNavRef.current = null;
-      try { navRef.current.navigate('Chat', p); } catch (e) {}
+      try { navRef.current.navigate(doel.scherm, doel.params); } catch (e) {}
     }
   }, [navReady, user]);
 
