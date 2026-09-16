@@ -3,6 +3,16 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## Nog niet uitgebracht
+
+Zit in `main` en werkt al op de webversie; komt op de telefoon zodra er een
+nieuwe store-build is.
+
+- **Een bericht later versturen.** Schrijf je bericht, tik op het klokje in de
+  typebalk en kies over een uur, vanavond, morgen of volgende week. Tot dat
+  moment ziet niemand het -- het staat boven je typebalk met een knopje om het
+  alsnog meteen te sturen of weg te gooien.
+
 ## 0.1.20 — 22 augustus 2026
 
 Een noodzakelijke update: zonder deze versie kun je niet meer inloggen zodra je

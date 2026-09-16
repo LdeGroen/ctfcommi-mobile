@@ -167,6 +167,29 @@ eas submit --platform ios --path ~/build-commi.ipa --profile production --non-in
 | `screens/SearchScreen.js` | zoeken globaal (zonder params) of per gesprek (`conversationId`) |
 | `screens/ActivityScreen.js` | overzicht laatste 30 dagen |
 
+## Later versturen (en het verschil met "herinner me")
+
+In de typebalk zit een klokje: je bericht gaat pas op het gekozen moment uit.
+Vier vaste momenten, dezelfde als bij "herinner me" op een bericht -- en dat is
+geen toeval, maar hetzelfde lijstje (`remindOptions()` in `ChatScreen.js`).
+
+**Op web kun je ook een eigen datum en tijd kiezen, hier niet.** Bewust: dat
+vraagt de datumkiezer van het systeem en dus een extra afhankelijkheid, en de
+vier momenten dekken waar dit voor bedoeld is. Komt de vraag alsnog, dan is dat
+een aparte stap -- en dan ook een store-build.
+
+Twee dingen die niet vanzelf spreken:
+
+- **Het ingeplande bericht komt niet in de berichtenlijst.** Het staat in een
+  balkje boven de typebalk, met "Nu" en een kruisje. Tussen de echte berichten
+  zou het lezen alsof het al gezegd is -- terwijl niemand het heeft gezien.
+- **Stuur lokale wandtijd** (`fmtLocal()`, `2026-09-16 09:00:00`), geen
+  ISO-string. De backend leest dat als Europe/Amsterdam; met `toISOString()`
+  komt een bericht dat je op 09:00 zet er 's zomers om 11:00 uit.
+
+De lijst komt uit `GET /api/chat/ingepland?conversation_id=` en bevat alleen je
+eigen berichten: een ander kan ze niet zien en dus ook niet tegenhouden.
+
 ## Uitbrengen en versiebeleid
 
 **Uitbrengen = Actions → "Build & submit mobile (EAS)" → Run workflow → kies
@@ -210,6 +233,9 @@ Feather-iconen; Google Drive delen (via gehoste picker-pagina); avatars; zoeken
 (globaal + per gesprek); sectiekoppen; realtime gesprekkenlijst; scroll-perf
 (memo + FlatList-tuning); fixes: notificatie-tik-crash, theme-export-crash,
 toetsenbord (pan-modus).
+
+Nog niet uitgebracht (zit in `main`, wacht op een store-build): berichten later
+versturen.
 
 Later: status bij je naam; personenkaartje; `@persoon`- en `#kanaal`-tags in
 berichten (aanklikbaar, `#kanaal` navigeert erheen); melding als je achterloopt;
