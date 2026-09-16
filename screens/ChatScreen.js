@@ -10,6 +10,7 @@ import { shareFromDrive } from '../src/drive';
 import { convertEmoticons } from '../src/emoticons';
 import MessageView, { theme } from '../src/MessageView';
 import { DagStreep, NieuwStreep, dagSleutel } from '../src/DagScheiding';
+import { gedemptSinds } from '../src/gedempt';
 import { useBottomBarInset } from '../src/useBottomBarInset';
 import KeyboardScreen from '../src/KeyboardScreen';
 import PersonCard from '../src/PersonCard';
@@ -57,6 +58,17 @@ export default function ChatScreen({ route, navigation }) {
     markRead();
   }, [id]));
 
+  // Dempen zet alleen de meldingen uit; het gesprek blijft in de lijst staan en
+  // de ongelezen-teller loopt door.
+  const zetDemping = useCallback(async (aan) => {
+    setConv((c) => (c ? { ...c, muted: aan, muted_at: aan ? new Date().toISOString() : null } : c));
+    try {
+      await chat.muteConversation(id, aan);
+    } catch {
+      setConv((c) => (c ? { ...c, muted: !aan } : c));
+    }
+  }, [id]);
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -67,10 +79,13 @@ export default function ChatScreen({ route, navigation }) {
           <TouchableOpacity onPress={() => navigation.navigate('Search', { conversationId: id, conversationName: route.params?.title })}>
             <Feather name="search" size={20} color="#fff" />
           </TouchableOpacity>
+          <TouchableOpacity onPress={() => zetDemping(!conv?.muted)}>
+            <Feather name={conv?.muted ? 'bell-off' : 'bell'} size={20} color={conv?.muted ? '#fcd34d' : '#fff'} />
+          </TouchableOpacity>
         </View>
       ),
     });
-  }, [navigation, id, route.params?.title]);
+  }, [navigation, id, route.params?.title, conv?.muted, zetDemping]);
 
   // De status van je gesprekspartner onder zijn naam in de kop. Alleen bij een
   // gesprek met één ander; de server stuurt hem alleen dan mee.
@@ -416,6 +431,27 @@ export default function ChatScreen({ route, navigation }) {
           ))}
         </View>
       )}
+      {conv?.muted ? (
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', gap: 8,
+          paddingHorizontal: 14, paddingVertical: 9,
+          backgroundColor: dark ? 'rgba(120,53,15,0.3)' : '#fffbeb',
+          borderBottomWidth: 1, borderBottomColor: dark ? 'rgba(146,64,14,0.6)' : '#fde68a',
+        }}>
+          <Feather name="bell-off" size={15} color={dark ? '#fcd34d' : '#92400e'} />
+          <Text style={{ color: dark ? '#fcd34d' : '#92400e', fontSize: 12, flex: 1 }}>
+            Gedempt{conv.muted_at ? ` sinds ${gedemptSinds(conv.muted_at)}` : ''} — geen meldingen,
+            behalve als iemand je met @ noemt.
+          </Text>
+          <TouchableOpacity
+            onPress={() => zetDemping(false)}
+            style={{ backgroundColor: '#d97706', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 }}
+          >
+            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Aanzetten</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       <FlatList
         inverted
         data={data}

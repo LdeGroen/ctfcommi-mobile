@@ -260,9 +260,15 @@ function Row({ item, c, navigation, onHide, onFav, onGeopend }) {
         }}>
         {isDm && <View style={{ marginRight: 10 }}><Avatar name={name} uri={item.peer_avatar} size={38} online={online.has(Number(item.peer_user_id))} /></View>}
         <View style={{ flex: 1 }}>
-          <Text style={[styles.name, { color: c.text, fontWeight: unread ? '700' : '500' }]} numberOfLines={1}>
+          <Text style={[styles.name, {
+            color: item.muted ? c.muted : c.text,
+            fontWeight: unread ? '700' : '500',
+          }]} numberOfLines={1}>
             {item.is_favorite ? <><Feather name="star" size={12} color="#f59e0b" /> </> : null}
             {isChannel && <><Feather name={item.is_private ? 'lock' : 'hash'} size={13} color={c.muted} /> </>}{name}
+            {/* Gedimd alleen is te makkelijk over het hoofd te zien, en juist
+                vergeten dat iets gedempt staat is waar het misgaat. */}
+            {item.muted ? <><Text> </Text><Feather name="bell-off" size={12} color="#d97706" /></> : null}
             {item.peer_status ? (
               <Text style={{ color: c.muted, fontSize: 13, fontWeight: '400' }}>  {item.peer_status}</Text>
             ) : null}
