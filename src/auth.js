@@ -52,11 +52,6 @@ export async function loginWithGoogle() {
   const pick = (v) => (Array.isArray(v) ? v[0] : v);
   const err = pick(queryParams?.auth_error);
   if (err) throw new Error(decodeURIComponent(err));
-  // ?token= blijft werken voor een login die al onderweg was toen dit
-  // uitrolde; nieuwe logins komen met ?code=.
-  const token = pick(queryParams?.token);
-  if (token) { await setToken(token); return true; }
-
   const code = pick(queryParams?.code);
   if (code) {
     const ingewisseld = await wisselInlogcodeIn(code);

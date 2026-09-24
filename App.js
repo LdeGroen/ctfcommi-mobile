@@ -96,15 +96,20 @@ export default function App() {
 
   useEffect(() => { loadUser(); }, []);
 
-  // Vang het OAuth-token op uit de deeplink (commi://auth?token=...), ook als de
+  // Vang de inlogcode op uit de deeplink (commi://auth?code=...), ook als de
   // in-app browser op Android sluit met 'dismiss' i.p.v. het resultaat terug te geven.
+  //
+  // Alleen op het auth-pad en alleen als er nog niemand is ingelogd. Anders
+  // kon elke commi://-link met een token of code erin (bijvoorbeeld in een
+  // bericht) je stil in het account van een ander laten werken. Een ?token=
+  // nemen we helemaal niet meer aan: de backend stuurt sinds H-02b alleen
+  // nog een code.
   useEffect(() => {
     const handleUrl = async (url) => {
-      if (!url) return;
+      if (!url || userRef.current) return;
+      if (url.split('?')[0] !== Linking.createURL('auth')) return;
       const { queryParams } = Linking.parse(url);
       const pick = (v) => (Array.isArray(v) ? v[0] : v);
-      const token = pick(queryParams?.token);
-      if (token) { await setToken(token); loadUser(); return; }
 
       const code = pick(queryParams?.code);
       if (code) {
