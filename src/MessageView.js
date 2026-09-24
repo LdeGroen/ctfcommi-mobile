@@ -49,6 +49,10 @@ function isOverdue(iso) {
  *
  * false teruggeven betekent "wij hebben het afgehandeld"; true laat de app de
  * link normaal openen. Zo blijven gewone http-links gewoon werken.
+ *
+ * Alleen http(s), mailto en tel gaan door naar het systeem. Een commi://-,
+ * exp://- of intent:-link in een bericht zou anders een deeplink van een
+ * app afvuren (ook van deze app zelf) met wat de plaatser er maar in zette.
  */
 function tikOpLink(url, onOpenChannel, onOpenProfile) {
   const k = /^commi-channel:(\d+)$/.exec(url || '');
@@ -61,7 +65,7 @@ function tikOpLink(url, onOpenChannel, onOpenProfile) {
     onOpenProfile(Number(p[1]));
     return false;
   }
-  return true;
+  return /^(https?|mailto|tel):/i.test(url || '');
 }
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
