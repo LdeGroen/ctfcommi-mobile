@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, TextInput, TouchableOpacity, Text, StyleSheet, useColorScheme, Alert, Modal, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import { View, FlatList, TextInput, TouchableOpacity, Text, StyleSheet, useColorScheme, Alert, Modal, Pressable, ScrollView, ActivityIndicator, AppState } from 'react-native';
 import Avatar from '../src/Avatar';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
 import { getEcho } from '../src/echo';
+import { bijHerverbinding, voegSamen } from '../src/herverbinding';
 import { shareFromDrive } from '../src/drive';
 import { convertEmoticons } from '../src/emoticons';
 import MessageView, { theme } from '../src/MessageView';
@@ -43,6 +44,15 @@ export default function ChatScreen({ route, navigation }) {
   const [profielId, setProfielId] = useState(null); // open profielkaartje
   const subRef = useRef(null);
   const draftTimer = useRef(null);
+  // Oudere berichten: er werd nooit verder terug gehaald dan de laatste 40
+  // (COM-12). De cursor is het oudste gewone bericht, niet een vastgeprikte
+  // notitie die in de lijst is gemengd.
+  const [hasMore, setHasMore] = useState(false);
+  const [ouderLaden, setOuderLaden] = useState(false);
+  const oudsteIdRef = useRef(null);
+  const ouderBezig = useRef(false);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
   const markRead = (lastId) => chat.markRead(id, lastId).catch(() => {});
 
@@ -113,6 +123,8 @@ export default function ChatScreen({ route, navigation }) {
         if (cancelled) return;
         // Vastgeprikte notities kunnen ouder zijn dan het venster: erbij mengen.
         const base = res.messages || [];
+        oudsteIdRef.current = base[0]?.id ?? null;
+        setHasMore(!!res.has_more);
         const have = new Set(base.map((m) => m.id));
         const msgs = [...(det?.pinned_notes || []).filter((n) => !have.has(n.id)), ...base].sort((a, b) => a.id - b.id);
         setMessages(msgs);
@@ -140,7 +152,19 @@ export default function ChatScreen({ route, navigation }) {
       const echo = await getEcho();
       if (!echo || !active) return;
       const channel = echo.private(`conversation.${id}`);
-      const onCreated = (p) => { const m = p.message; if (m.parent_id) return; setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m])); markRead(m.id); };
+      const onCreated = (p) => {
+        const m = p.message;
+        if (m.parent_id) return;
+        setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+        // Te groot voor Pusher: de server kapte de body af. Eén keer volledig
+        // ophalen, anders blijft het afgekapt staan tot je het gesprek herlaadt.
+        if (m.body_truncated) {
+          chat.getMessage(m.id)
+            .then((vol) => setMessages((prev) => prev.map((x) => (x.id === vol.id ? { ...vol, is_saved: x.is_saved } : x))))
+            .catch(() => {});
+        }
+        markRead(m.id);
+      };
       // is_saved uit de eigen weergave overnemen: een uitzending gaat naar
       // iedereen tegelijk en weet dus niet wie wat bewaard heeft.
       const onUpdated = (p) => { const m = p.message; setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...(m.body_truncated ? { ...m, body: x.body } : m), is_saved: x.is_saved } : x))); };
@@ -148,12 +172,15 @@ export default function ChatScreen({ route, navigation }) {
       channel.listen('.chat.message.created', onCreated);
       channel.listen('.chat.message.updated', onUpdated);
       channel.listen('.chat.message.deleted', onDeleted);
-      subRef.current = { channel, echo, onCreated, onUpdated, onDeleted };
+      // Na een onderbroken verbinding bijhalen wat er intussen kwam (COM-09).
+      const stopHerverbinding = bijHerverbinding(echo, () => bijhalenRef.current());
+      subRef.current = { channel, echo, onCreated, onUpdated, onDeleted, stopHerverbinding };
     })();
     return () => {
       active = false;
       const r = subRef.current;
       if (r) {
+        r.stopHerverbinding();
         try {
           r.channel.stopListening('.chat.message.created', r.onCreated);
           r.channel.stopListening('.chat.message.updated', r.onUpdated);
@@ -163,6 +190,54 @@ export default function ChatScreen({ route, navigation }) {
       }
     };
   }, [id]);
+
+  // Wat er binnenkwam terwijl de verbinding weg was: de laatste 40 ophalen en
+  // samenvoegen op id, dus zonder dubbelingen. Sluit dat niet aan op wat er
+  // al stond, dan is er meer gemist; dan beginnen we opnieuw vanaf die 40 en
+  // haalt naar boven scrollen de rest.
+  const bijhalen = async () => {
+    let res;
+    try { res = await chat.listMessages(id, { limit: 40 }); } catch { return; }
+    const recent = res.messages || [];
+    if (!recent.length) return;
+    const prev = messagesRef.current;
+    const bekend = new Set(prev.map((x) => x.id));
+    const laatsteBekend = prev.reduce((max, x) => Math.max(max, x.id), 0);
+    if (res.has_more && recent[0].id > laatsteBekend) {
+      oudsteIdRef.current = recent[0].id;
+      setHasMore(true);
+      setMessages((huidig) => voegSamen(huidig.filter((x) => x.kind === 'note' && x.pinned_at), recent));
+    } else {
+      setMessages((huidig) => voegSamen(huidig, recent));
+    }
+    if (recent.some((m) => !bekend.has(m.id))) markRead();
+  };
+  const bijhalenRef = useRef(bijhalen);
+  bijhalenRef.current = bijhalen;
+
+  // iOS sluit de socket als de app op de achtergrond staat, en useFocusEffect
+  // vuurt niet bij terugkeer naar de app. Dus ook hier bijhalen.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') bijhalenRef.current(); });
+    return () => sub.remove();
+  }, []);
+
+  const laadOuder = useCallback(async () => {
+    if (!hasMore || ouderBezig.current || !oudsteIdRef.current) return;
+    ouderBezig.current = true;
+    setOuderLaden(true);
+    try {
+      const res = await chat.listMessages(id, { before: oudsteIdRef.current, limit: 30 });
+      const ouder = res.messages || [];
+      if (ouder.length) oudsteIdRef.current = ouder[0].id;
+      // Een vastgeprikte notitie staat er al; die versie houden we.
+      setMessages((prev) => voegSamen(prev, ouder, (nieuw, oud) => oud));
+      setHasMore(!!res.has_more);
+    } catch {} finally {
+      ouderBezig.current = false;
+      setOuderLaden(false);
+    }
+  }, [id, hasMore]);
 
   const onChangeText = (raw) => {
     const t = convertEmoticons(raw);
@@ -276,7 +351,9 @@ export default function ChatScreen({ route, navigation }) {
         // Nieuw bericht komt via realtime binnen; refresh als fallback.
         try {
           const res = await chat.listMessages(id, { limit: 40 });
-          setMessages(res.messages || []);
+          // Samenvoegen, niet vervangen: anders verdwijnen vastgeprikte
+          // notities en wat je al naar boven had geladen.
+          setMessages((prev) => voegSamen(prev, res.messages || []));
         } catch {}
       }
     } catch {} finally { setDriveBusy(false); }
@@ -458,6 +535,10 @@ export default function ChatScreen({ route, navigation }) {
         keyExtractor={(x) => String(x.id)}
         renderItem={renderItem}
         contentContainerStyle={{ padding: 12 }}
+        // inverted: het "einde" is bovenaan, bij het oudste bericht.
+        onEndReached={laadOuder}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={ouderLaden ? <ActivityIndicator style={{ marginVertical: 12 }} color={c.muted} /> : null}
         initialNumToRender={15}
         maxToRenderPerBatch={12}
         windowSize={11}

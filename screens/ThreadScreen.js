@@ -4,6 +4,7 @@ import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
 import { getEcho } from '../src/echo';
+import { bijHerverbinding } from '../src/herverbinding';
 import { shareFromDrive } from '../src/drive';
 import { convertEmoticons } from '../src/emoticons';
 import MessageView, { theme } from '../src/MessageView';
@@ -41,19 +42,37 @@ export default function ThreadScreen({ route }) {
       const echo = await getEcho();
       if (!echo || !active) return;
       const channel = echo.private(`conversation.${convId}`);
-      const onCreated = (p) => { const m = p.message; if (m.parent_id !== parentId) return; setReplies((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m])); };
+      const onCreated = (p) => {
+        const m = p.message;
+        if (m.parent_id !== parentId) return;
+        setReplies((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+        // Afgekapt door de server (te groot voor Pusher): volledig ophalen.
+        if (m.body_truncated) {
+          chat.getMessage(m.id)
+            .then((vol) => setReplies((prev) => prev.map((x) => (x.id === vol.id ? { ...vol, is_saved: x.is_saved } : x))))
+            .catch(() => {});
+        }
+      };
       const onUpdated = (p) => { const m = p.message; if (m.id === parentId) { setParent(m); return; } if (m.parent_id !== parentId) return; setReplies((prev) => prev.map((x) => (x.id === m.id ? { ...m, is_saved: x.is_saved } : x))); };
       const onDeleted = (p) => setReplies((prev) => prev.map((x) => (x.id === p.message.id ? { ...x, deleted_at: new Date().toISOString() } : x)));
       channel.listen('.chat.message.created', onCreated);
       channel.listen('.chat.message.updated', onUpdated);
       channel.listen('.chat.message.deleted', onDeleted);
-      subRef.current = { channel, onCreated, onUpdated, onDeleted };
+      // Na een onderbroken verbinding de thread opnieuw ophalen (COM-09).
+      const stopHerverbinding = bijHerverbinding(echo, () => {
+        chat.listReplies(parentId).then((res) => {
+          setParent(res.parent);
+          setReplies(res.replies || []);
+        }).catch(() => {});
+      });
+      subRef.current = { channel, onCreated, onUpdated, onDeleted, stopHerverbinding };
     })();
     // Let op: GEEN echo.leave hier — dat zou de luisteraar van het chatscherm slopen.
     return () => {
       active = false;
       const r = subRef.current;
       if (r) {
+        r.stopHerverbinding();
         try {
           r.channel.stopListening('.chat.message.created', r.onCreated);
           r.channel.stopListening('.chat.message.updated', r.onUpdated);

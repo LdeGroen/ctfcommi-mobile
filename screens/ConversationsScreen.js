@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, useColorScheme, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, useColorScheme, Alert, AppState } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import * as Notifications from 'expo-notifications';
 import { chat } from '../src/api';
 import UpdateMelding from '../src/UpdateMelding';
 import { getEcho } from '../src/echo';
+import { bijHerverbinding } from '../src/herverbinding';
 import Avatar from '../src/Avatar';
 import { useOnline } from '../src/aanwezig';
 
@@ -28,6 +29,16 @@ export default function ConversationsScreen({ navigation, user, onLogout }) {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  // Terug uit de achtergrond: useFocusEffect vuurt dan niet, en wat er intussen
+  // binnenkwam heeft de (door iOS gesloten) socket gemist (COM-09).
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') load(); });
+    return () => sub.remove();
+  }, [load]);
+
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+
   // Een geopend gesprek is gelezen: teller en app-badge meteen bijwerken,
   // zonder te wachten op de server.
   const markGeopend = useCallback((convId) => {
@@ -48,15 +59,20 @@ export default function ConversationsScreen({ navigation, user, onLogout }) {
       const onCreated = (payload) => {
         const cid = payload.conversation_id;
         const msg = payload.message;
+        // Onbekend gesprek (net toegevoegd/nieuwe DM) → lijst verversen. Buiten
+        // de state-updater: daar horen geen verzoeken in.
+        if (!itemsRef.current.some((x) => x.id === cid)) { load(); return; }
         setItems((prev) => {
           const idx = prev.findIndex((x) => x.id === cid);
-          if (idx === -1) { load(); return prev; }
+          if (idx === -1) return prev;
           const isMine = msg.user_id === user.id;
           const updated = {
             ...prev[idx],
             last_message: { id: msg.id, body: msg.body, user_id: msg.user_id, user_name: msg.user?.name, created_at: msg.created_at },
             last_message_at: msg.created_at,
-            unread_count: isMine ? 0 : (prev[idx].unread_count || 0) + 1,
+            // Een thread-antwoord telt niet mee, net als op de server; anders
+            // sprong de teller bij het verversen weer terug.
+            unread_count: isMine ? 0 : (prev[idx].unread_count || 0) + (msg.parent_id ? 0 : 1),
           };
           const next = [updated, ...prev.filter((_, i) => i !== idx)];
           Notifications.setBadgeCountAsync(next.reduce((s, x) => s + (x.unread_count || 0), 0)).catch(() => {});
@@ -73,11 +89,14 @@ export default function ConversationsScreen({ navigation, user, onLogout }) {
       };
       ch.listen('.chat.message.created', onCreated);
       ch.listen('.chat.conversation.read', onRead);
-      sub = { ch, onCreated, onRead };
+      // Na een onderbroken verbinding lijst en tellers opnieuw ophalen (COM-09).
+      const stopHerverbinding = bijHerverbinding(echo, () => load());
+      sub = { ch, onCreated, onRead, stopHerverbinding };
     })();
     return () => {
       active = false;
       if (sub) {
+        sub.stopHerverbinding();
         try { sub.ch.stopListening('.chat.message.created', sub.onCreated); } catch {}
         try { sub.ch.stopListening('.chat.conversation.read', sub.onRead); } catch {}
       }
