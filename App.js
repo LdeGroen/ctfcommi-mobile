@@ -12,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
 import { chat, getToken, setToken, opSessieVerlopen } from './src/api';
+import { disconnectEcho } from './src/echo';
 import { wisselInlogcodeIn } from './src/auth';
 import { registerForPush } from './src/push';
 import LoginScreen from './screens/LoginScreen';
@@ -78,7 +79,10 @@ export default function App() {
   const [user, setUser] = useState(null);
 
   // Wijst de server ons token af, dan meteen terug naar het loginscherm.
-  useEffect(() => { opSessieVerlopen(() => setUser(null)); }, []);
+  // Ook de realtime-verbinding weg: die houdt het oude token in zijn
+  // auth-header, en na opnieuw inloggen faalde realtime dan tot de app opnieuw
+  // startte (COM-09).
+  useEffect(() => { opSessieVerlopen(() => { disconnectEcho(); setUser(null); }); }, []);
   const [loading, setLoading] = useState(true);
   const [navReady, setNavReady] = useState(false);
   const navRef = useRef(null);

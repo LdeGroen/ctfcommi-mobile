@@ -66,6 +66,9 @@ export const chat = {
     if (limit) qs.set('limit', limit);
     return apiFetch(`/api/chat/conversations/${id}/messages?${qs.toString()}`);
   },
+  // Eén bericht volledig, voor een uitzending die te groot was voor Pusher en
+  // daarom afgekapt binnenkwam (body_truncated).
+  getMessage: (messageId) => apiFetch(`/api/chat/messages/${messageId}`),
   // scheduledFor: lokale wandtijd ('2026-09-16 09:00:00'). Staat die erin, dan
   // wordt het bericht wel aangemaakt maar pas op dat moment verstuurd -- en tot
   // die tijd ziet niemand anders het.
