@@ -1,0 +1,49 @@
+# Dependabot (INF-06). Minder ruis, en security gescheiden van de rest:
+# - Security-updates staan aan (Settings → Code security) en komen meteen, gebundeld
+#   in één PR.
+# - Gewone updates maandelijks: alle minor/patch in één PR, alle majors samen in een
+#   aparte PR (die vraagt aandacht: bouwen en op een toestel testen).
+# - Expo, React Native en React niet boven de patch: die versies hangen aan de
+#   Expo SDK en gaan samen omhoog met `npx expo install --fix` bij een SDK-upgrade.
+#   Een losse bump daarvan bouwt wel, maar botst op het toestel.
+# Een wijziging hier bereikt pas iemand na een nieuwe store-build.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "expo"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "expo-*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@expo/*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "react-native"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "react-native-*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@react-native-community/*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    groups:
+      minor-en-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      majors:
+        patterns: ["*"]
+        update-types: [major]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      # Alle actions in één PR, ook majors: de eerstvolgende build laat zien of het werkt.
+      actions:
+        patterns: ["*"]
