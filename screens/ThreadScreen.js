@@ -113,7 +113,9 @@ export default function ThreadScreen({ route }) {
       const sent = await chat.sendMessage(convId, { body, parentId });
       setReplies((prev) => (prev.some((x) => x.id === sent.id) ? prev : [...prev, sent]));
       setText('');
-    } catch {} finally { setSending(false); }
+    } catch (e) {
+      Alert.alert('Niet verstuurd', e?.message || 'Probeer het nog eens.');
+    } finally { setSending(false); }
   };
 
   const [driveBusy, setDriveBusy] = useState(false);

@@ -279,6 +279,9 @@ export default function ChatScreen({ route, navigation }) {
   const resolveMentionIds = (body) =>
     members.filter((mm) => mm.name && body.includes(`@${mm.name}`)).map((mm) => mm.user_id ?? mm.id);
 
+  // Let op: nooit rechtstreeks aan een onPress hangen. Die geeft het tik-event
+  // mee, en dan staat hier een object als tijdstip -- JSON.stringify loopt
+  // erop vast en er gaat niets de deur uit. Altijd via () => send().
   const send = async (scheduledFor = null) => {
     const body = text.trim();
     if (!body) return;
@@ -295,7 +298,12 @@ export default function ChatScreen({ route, navigation }) {
       setPlanOpen(false);
       clearTimeout(draftTimer.current);
       chat.saveDraft(id, '').catch(() => {});
-    } catch {} finally { setSending(false); }
+    } catch (e) {
+      // Nooit stil laten mislukken: de tekst blijft staan, maar je moet wel
+      // weten dat hij niet weg is. Zie 27-9-2026 -- daar deed de knop wekenlang
+      // niets, zonder dat iemand zag waarom.
+      Alert.alert('Niet verstuurd', e?.message || 'Probeer het nog eens.');
+    } finally { setSending(false); }
   };
 
   const laadIngepland = useCallback(async () => {
@@ -618,7 +626,7 @@ export default function ChatScreen({ route, navigation }) {
           )}
           <TextInput style={[styles.input, { color: c.text, borderColor: announce ? '#f59e0b' : c.border }]} value={text} onChangeText={onChangeText}
             placeholder={editingId ? 'Bewerk je bericht…' : (announce ? 'Aankondiging…' : 'Bericht…')} placeholderTextColor={c.muted} multiline />
-          <TouchableOpacity style={[styles.send, (sending || !text.trim()) && { opacity: 0.4 }]} onPress={editingId ? saveEdit : send} disabled={sending || !text.trim()}>
+          <TouchableOpacity style={[styles.send, (sending || !text.trim()) && { opacity: 0.4 }]} onPress={() => (editingId ? saveEdit() : send())} disabled={sending || !text.trim()}>
             <Feather name={editingId ? 'check' : 'send'} size={18} color="#fff" />
           </TouchableOpacity>
         </View>
