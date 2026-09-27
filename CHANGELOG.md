@@ -3,11 +3,24 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
-## Nog niet uitgebracht
+## 0.1.24 — 27 september 2026
 
-Zit in `main` en werkt al op de webversie; komt op de telefoon zodra er een
-nieuwe store-build is.
+Een noodzakelijke update: in 0.1.23 kon je in een kanaal geen bericht
+versturen.
 
+- **De verzendknop werkt weer.** In 0.1.23 gebeurde er niets als je op
+  verzenden tikte; je tekst bleef gewoon staan. Antwoorden in een thread
+  werkte wel.
+- **Mislukt het versturen, dan zie je dat nu.** Je krijgt een melding met de
+  reden, in plaats van een knop die niets lijkt te doen.
+
+## 0.1.23 — 22 september 2026
+
+- **Kanalen en gesprekken dempen.** Tik op het belletje bovenin een gesprek en
+  je krijgt er geen meldingen meer van. Noemt iemand je met @, dan komt die er
+  wél doorheen.
+- **Je ziet dat het gedempt staat**, met hoe lang al, en je zet het met één tik
+  weer aan.
 - **Een bericht later versturen.** Schrijf je bericht, tik op het klokje in de
   typebalk en kies over een uur, vanavond, morgen of volgende week. Tot dat
   moment ziet niemand het -- het staat boven je typebalk met een knopje om het
