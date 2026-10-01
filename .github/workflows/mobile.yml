@@ -28,7 +28,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # we hebben de tags nodig om te kunnen ophogen
 
@@ -68,7 +68,7 @@ jobs:
           git push origin "v$NIEUW"
           echo "VERSIE=$NIEUW" >> "$GITHUB_ENV"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -83,7 +83,7 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: EAS CLI installeren + inloggen
-        uses: expo/expo-github-action@v8
+        uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
