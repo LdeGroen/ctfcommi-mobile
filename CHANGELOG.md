@@ -3,6 +3,20 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## 0.1.25 — 7 oktober 2026
+
+Gedeelde notities zijn veiliger als je er met meer mensen tegelijk aan werkt.
+
+- **Je overschrijft niet meer ongemerkt het werk van een ander.** Had je een
+  notitie open terwijl iemand anders hem aanpaste, dan kon jouw telefoon de
+  oude tekst terugzetten zodra je even wegtikte -- en was de toevoeging van
+  die ander weg. Dat gebeurt niet meer.
+- **Je ziet meteen de nieuwste versie.** Past iemand anders een notitie aan
+  die jij openhebt en heb je zelf niets veranderd, dan staat de nieuwe tekst
+  er gewoon.
+- **Werken jullie echt tegelijk aan dezelfde notitie,** dan vraagt de app wat
+  je wilt: de versie van de ander bekijken, of de jouwe toch opslaan.
+
 ## 0.1.24 — 27 september 2026
 
 Een noodzakelijke update: in 0.1.23 kon je in een kanaal geen bericht
