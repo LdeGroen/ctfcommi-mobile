@@ -64,6 +64,27 @@ export default function NoteEditorScreen({ route, navigation }) {
   const [external, setExternal] = useState(null);
   const subRef = useRef(null);
 
+  // De versie waar je van uitging. Opslaan doet alleen iets als je daar iets
+  // aan veranderde, en stuurt hem mee zodat de server kan weigeren als iemand
+  // anders intussen opsloeg (409). Tot 0.1.25 sloeg dit scherm bij elke
+  // focuswissel op, ook zonder wijziging; zo overschreef de app op 7-10-2026
+  // drie seconden na Luc diens toevoeging aan de gepinde notitie van CTF Arnhem.
+  const basisRef = useRef({ title: initial.title || '', body: initial.body || '', edited_at: initial.edited_at ?? null });
+  const tekstRef = useRef({ title: initial.title || '', body: initial.body || '' });
+  tekstRef.current = { title, body };
+  const gewijzigd = (t = title, b = body) => t !== basisRef.current.title || b !== basisRef.current.body;
+
+  /** Een versie van de server overnemen als de nieuwe uitgangspositie. */
+  const neemOver = (msg) => {
+    if (!msg) return;
+    setTitle(msg.title || '');
+    setBody(msg.body || '');
+    basisRef.current = { title: msg.title || '', body: msg.body || '', edited_at: msg.edited_at ?? null };
+    setExternal(null);
+  };
+  /** Een realtime-melding kan de tekst ingekort hebben; haal dan de volledige op. */
+  const volledig = async (msg) => (msg?.body_truncated ? chat.getMessage(msg.id).catch(() => msg) : msg);
+
   const pinned = !!note.pinned_at;
   const isTodo = note.note_type === 'todo';
   const todos = note.todos || [];
@@ -75,13 +96,19 @@ export default function NoteEditorScreen({ route, navigation }) {
       const echo = await getEcho();
       if (!echo || !active || !convId) return;
       const channel = echo.private(`conversation.${convId}`);
-      const onUpdated = (p) => {
+      const onUpdated = async (p) => {
         if (p.message?.id !== note.id) return;
         setNote(p.message); // to-do-items live bijwerken
-        // Titel/tekst kunnen door een ander gewijzigd zijn → hint (niet klobberen).
-        if ((p.message.title || '') !== title || (p.message.body || '') !== body) {
-          setExternal({ name: p.message.user?.name, msg: p.message });
+        const nu = tekstRef.current;
+        const zelfde = (p.message.title || '') === nu.title && (p.message.body || '') === nu.body && !p.message.body_truncated;
+        if (zelfde) {
+          basisRef.current = { title: nu.title, body: nu.body, edited_at: p.message.edited_at ?? null };
+          return;
         }
+        // Zelf niets veranderd: gewoon de nieuwe versie tonen. Wel iets
+        // veranderd: niet overschrijven, maar zeggen dat er een nieuwere is.
+        if (!gewijzigd(nu.title, nu.body)) neemOver(await volledig(p.message));
+        else setExternal({ name: p.message.user?.name, msg: p.message });
       };
       const onDeleted = (p) => { if (p.message?.id === note.id) navigation.goBack(); };
       channel.listen('.chat.message.updated', onUpdated);
@@ -98,7 +125,7 @@ export default function NoteEditorScreen({ route, navigation }) {
         } catch {}
       }
     };
-  }, [convId, note.id, navigation, title, body]);
+  }, [convId, note.id, navigation]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -112,20 +139,42 @@ export default function NoteEditorScreen({ route, navigation }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigation, pinned, pinning, isTodo]);
 
-  const save = async () => {
+  const save = async (forceer = false) => {
+    // Niets veranderd = niets opslaan. Ook niet bij het verlaten van een veld.
+    if (saving || (!forceer && !gewijzigd())) return;
     setSaving(true);
     try {
-      const updated = await chat.updateNote(note.id, { title: title.trim(), body });
+      const updated = await chat.updateNote(note.id, {
+        title: title.trim(), body, ...(forceer === true ? {} : { basis: basisRef.current.edited_at }),
+      });
       setNote(updated);
+      basisRef.current = { title: updated.title || '', body: updated.body || '', edited_at: updated.edited_at ?? null };
       setExternal(null);
-    } catch (e) { Alert.alert('Opslaan mislukt', e.message || ''); }
-    finally { setSaving(false); }
+    } catch (e) {
+      if (e.status === 409 && e.body?.note) {
+        const hunne = e.body.note;
+        setNote(hunne);
+        Alert.alert('Iemand anders was je voor', `${e.message} Wil je hun versie zien, of jouw versie toch opslaan? Dan is die van hen weg.`, [
+          { text: 'Annuleren', style: 'cancel' },
+          { text: 'Hun versie', onPress: () => neemOver(hunne) },
+          { text: 'Mijn versie opslaan', style: 'destructive', onPress: () => save(true) },
+        ]);
+      } else {
+        Alert.alert('Opslaan mislukt', e.message || '');
+      }
+    } finally { setSaving(false); }
   };
 
   const setType = async (type) => {
     if ((note.note_type || 'note') === type) return;
-    try { setNote(await chat.updateNote(note.id, { title: title.trim(), body, noteType: type })); }
-    catch (e) { Alert.alert('Wijzigen mislukt', e.message || ''); }
+    try {
+      const updated = await chat.updateNote(note.id, { title: title.trim(), body, noteType: type, basis: basisRef.current.edited_at });
+      setNote(updated);
+      basisRef.current = { title: updated.title || '', body: updated.body || '', edited_at: updated.edited_at ?? null };
+    } catch (e) {
+      if (e.status === 409 && e.body?.note) { neemOver(e.body.note); setNote(e.body.note); }
+      Alert.alert('Wijzigen mislukt', e.status === 409 ? `${e.message} Probeer het nog eens.` : (e.message || ''));
+    }
   };
 
   const togglePin = async () => {
@@ -189,11 +238,9 @@ export default function NoteEditorScreen({ route, navigation }) {
     ]);
   };
 
-  const reloadExternal = () => {
+  const reloadExternal = async () => {
     if (!external?.msg) return;
-    setTitle(external.msg.title || '');
-    setBody(external.msg.body || '');
-    setExternal(null);
+    neemOver(await volledig(external.msg));
   };
 
   return (
@@ -202,7 +249,7 @@ export default function NoteEditorScreen({ route, navigation }) {
         <TextInput
           value={title}
           onChangeText={setTitle}
-          onBlur={save}
+          onBlur={() => save()}
           placeholder="Titel"
           placeholderTextColor={c.muted}
           style={[styles.titleInput, { color: c.text, borderColor: c.border, backgroundColor: c.card }]}
@@ -332,7 +379,7 @@ export default function NoteEditorScreen({ route, navigation }) {
               <TextInput
                 value={body}
                 onChangeText={setBody}
-                onBlur={save}
+                onBlur={() => save()}
                 placeholder="Schrijf samen… (Markdown: **vet**, - lijst, # kop)"
                 placeholderTextColor={c.muted}
                 multiline
@@ -344,7 +391,7 @@ export default function NoteEditorScreen({ route, navigation }) {
         )}
 
         <View style={styles.actions}>
-          <TouchableOpacity onPress={save} disabled={saving} style={[styles.saveBtn, saving && { opacity: 0.5 }]}>
+          <TouchableOpacity onPress={() => save()} disabled={saving} style={[styles.saveBtn, saving && { opacity: 0.5 }]}>
             {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveText}>Opslaan</Text>}
           </TouchableOpacity>
           <TouchableOpacity onPress={del} style={styles.delBtn}>

@@ -90,7 +90,9 @@ export const chat = {
   listReplies: (messageId) => apiFetch(`/api/chat/messages/${messageId}/replies`),
   // Gedeelde notities = berichten van soort 'note' in de stroom.
   placeNote: (id, { title = '', body = '', noteType = 'note' } = {}) => apiFetch(`/api/chat/conversations/${id}/messages`, { method: 'POST', body: JSON.stringify({ kind: 'note', title, body, note_type: noteType }) }),
-  updateNote: (messageId, { title = '', body = '', noteType } = {}) => apiFetch(`/api/chat/messages/${messageId}`, { method: 'PUT', body: JSON.stringify({ title, body, ...(noteType ? { note_type: noteType } : {}) }) }),
+  // basis = edited_at van de versie waar je van uitging (null = nooit bewerkt).
+  // Weglaten (undefined) = toch opslaan, ook als een ander intussen iets wijzigde.
+  updateNote: (messageId, { title = '', body = '', noteType, basis } = {}) => apiFetch(`/api/chat/messages/${messageId}`, { method: 'PUT', body: JSON.stringify({ title, body, ...(noteType ? { note_type: noteType } : {}), ...(basis !== undefined ? { basis } : {}) }) }),
   togglePinNote: (messageId) => apiFetch(`/api/chat/messages/${messageId}/pin`, { method: 'POST' }),
   // To-do-items binnen een notitie (parentId = subitem onder dat item).
   addTodo: (noteId, text, parentId = null) => apiFetch(`/api/chat/messages/${noteId}/todos`, { method: 'POST', body: JSON.stringify({ text, parent_id: parentId }) }),
