@@ -3,6 +3,21 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## 0.1.26 — 13 oktober 2026
+
+Je kunt nu een poll starten in een kanaal of gesprek.
+
+- **Drie soorten.** Een gewone keuze (één antwoord, of meerdere met eventueel
+  een maximum), een datumprikker waarin iedereen per moment ja, misschien of
+  nee zegt, en een beoordeling van 1 tot 5 of 1 tot 10.
+- **Alle gangbare instellingen.** Anoniem stemmen, de uitslag altijd tonen of
+  pas na het stemmen of na het sluiten, je stem wel of niet kunnen wijzigen,
+  anderen antwoorden laten toevoegen, en de poll automatisch laten sluiten.
+- **Je ziet wie er al gestemd heeft** (behalve bij een anonieme poll), en wie
+  de poll maakte kan hem sluiten en weer heropenen.
+- Een poll maak je met het grafiekicoon naast de knoppen voor notitie en
+  to-do.
+
 ## 0.1.25 — 7 oktober 2026
 
 Gedeelde notities zijn veiliger als je er met meer mensen tegelijk aan werkt.
