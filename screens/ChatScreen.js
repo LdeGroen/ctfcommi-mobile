@@ -610,6 +610,9 @@ export default function ChatScreen({ route, navigation }) {
               <TouchableOpacity style={styles.drive} onPress={() => placeNote('todo')}>
                 <Feather name="check-square" size={20} color={c.muted} />
               </TouchableOpacity>
+              <TouchableOpacity style={styles.drive} onPress={() => navigation.navigate('PollMaken', { convId: id })}>
+                <Feather name="bar-chart-2" size={20} color={c.muted} />
+              </TouchableOpacity>
               {/* Aankondiging (met leesbevestiging) — in een gewoon kanaal optioneel; in een aankondigingskanaal automatisch. */}
               {conv?.type === 'channel' && conv?.post_policy !== 'admins' && (
                 <TouchableOpacity style={styles.drive} onPress={() => setAnnounce((v) => !v)}>

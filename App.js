@@ -26,6 +26,7 @@ import NewDmScreen from './screens/NewDmScreen';
 import NieuwScreen from './screens/NieuwScreen';
 import SharedFilesScreen from './screens/SharedFilesScreen';
 import NoteEditorScreen from './screens/NoteEditorScreen';
+import PollMakenScreen from './screens/PollMakenScreen';
 import MijnTakenScreen from './screens/MijnTakenScreen';
 import LayoutTestScreen from './screens/LayoutTestScreen';
 import ActiviteitScreen from './screens/ActiviteitScreen';
@@ -230,6 +231,7 @@ export default function App() {
             </Stack.Screen>
             <Stack.Screen name="SharedFiles" component={SharedFilesScreen} options={{ title: 'Gedeelde bestanden' }} />
             <Stack.Screen name="NoteEditor" component={NoteEditorScreen} options={{ title: 'Notitie' }} />
+            <Stack.Screen name="PollMaken" component={PollMakenScreen} options={{ title: 'Poll maken' }} />
             <Stack.Screen name="MijnTaken" component={MijnTakenScreen} options={{ title: 'Mijn taken' }} />
             <Stack.Screen name="Activiteit" component={ActiviteitScreen} options={{ title: 'Activiteit' }} />
             <Stack.Screen name="Saved" component={SavedScreen} options={{ title: 'Bewaren voor later' }} />

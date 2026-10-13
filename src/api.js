@@ -89,6 +89,15 @@ export const chat = {
   deleteMessage: (messageId) => apiFetch(`/api/chat/messages/${messageId}`, { method: 'DELETE' }),
   listReplies: (messageId) => apiFetch(`/api/chat/messages/${messageId}/replies`),
   // Gedeelde notities = berichten van soort 'note' in de stroom.
+  // Polls (ChatPollController). De stand verschilt per kijker; die haal je op
+  // met getPoll, opnieuw zodra item.poll.versie verandert.
+  createPoll: (id, data) => apiFetch(`/api/chat/conversations/${id}/polls`, { method: 'POST', body: JSON.stringify(data) }),
+  getPoll: (messageId) => apiFetch(`/api/chat/messages/${messageId}/poll`),
+  stemPoll: (messageId, stem) => apiFetch(`/api/chat/messages/${messageId}/poll/stem`, { method: 'POST', body: JSON.stringify(stem) }),
+  trekPollStemIn: (messageId) => apiFetch(`/api/chat/messages/${messageId}/poll/stem`, { method: 'DELETE' }),
+  pollOptieToevoegen: (messageId, optie) => apiFetch(`/api/chat/messages/${messageId}/poll/opties`, { method: 'POST', body: JSON.stringify(optie) }),
+  sluitPoll: (messageId) => apiFetch(`/api/chat/messages/${messageId}/poll/sluiten`, { method: 'POST' }),
+  heropenPoll: (messageId) => apiFetch(`/api/chat/messages/${messageId}/poll/heropenen`, { method: 'POST' }),
   placeNote: (id, { title = '', body = '', noteType = 'note' } = {}) => apiFetch(`/api/chat/conversations/${id}/messages`, { method: 'POST', body: JSON.stringify({ kind: 'note', title, body, note_type: noteType }) }),
   // basis = edited_at van de versie waar je van uitging (null = nooit bewerkt).
   // Weglaten (undefined) = toch opslaan, ook als een ander intussen iets wijzigde.

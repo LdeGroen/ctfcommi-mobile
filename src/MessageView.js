@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
 import Avatar from './Avatar';
 import LinkPreview from './LinkPreview';
+import { PollKaart } from './Poll';
 
 const URL_RE = /\bhttps?:\/\/[^\s<>()]+[^\s<>().,!?'"]/gi;
 function extractUrls(text) {
@@ -218,7 +219,9 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
         </View>
       )}
 
-      {!!item.body && <Markdown style={{ body: { color: c.text, fontSize: 15 }, link: { color: '#6366f1' } }} onLinkPress={(url) => tikOpLink(url, onOpenChannel, onOpenProfile)}>{opgemaakt(item.body)}</Markdown>}
+      {item.kind === 'poll'
+        ? <PollKaart item={item} c={c} />
+        : !!item.body && <Markdown style={{ body: { color: c.text, fontSize: 15 }, link: { color: '#6366f1' } }} onLinkPress={(url) => tikOpLink(url, onOpenChannel, onOpenProfile)}>{opgemaakt(item.body)}</Markdown>}
 
       {item.attachments?.map((a) => (
         a.source === 'drive' ? (
@@ -246,7 +249,7 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
         )
       ))}
 
-      {!!item.body && extractUrls(item.body).slice(0, 2).map((u) => <LinkPreview key={u} url={u} c={c} />)}
+      {!!item.body && item.kind !== 'poll' && extractUrls(item.body).slice(0, 2).map((u) => <LinkPreview key={u} url={u} c={c} />)}
 
       {item.reactions?.length > 0 && (
         <View style={s.reactionRow}>
@@ -327,7 +330,7 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
                     </Text>
                   </TouchableOpacity>
                 )}
-                {mine && onEdit && (
+                {mine && onEdit && item.kind !== 'poll' && (
                   <TouchableOpacity style={s.actionBtn} onPress={() => { setPicker(false); onEdit(item); }}>
                     <Feather name="edit-2" size={16} color={c.text} />
                     <Text style={[s.actionText, { color: c.text }]}>Bewerken</Text>
