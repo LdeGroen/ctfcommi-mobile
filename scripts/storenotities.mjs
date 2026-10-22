@@ -3,6 +3,7 @@
 //
 //   node scripts/storenotities.mjs ios <versie>
 //   node scripts/storenotities.mjs android <versie> <versionCode>
+//   node scripts/storenotities.mjs controle   (alleen lezen: werken de sleutels?)
 //
 // Waarom zelf en niet via EAS: `eas submit` uploadt alleen de app, en EAS
 // Metadata kan alleen Apple en stuurt de hele storevermelding mee -- een
@@ -102,13 +103,19 @@ async function vraag(url, { token, method = 'GET', body } = {}) {
 // Statussen waarin "Wat is er nieuw" nog te wijzigen is.
 const BEWERKBAAR = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED', 'METADATA_REJECTED', 'INVALID_BINARY', 'WAITING_FOR_REVIEW'];
 
-async function ios(versie, tekst) {
-  const { ASC_ISSUER_ID: iss, ASC_KEY_ID: kid, ASC_PRIVATE_KEY: sleutel } = process.env;
-  if (!iss || !kid || !sleutel) return waarschuw('App Store: geen ASC_ISSUER_ID/ASC_KEY_ID/ASC_PRIVATE_KEY, notities overgeslagen.');
+const ASC_API = 'https://api.appstoreconnect.apple.com/v1';
 
+function appleToken() {
+  const { ASC_ISSUER_ID: iss, ASC_KEY_ID: kid, ASC_PRIVATE_KEY: sleutel } = process.env;
+  if (!iss || !kid || !sleutel) return null;
   const nu = Math.floor(Date.now() / 1000);
-  const token = jwt({ alg: 'ES256', kid, typ: 'JWT' }, { iss, iat: nu, exp: nu + 15 * 60, aud: 'appstoreconnect-v1' }, sleutel.replace(/\\n/g, '\n'), 'ES256');
-  const api = 'https://api.appstoreconnect.apple.com/v1';
+  return jwt({ alg: 'ES256', kid, typ: 'JWT' }, { iss, iat: nu, exp: nu + 15 * 60, aud: 'appstoreconnect-v1' }, sleutel.replace(/\\n/g, '\n'), 'ES256');
+}
+
+async function ios(versie, tekst) {
+  const token = appleToken();
+  if (!token) return waarschuw('App Store: geen ASC_ISSUER_ID/ASC_KEY_ID/ASC_PRIVATE_KEY, notities overgeslagen.');
+  const api = ASC_API;
 
   const lijst = await vraag(`${api}/apps/${APPLE_APP_ID}/appStoreVersions?filter[platform]=IOS&limit=20`, { token });
   const versies = lijst.data || [];
@@ -139,10 +146,11 @@ async function ios(versie, tekst) {
 
 // ------------------------------------------------------------ Google Play
 
-async function android(versie, versionCode, tekst) {
+const PLAY_API = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PLAY_PACKAGE}/edits`;
+
+async function googleToken() {
   const ruw = process.env.PLAY_SERVICE_ACCOUNT_JSON;
-  if (!ruw) return waarschuw('Google Play: geen PLAY_SERVICE_ACCOUNT_JSON, notities overgeslagen.');
-  if (!versionCode) throw new Error('versionCode ontbreekt');
+  if (!ruw) return null;
   const sa = JSON.parse(ruw);
 
   const nu = Math.floor(Date.now() / 1000);
@@ -155,9 +163,14 @@ async function android(versie, versionCode, tekst) {
     body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion }),
   }).then((r) => r.json());
   if (!tok.access_token) throw new Error('Google-token mislukt: ' + JSON.stringify(tok).slice(0, 200));
-  const token = tok.access_token;
+  return tok.access_token;
+}
 
-  const api = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PLAY_PACKAGE}/edits`;
+async function android(versie, versionCode, tekst) {
+  if (!versionCode) throw new Error('versionCode ontbreekt');
+  const token = await googleToken();
+  if (!token) return waarschuw('Google Play: geen PLAY_SERVICE_ACCOUNT_JSON, notities overgeslagen.');
+  const api = PLAY_API;
   const edit = await vraag(api, { token, method: 'POST', body: {} });
   const track = await vraag(`${api}/${edit.id}/tracks/${PLAY_TRACK}`, { token });
   const release = (track.releases || []).find((r) => (r.versionCodes || []).map(String).includes(String(versionCode)));
@@ -173,8 +186,33 @@ async function android(versie, versionCode, tekst) {
 
 function waarschuw(tekst) { console.log(`::warning::${tekst}`); }
 
+/** Alleen lezen: kunnen we met de sleutels bij beide stores? Verandert niets. */
+async function controle() {
+  let goed = true;
+  try {
+    const token = appleToken();
+    if (!token) throw new Error('secrets ontbreken');
+    const lijst = await vraag(`${ASC_API}/apps/${APPLE_APP_ID}/appStoreVersions?filter[platform]=IOS&limit=3`, { token });
+    console.log('App Store: OK. Laatste versies: ' + (lijst.data || []).map((x) => `${x.attributes.versionString} (${x.attributes.appStoreState})`).join(', '));
+  } catch (e) { goed = false; console.log(`::error::App Store: ${e.message}`); }
+  try {
+    const token = await googleToken();
+    if (!token) throw new Error('secret ontbreekt');
+    const edit = await vraag(PLAY_API, { token, method: 'POST', body: {} });
+    try {
+      const track = await vraag(`${PLAY_API}/${edit.id}/tracks/${PLAY_TRACK}`, { token });
+      console.log(`Google Play: OK. ${PLAY_TRACK}: ` + (track.releases || []).map((r) => `${r.name || '?'} [${(r.versionCodes || []).join(',')}] ${r.status}${r.releaseNotes ? ' (met notities)' : ''}`).join('; '));
+    } finally {
+      // Het concept weggooien: een controle hoort niets achter te laten.
+      await fetch(`${PLAY_API}/${edit.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    }
+  } catch (e) { goed = false; console.log(`::error::Google Play: ${e.message}`); }
+  if (!goed) process.exitCode = 1;
+}
+
 async function main() {
   const [soort, versie, versionCode] = process.argv.slice(2);
+  if (soort === 'controle') return controle();
   if (!['ios', 'android'].includes(soort) || !versie) {
     console.error('gebruik: storenotities.mjs ios <versie> | android <versie> <versionCode>');
     process.exit(2);

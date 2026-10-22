@@ -1,0 +1,44 @@
+name: Storenotities (controle of los invullen)
+
+# Met de hand: controleren of de store-sleutels werken (alleen lezen), of de
+# notities van een versie alsnog invullen -- bijvoorbeeld als dat bij de
+# uitgave mislukte of de secrets er toen nog niet waren. Zie
+# scripts/storenotities.mjs. Normaal doen mobile.yml en android-gradle.yml dit
+# zelf na het indienen.
+on:
+  workflow_dispatch:
+    inputs:
+      wat:
+        description: 'Wat doen?'
+        type: choice
+        options: [controle, ios, android, beide]
+        default: controle
+      versie:
+        description: 'Versie (zoals in CHANGELOG.md), niet nodig bij controle'
+        required: false
+      versioncode:
+        description: 'Android versionCode (staat in de log van de Gradle-build), alleen voor android'
+        required: false
+
+jobs:
+  notities:
+    runs-on: ubuntu-latest
+    env:
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+      PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Controle
+        if: ${{ inputs.wat == 'controle' }}
+        run: node scripts/storenotities.mjs controle
+      - name: App Store
+        if: ${{ inputs.wat == 'ios' || inputs.wat == 'beide' }}
+        run: node scripts/storenotities.mjs ios "${{ inputs.versie }}"
+      - name: Google Play
+        if: ${{ inputs.wat == 'android' || inputs.wat == 'beide' }}
+        run: node scripts/storenotities.mjs android "${{ inputs.versie }}" "${{ inputs.versioncode }}"
