@@ -105,11 +105,24 @@ const BEWERKBAAR = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED', 
 
 const ASC_API = 'https://api.appstoreconnect.apple.com/v1';
 
+/**
+ * De .p8 zoals hij in het secret staat, hoe die er ook in geplakt is: met of
+ * zonder de BEGIN/END-regels, met \n als tekst, met Windows-regeleinden of
+ * alles op één regel.
+ */
+export function p8NaarPem(ruw) {
+  const kern = ruw
+    .replace(/\\n/g, '\n')
+    .replace(/-----(BEGIN|END) [A-Z ]*PRIVATE KEY-----/g, '')
+    .replace(/\s+/g, '');
+  return `-----BEGIN PRIVATE KEY-----\n${kern.match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----\n`;
+}
+
 function appleToken() {
   const { ASC_ISSUER_ID: iss, ASC_KEY_ID: kid, ASC_PRIVATE_KEY: sleutel } = process.env;
   if (!iss || !kid || !sleutel) return null;
   const nu = Math.floor(Date.now() / 1000);
-  return jwt({ alg: 'ES256', kid, typ: 'JWT' }, { iss, iat: nu, exp: nu + 15 * 60, aud: 'appstoreconnect-v1' }, sleutel.replace(/\\n/g, '\n'), 'ES256');
+  return jwt({ alg: 'ES256', kid: kid.trim(), typ: 'JWT' }, { iss: iss.trim(), iat: nu, exp: nu + 15 * 60, aud: 'appstoreconnect-v1' }, p8NaarPem(sleutel), 'ES256');
 }
 
 async function ios(versie, tekst) {
