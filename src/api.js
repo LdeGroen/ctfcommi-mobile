@@ -72,11 +72,24 @@ export const chat = {
   // scheduledFor: lokale wandtijd ('2026-09-16 09:00:00'). Staat die erin, dan
   // wordt het bericht wel aangemaakt maar pas op dat moment verstuurd -- en tot
   // die tijd ziet niemand anders het.
-  sendMessage: (id, { body, mentionUserIds = [], parentId = null, isAnnouncement = false, scheduledFor = null }) =>
-    apiFetch(`/api/chat/conversations/${id}/messages`, {
+  // files: [{ uri, name, type }] uit de fotobibliotheek of camera. Dan gaat het
+  // als multipart, net als in de desktop-app (attachments[]).
+  sendMessage: (id, { body, mentionUserIds = [], files = [], parentId = null, isAnnouncement = false, scheduledFor = null }) => {
+    if (files.length) {
+      const fd = new FormData();
+      if (body) fd.append('body', body);
+      if (parentId) fd.append('parent_id', String(parentId));
+      if (isAnnouncement) fd.append('is_announcement', '1');
+      if (scheduledFor) fd.append('scheduled_for', scheduledFor);
+      mentionUserIds.forEach((uid) => fd.append('mention_user_ids[]', String(uid)));
+      files.forEach((f) => fd.append('attachments[]', { uri: f.uri, name: f.name, type: f.type }));
+      return apiFetch(`/api/chat/conversations/${id}/messages`, { method: 'POST', body: fd });
+    }
+    return apiFetch(`/api/chat/conversations/${id}/messages`, {
       method: 'POST',
       body: JSON.stringify({ body, mention_user_ids: mentionUserIds, parent_id: parentId, is_announcement: isAnnouncement, scheduled_for: scheduledFor }),
-    }),
+    });
+  },
 
   // Eigen berichten die nog klaarstaan. Alleen van jezelf: een ander kan ze niet
   // zien en dus ook niet tegenhouden.

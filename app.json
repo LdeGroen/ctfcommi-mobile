@@ -45,6 +45,14 @@
           }
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Commi gebruikt je fotobibliotheek om foto's en video's in een gesprek te delen.",
+          "cameraPermission": "Commi gebruikt je camera om een foto of video te maken en in een gesprek te delen.",
+          "microphonePermission": "Commi gebruikt je microfoon voor het geluid bij een video die je in een gesprek deelt."
+        }
+      ],
       "./plugins/withFmtConstevalFix",
       "expo-secure-store",
       "expo-asset",

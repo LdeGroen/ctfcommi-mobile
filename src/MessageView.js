@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Linking, StyleSheet, Pressable, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, Linking, StyleSheet, Pressable, Modal, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
 import Avatar from './Avatar';
@@ -14,6 +14,8 @@ function extractUrls(text) {
 function isPdf(a) {
   return a.mime === 'application/pdf' || /\.pdf(\?.*)?$/i.test(a.filename || a.url || '');
 }
+const isFoto = (a) => (a.mime || '').startsWith('image/') || /\.(jpe?g|png|gif|webp|heic)(\?.*)?$/i.test(a.filename || '');
+const isVideo = (a) => (a.mime || '').startsWith('video/') || /\.(mp4|mov|m4v|webm)(\?.*)?$/i.test(a.filename || '');
 
 const QUICK = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🎉', '🔥'];
 
@@ -233,6 +235,19 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
               <Text style={{ color: c.muted, fontSize: 11 }}>Google Drive</Text>
             </View>
           </TouchableOpacity>
+        ) : isFoto(a) ? (
+          <TouchableOpacity key={a.id} onPress={() => a.url && Linking.openURL(a.url)} activeOpacity={0.85} style={{ marginTop: 4 }}>
+            <Image source={{ uri: a.url }} style={[s.foto, { borderColor: c.border }]} resizeMode="cover" accessibilityLabel={a.filename} />
+          </TouchableOpacity>
+        ) : isVideo(a) ? (
+          <TouchableOpacity key={a.id} onPress={() => a.url && Linking.openURL(a.url)}
+                            style={[s.driveCard, { borderColor: c.border, backgroundColor: c.bg }]}>
+            <Feather name="play-circle" size={18} color="#6366f1" />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text numberOfLines={1} style={{ color: c.text, fontSize: 14 }}>{a.filename}</Text>
+              <Text style={{ color: c.muted, fontSize: 11 }}>Video — tik om af te spelen</Text>
+            </View>
+          </TouchableOpacity>
         ) : isPdf(a) ? (
           <TouchableOpacity key={a.id} onPress={() => a.url && Linking.openURL(a.url)}
                             style={[s.driveCard, { borderColor: c.border, backgroundColor: c.bg }]}>
@@ -372,6 +387,7 @@ const s = StyleSheet.create({
   todoDone: { textDecorationLine: 'line-through' },
   todoBy: { fontSize: 11, color: '#b45309', textDecorationLine: 'none' },
   driveCard: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginTop: 4 },
+  foto: { width: 240, maxWidth: '100%', aspectRatio: 4 / 3, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
   annBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', backgroundColor: '#fef3c7', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2, marginBottom: 2 },
   annText: { color: '#b45309', fontSize: 11, fontWeight: '700' },
   reactionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },

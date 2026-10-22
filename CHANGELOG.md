@@ -3,6 +3,21 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## 0.1.27 — nog niet uitgebracht
+
+Meer ruimte om te typen, en foto's en video's rechtstreeks uit je telefoon.
+
+- **Eén plusknop in plaats van een rij knoppen.** Drive, notitie, to-do, poll,
+  aankondiging en later versturen zitten nu achter de plus naast het typvak.
+  Daardoor is het typvak weer zo breed als het scherm toelaat. Staat
+  aankondiging aan, dan kleurt de plus geel.
+- **Foto's en video's toevoegen.** Kies er tot tien tegelijk uit je
+  fotobibliotheek, of maak er een met de camera. Ze staan als kleine tegels
+  boven het typvak, met een kruisje om er een weg te halen, en gaan mee met je
+  bericht. Bestanden boven de 50 MB worden niet toegevoegd.
+- **Foto's zie je meteen in het gesprek**, in plaats van als bestandsnaam.
+  Video's staan er als kaartje dat je aantikt om af te spelen.
+
 ## 0.1.26 — 13 oktober 2026
 
 Je kunt nu een poll starten in een kanaal of gesprek.
