@@ -3,7 +3,7 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
-## 0.1.27 — nog niet uitgebracht
+## 0.1.27 — 22 oktober 2026
 
 Meer ruimte om te typen, en foto's en video's rechtstreeks uit je telefoon.
 
