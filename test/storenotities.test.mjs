@@ -56,7 +56,7 @@ test('de .p8 wordt gelezen, hoe hij ook in het secret is geplakt', async () => {
   const { privateKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
   const pem = privateKey.export({ type: 'pkcs8', format: 'pem' });
   const kern = pem.replace(/-----[A-Z ]+-----/g, '').replace(/\s+/g, '');
-  for (const variant of [pem, pem.replace(/\n/g, '\r\n'), pem.replace(/\n/g, '\n'), kern, ' ' + kern + '\n']) {
+  for (const variant of [pem, pem.replace(/\n/g, '\r\n'), pem.replace(/\n/g, '\\n'), kern, ' ' + kern + '\n']) {
     assert.doesNotThrow(() => crypto.createPrivateKey(p8NaarPem(variant)));
   }
 });
