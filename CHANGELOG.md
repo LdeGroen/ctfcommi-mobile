@@ -3,6 +3,12 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## 0.1.28 — nog niet uitgebracht
+
+- **De plusknop zit nu ook in threads.** Daar kun je net als in het gesprek
+  zelf foto's en video's uit je bibliotheek of van de camera meesturen, of een
+  bestand uit Google Drive delen.
+
 ## 0.1.27 — 22 oktober 2026
 
 Meer ruimte om te typen, en foto's en video's rechtstreeks uit je telefoon.
