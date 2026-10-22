@@ -118,6 +118,18 @@ jobs:
             eas build --platform "$PLATFORM" --profile production --non-interactive --wait
           fi
 
+      # "Wat is er nieuw" in App Store Connect invullen uit CHANGELOG.md. Alleen
+      # dat veld; de rest van de storevermelding blijft zoals hij is. Zonder
+      # secrets of bij een fout alleen een waarschuwing. Zie scripts/storenotities.mjs.
+      - name: '"Wat is er nieuw" in de App Store (uit CHANGELOG.md)'
+        if: ${{ (github.ref_type == 'tag' || inputs.submit) && (github.event.inputs.platform || 'all') != 'android' }}
+        continue-on-error: true
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: node scripts/storenotities.mjs ios "$(node -p "require('./app.json').expo.version")"
+
       # De app vraagt de backend of hij achterloopt; hier melden we wat er net
       # is uitgebracht. Alleen bij een tag én als het ook echt is ingediend —
       # anders staat het in de store nog niet klaar en stuur je mensen voor

@@ -51,6 +51,7 @@ jobs:
           VC=$(( $(date +%s) / 60 ))
           sed -i "s/versionCode [0-9]\+/versionCode $VC/" android/app/build.gradle
           echo "versionCode = $VC"
+          echo "VC=$VC" >> "$GITHUB_ENV"
 
       - name: Upload-keystore schrijven
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload.jks
@@ -126,3 +127,13 @@ jobs:
         run: |
           AAB=$(ls android/app/build/outputs/bundle/release/*.aab | head -n1)
           eas submit --platform android --profile production --non-interactive --path "$AAB"
+
+      # De releasenotes uit CHANGELOG.md bij deze release in Play zetten. Zonder
+      # secret of bij een fout alleen een waarschuwing: notities houden een
+      # uitgave nooit tegen. Zie scripts/storenotities.mjs.
+      - name: Releasenotes in Google Play (uit CHANGELOG.md)
+        if: ${{ (github.event.inputs.wat == 'aab' || github.event.inputs.wat == 'beide') && github.event.inputs.submit == 'true' }}
+        continue-on-error: true
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: node scripts/storenotities.mjs android "$(node -p "require('./app.json').expo.version")" "$VC"

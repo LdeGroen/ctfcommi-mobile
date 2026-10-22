@@ -91,6 +91,29 @@ Drie dingen om te weten:
   maand. `eas.json`: ios `image: latest` (iOS 26 SDK), submit `ascAppId: 6776176073`.
 - Na codewijziging is dus een **nieuwe build** nodig om het op het toestel te zien.
 
+### Releasenotes gaan vanzelf mee (sinds 22-10-2026)
+
+`scripts/storenotities.mjs` zet het kopje `## <versie>` uit `CHANGELOG.md` in
+de stores, ná het indienen: in App Store Connect als "Wat is er nieuw" (stap in
+`mobile.yml`, alle talen van die versie) en in Google Play als releasenotes van
+de release met deze versionCode op `alpha` (stap in `android-gradle.yml`).
+**Schrijf het changelog-kopje dus vóór je de workflows start**, met precies het
+versienummer uit `app.json`; anders gaat er niets mee (wel een waarschuwing).
+
+- Play staat maar **500 tekens** toe. Past het niet, dan gaat de eerste alinea
+  plus de vetgedrukte kop van elk punt mee. Schrijf punten daarom als
+  `- **Kop.** uitleg`.
+- Alleen dat ene veld wordt aangeraakt. Bewust niet EAS Metadata: dat kan
+  geen Play en stuurt de hele storevermelding mee.
+- Geen secret of een fout: alleen een `::warning`, de uitgave gaat door.
+- Secrets: `ASC_ISSUER_ID`, `ASC_KEY_ID`, `ASC_PRIVATE_KEY` (App Store
+  Connect API-sleutel, rol App Manager, de inhoud van de .p8) en
+  `PLAY_SERVICE_ACCOUNT_JSON` (serviceaccount met toegang tot Commi in de
+  Play Console, recht om releases te beheren). Die staan los van de sleutels
+  die EAS zelf bewaart; die zijn vanuit GitHub niet te gebruiken.
+- Staat er in App Store Connect al een versie in voorbereiding met een ander
+  nummer, dan hernoemt het script die naar het nieuwe nummer.
+
 ## iOS bouwen op de Mac mini (primaire route, gratis)
 
 De gratis EAS-cloudbuilds zijn maandelijks beperkt. We bouwen iOS daarom **lokaal op de
