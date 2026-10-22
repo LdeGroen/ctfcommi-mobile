@@ -113,6 +113,10 @@ versienummer uit `app.json`; anders gaat er niets mee (wel een waarschuwing).
   die EAS zelf bewaart; die zijn vanuit GitHub niet te gebruiken.
 - Staat er in App Store Connect al een versie in voorbereiding met een ander
   nummer, dan hernoemt het script die naar het nieuwe nummer.
+- **Losse workflow `storenotities.yml`**: `controle` kijkt alleen of de sleutels
+  werken (gooit het Play-concept daarna weg); `ios`/`android`/`beide` vult de
+  notities van een versie alsnog in. De versionCode staat in de log van de
+  Gradle-build. De .p8 mag op elke manier geplakt zijn (`p8NaarPem`).
 
 ## iOS bouwen op de Mac mini (primaire route, gratis)
 
