@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, TextInput, TouchableOpacity, Text, StyleSheet, useColorScheme, Alert, Modal, Pressable, ScrollView, ActivityIndicator, AppState, Image } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { View, FlatList, TextInput, TouchableOpacity, Text, StyleSheet, useColorScheme, Alert, Modal, Pressable, ScrollView, ActivityIndicator, AppState } from 'react-native';
 import Avatar from '../src/Avatar';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useFocusEffect } from '@react-navigation/native';
@@ -16,6 +15,7 @@ import { gedemptSinds } from '../src/gedempt';
 import { useBottomBarInset } from '../src/useBottomBarInset';
 import KeyboardScreen from '../src/KeyboardScreen';
 import PersonCard from '../src/PersonCard';
+import { useMediaBijlagen, BijlagenRij, PlusKnop, PlusMenu, naMenu as naMenuVan } from '../src/Bijlagen';
 
 export default function ChatScreen({ route, navigation }) {
   const bottomInset = useBottomBarInset();
@@ -45,7 +45,8 @@ export default function ChatScreen({ route, navigation }) {
   // naast elkaar en bleef er voor het typen bijna niets over) en de foto's en
   // video's die klaarstaan om mee te gaan.
   const [menuOpen, setMenuOpen] = useState(false);
-  const [bijlagen, setBijlagen] = useState([]);
+  const { bijlagen, setBijlagen, kiesUitBibliotheek, maakMetCamera } = useMediaBijlagen();
+  const naMenu = (fn) => naMenuVan(() => setMenuOpen(false), fn);
   const [readsModal, setReadsModal] = useState(null);
   const [profielId, setProfielId] = useState(null); // open profielkaartje
   const subRef = useRef(null);
@@ -315,62 +316,6 @@ export default function ChatScreen({ route, navigation }) {
     } finally { setSending(false); }
   };
 
-  // ---- Foto's en video's
-  // De server neemt tot 10 bijlagen van elk 50 MB aan (attachments.* max:51200).
-  // Te groot wordt hier al tegengehouden: anders wacht je op een upload die
-  // daarna toch wordt geweigerd.
-  const MAX_BIJLAGEN = 10;
-  const MAX_GROOTTE = 50 * 1024 * 1024;
-  const voegMediaToe = (assets) => {
-    const teGroot = assets.filter((x) => x.fileSize && x.fileSize > MAX_GROOTTE);
-    const nieuw = assets.filter((x) => !teGroot.includes(x)).map((x, i) => {
-      const video = x.type === 'video';
-      return {
-        uri: x.uri,
-        name: x.fileName || `${video ? 'video' : 'foto'}-${Date.now()}-${i}.${video ? 'mp4' : 'jpg'}`,
-        type: x.mimeType || (video ? 'video/mp4' : 'image/jpeg'),
-        video,
-      };
-    });
-    const ruimte = MAX_BIJLAGEN - bijlagen.length;
-    setBijlagen((prev) => [...prev, ...nieuw].slice(0, MAX_BIJLAGEN));
-    const meldingen = [];
-    if (teGroot.length) meldingen.push(`${teGroot.length} bestand${teGroot.length === 1 ? ' is' : 'en zijn'} groter dan 50 MB en niet toegevoegd.`);
-    if (nieuw.length > ruimte) meldingen.push(`Er kunnen er ${MAX_BIJLAGEN} tegelijk mee; de rest is niet toegevoegd.`);
-    if (meldingen.length) Alert.alert('Niet alles toegevoegd', meldingen.join('\n'));
-  };
-
-  // Eerst het menu dicht, dan pas de kiezer. Op iOS weigert een tweede venster
-  // te openen zolang het eerste nog aan het verdwijnen is.
-  const naMenu = (fn) => { setMenuOpen(false); setTimeout(fn, 350); };
-
-  const kiesUitBibliotheek = async () => {
-    const ruimte = MAX_BIJLAGEN - bijlagen.length;
-    if (ruimte <= 0) { Alert.alert('Vol', `Er kunnen ${MAX_BIJLAGEN} bijlagen tegelijk mee.`); return; }
-    try {
-      const r = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images', 'videos'],
-        allowsMultipleSelection: true,
-        selectionLimit: ruimte,
-        quality: 0.8,
-        // HEIC en HEVC omzetten naar JPEG en H.264, zodat iedereen ze kan openen.
-        preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
-      });
-      if (!r.canceled) voegMediaToe(r.assets || []);
-    } catch (e) { Alert.alert('Kon de fotobibliotheek niet openen', e?.message || ''); }
-  };
-
-  const maakMetCamera = async () => {
-    try {
-      const toestemming = await ImagePicker.requestCameraPermissionsAsync();
-      if (!toestemming.granted) {
-        Alert.alert('Geen toegang tot de camera', 'Zet de toegang aan bij de instellingen van je telefoon, onder Commi.');
-        return;
-      }
-      const r = await ImagePicker.launchCameraAsync({ mediaTypes: ['images', 'videos'], quality: 0.8 });
-      if (!r.canceled) voegMediaToe(r.assets || []);
-    } catch (e) { Alert.alert('Kon de camera niet openen', e?.message || ''); }
-  };
 
   const laadIngepland = useCallback(async () => {
     try { setIngepland((await chat.listScheduled(id)).messages || []); }
@@ -665,34 +610,11 @@ export default function ChatScreen({ route, navigation }) {
         </View>
       ) : (
         <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderColor: c.border, backgroundColor: c.bg }}>
-        {bijlagen.length > 0 && !editingId && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bijlagenRij}>
-            {bijlagen.map((b, i) => (
-              <View key={b.uri + i} style={[styles.bijlageTegel, { borderColor: c.border }]}>
-                {b.video ? (
-                  <View style={[styles.bijlageVideo, { backgroundColor: dark ? '#1f2937' : '#e5e7eb' }]}>
-                    <Feather name="video" size={22} color={c.muted} />
-                  </View>
-                ) : (
-                  <Image source={{ uri: b.uri }} style={styles.bijlageFoto} />
-                )}
-                <TouchableOpacity style={styles.bijlageWeg} hitSlop={8} accessibilityLabel="Bijlage weghalen"
-                                  onPress={() => setBijlagen((prev) => prev.filter((_, j) => j !== i))}>
-                  <Feather name="x" size={14} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-        )}
+        {!editingId && <BijlagenRij bijlagen={bijlagen} setBijlagen={setBijlagen} c={c} dark={dark} />}
         <View style={[styles.composer, { borderTopWidth: 0, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
           {/* Alles behalve typen en versturen zit achter deze ene knop. Geel
               zolang aankondiging aanstaat, zodat je dat niet vergeet. */}
-          {!editingId && (
-            <TouchableOpacity style={styles.drive} onPress={() => setMenuOpen(true)}
-                              accessibilityLabel="Meer: foto's, camera, Drive, notitie, to-do, poll">
-              <Feather name="plus-circle" size={26} color={announce ? '#f59e0b' : c.muted} />
-            </TouchableOpacity>
-          )}
+          {!editingId && <PlusKnop onPress={() => setMenuOpen(true)} c={c} actief={announce} />}
           <TextInput style={[styles.input, { color: c.text, borderColor: announce ? '#f59e0b' : c.border }]} value={text} onChangeText={onChangeText}
             placeholder={editingId ? 'Bewerk je bericht…' : (announce ? 'Aankondiging…' : 'Bericht…')} placeholderTextColor={c.muted} multiline />
           {(() => {
@@ -710,10 +632,7 @@ export default function ChatScreen({ route, navigation }) {
       )}
 
       {/* Het plusmenu */}
-      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
-        <Pressable style={[styles.backdrop, { justifyContent: 'flex-end', padding: 0 }]} onPress={() => setMenuOpen(false)}>
-          <Pressable style={[styles.menuVel, { backgroundColor: c.bg, borderColor: c.border, paddingBottom: 12 + bottomInset }]} onPress={() => {}}>
-            {[
+      <PlusMenu open={menuOpen} onSluit={() => setMenuOpen(false)} c={c} bottomInset={bottomInset} regels={[
               { icoon: 'image', label: "Foto's en video's", doe: () => naMenu(kiesUitBibliotheek) },
               { icoon: 'camera', label: 'Camera', doe: () => naMenu(maakMetCamera) },
               { icoon: 'hard-drive', label: 'Google Drive', doe: () => naMenu(shareDrive), uit: driveBusy },
@@ -727,16 +646,7 @@ export default function ChatScreen({ route, navigation }) {
               // Later versturen: zonder tekst of bijlage valt er niets in te plannen.
               { icoon: 'clock', label: 'Later versturen', doe: () => naMenu(() => setPlanOpen(true)), uit: !text.trim() && !bijlagen.length,
                 toelichting: !text.trim() && !bijlagen.length ? 'Typ eerst je bericht' : null },
-            ].map((r) => (
-              <TouchableOpacity key={r.label} style={[styles.menuRegel, r.uit && { opacity: 0.4 }]} onPress={r.doe} disabled={r.uit}>
-                <Feather name={r.icoon} size={20} color={r.kleur || c.text} />
-                <Text style={{ color: c.text, fontSize: 16, flex: 1 }}>{r.label}</Text>
-                {!!r.toelichting && <Text style={{ color: c.muted, fontSize: 12 }}>{r.toelichting}</Text>}
-              </TouchableOpacity>
-            ))}
-          </Pressable>
-        </Pressable>
-      </Modal>
+      ]} />
 
       {/* Wat er klaarstaat om later uit te gaan */}
       <Modal visible={planOpen} transparent animationType="fade" onRequestClose={() => setPlanOpen(false)}>
@@ -811,14 +721,7 @@ const styles = StyleSheet.create({
   // veld was één regel hoog, waardoor je bij een langer bericht door een kiertje
   // zat te typen.
   input: { flex: 1, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, minHeight: 44, maxHeight: 180, fontSize: 16, lineHeight: 21 },
-  drive: { paddingHorizontal: 4, paddingVertical: 8, justifyContent: 'center' },
-  menuVel: { width: '100%', borderTopLeftRadius: 18, borderTopRightRadius: 18, borderWidth: StyleSheet.hairlineWidth, paddingTop: 8, paddingHorizontal: 20 },
-  menuRegel: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 13 },
-  bijlagenRij: { gap: 8, paddingHorizontal: 10, paddingTop: 10 },
-  bijlageTegel: { width: 64, height: 64, borderRadius: 10, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
-  bijlageFoto: { width: '100%', height: '100%' },
-  bijlageVideo: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  bijlageWeg: { position: 'absolute', top: 3, right: 3, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
+  drive: { paddingHorizontal: 4, paddingVertical: 10, justifyContent: 'center' },
   send: { backgroundColor: '#4f46e5', borderRadius: 18, paddingHorizontal: 18, paddingVertical: 10 },
   mentionBox: { borderTopWidth: StyleSheet.hairlineWidth, maxHeight: 220 },
   mentionRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 10 },

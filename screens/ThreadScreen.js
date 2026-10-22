@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, FlatList, TextInput, TouchableOpacity, Text, StyleSheet, useColorScheme, Alert } from 'react-native';
+import { View, FlatList, TextInput, TouchableOpacity, Text, StyleSheet, useColorScheme, Alert, ActivityIndicator } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
@@ -10,6 +10,7 @@ import { convertEmoticons } from '../src/emoticons';
 import MessageView, { theme } from '../src/MessageView';
 import { useBottomBarInset } from '../src/useBottomBarInset';
 import KeyboardScreen from '../src/KeyboardScreen';
+import { useMediaBijlagen, BijlagenRij, PlusKnop, PlusMenu, naMenu } from '../src/Bijlagen';
 
 export default function ThreadScreen({ route }) {
   const { convId, parentId } = route.params;
@@ -105,16 +106,25 @@ export default function ThreadScreen({ route }) {
     <MessageView item={item} c={c} onReact={handleReact} onSave={saveForLater} />
   ), [c, handleReact, saveForLater]);
 
+  // Het plusmenu (22-10-2026). In een thread alleen wat bij een antwoord past:
+  // foto's, video's en Drive. Notities, polls en later versturen horen bij het
+  // gesprek zelf.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { bijlagen, setBijlagen, kiesUitBibliotheek, maakMetCamera } = useMediaBijlagen();
+
   const send = async () => {
     const body = text.trim();
-    if (!body) return;
+    if (!body && !bijlagen.length) return;
     setSending(true);
     try {
-      const sent = await chat.sendMessage(convId, { body, parentId });
+      const sent = await chat.sendMessage(convId, { body, parentId, files: bijlagen });
       setReplies((prev) => (prev.some((x) => x.id === sent.id) ? prev : [...prev, sent]));
       setText('');
+      setBijlagen([]);
     } catch (e) {
-      Alert.alert('Niet verstuurd', e?.message || 'Probeer het nog eens.');
+      Alert.alert('Niet verstuurd', e?.status === 413
+        ? 'Dat is te groot om in één keer te versturen. Stuur minder of kortere video\'s tegelijk.'
+        : (e?.message || 'Probeer het nog eens.'));
     } finally { setSending(false); }
   };
 
@@ -153,16 +163,25 @@ export default function ThreadScreen({ route }) {
         windowSize={11}
         removeClippedSubviews
       />
-      <View style={[styles.composer, { borderColor: c.border, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
-        <TouchableOpacity style={[styles.drive, driveBusy && { opacity: 0.4 }]} onPress={shareDrive} disabled={driveBusy}>
-          <Feather name="hard-drive" size={20} color={c.muted} />
-        </TouchableOpacity>
+      <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderColor: c.border, backgroundColor: c.bg }}>
+      <BijlagenRij bijlagen={bijlagen} setBijlagen={setBijlagen} c={c} dark={dark} />
+      <View style={[styles.composer, { borderTopWidth: 0, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
+        <PlusKnop onPress={() => setMenuOpen(true)} c={c} />
         <TextInput style={[styles.input, { color: c.text, borderColor: c.border }]} value={text} onChangeText={(t) => setText(convertEmoticons(t))}
           placeholder="Antwoord in thread…" placeholderTextColor={c.muted} multiline />
-        <TouchableOpacity style={[styles.send, (sending || !text.trim()) && { opacity: 0.4 }]} onPress={send} disabled={sending || !text.trim()}>
-          <Feather name="send" size={18} color="#fff" />
+        <TouchableOpacity style={[styles.send, (sending || (!text.trim() && !bijlagen.length)) && { opacity: 0.4 }]} onPress={send}
+                          disabled={sending || (!text.trim() && !bijlagen.length)}>
+          {sending && bijlagen.length
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Feather name="send" size={18} color="#fff" />}
         </TouchableOpacity>
       </View>
+      </View>
+      <PlusMenu open={menuOpen} onSluit={() => setMenuOpen(false)} c={c} bottomInset={bottomInset} regels={[
+        { icoon: 'image', label: "Foto's en video's", doe: () => naMenu(() => setMenuOpen(false), kiesUitBibliotheek) },
+        { icoon: 'camera', label: 'Camera', doe: () => naMenu(() => setMenuOpen(false), maakMetCamera) },
+        { icoon: 'hard-drive', label: 'Google Drive', doe: () => naMenu(() => setMenuOpen(false), shareDrive), uit: driveBusy },
+      ]} />
     </KeyboardScreen>
   );
 }
