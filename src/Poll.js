@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Modal, Pressable, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { chat } from './api';
 
@@ -36,6 +36,35 @@ function Balk({ deel, totaal, c }) {
   );
 }
 
+/**
+ * Wie stemde wat, voor één antwoord (22-10-2026). Bij veel stemmers stond dat
+ * alleen in een afgekapte regel. groepen: [{ label, namen: [{id, name}] }]
+ */
+function WieVenster({ wie, onSluit, c }) {
+  const groepen = (wie?.groepen || []).filter((g) => g.namen?.length);
+  return (
+    <Modal visible={!!wie} transparent animationType="fade" onRequestClose={onSluit}>
+      <Pressable style={st.achtergrond} onPress={onSluit}>
+        <Pressable style={[st.venster, { backgroundColor: c.bg, borderColor: c.border }]} onPress={() => {}}>
+          <Text style={[st.vraag, { color: c.text, marginBottom: 6 }]}>{wie?.titel}</Text>
+          <ScrollView style={{ maxHeight: 420 }}>
+            {groepen.length === 0 && <Text style={{ color: c.muted }}>Nog niemand.</Text>}
+            {groepen.map((g) => (
+              <View key={g.label || 'alle'} style={{ marginTop: 6 }}>
+                {!!g.label && <Text style={[st.klein, { color: c.muted, fontWeight: '700', textTransform: 'uppercase' }]}>{g.label} ({g.namen.length})</Text>}
+                {[...g.namen].sort((a, b) => a.name.localeCompare(b.name, 'nl')).map((s) => (
+                  <Text key={s.id} style={{ color: c.text, fontSize: 15, paddingVertical: 5 }}>{s.name}</Text>
+                ))}
+              </View>
+            ))}
+          </ScrollView>
+          <TouchableOpacity onPress={onSluit} style={[st.knop, { marginTop: 10 }]}><Text style={st.knopTekst}>Sluiten</Text></TouchableOpacity>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 export function PollKaart({ item, c }) {
   const [stand, setStand] = useState(null);
   const [fout, setFout] = useState('');
@@ -44,6 +73,7 @@ export function PollKaart({ item, c }) {
   const [antwoorden, setAntwoorden] = useState({});
   const [nieuw, setNieuw] = useState('');
   const [toonNiet, setToonNiet] = useState(false);
+  const [wie, setWie] = useState(null); // { titel, groepen } voor WieVenster
   const versie = item.poll?.versie;
 
   const neem = useCallback((s) => {
@@ -113,16 +143,21 @@ export function PollKaart({ item, c }) {
       {stand.soort === 'keuze' && stand.opties.map((o) => {
         const gekozen = keuze.includes(o.id);
         const kan = mag.stemmen && !bezig;
+        const metNamen = zichtbaar && !stand.anoniem && Array.isArray(o.stemmers);
+        const toonWie = () => setWie({ titel: o.tekst, groepen: [{ label: null, namen: o.stemmers || [] }] });
         return (
-          <TouchableOpacity key={o.id} disabled={!kan} activeOpacity={0.7}
-            onPress={() => setKeuze((k) => (!stand.meerdere ? [o.id]
+          <TouchableOpacity key={o.id} disabled={!kan && !metNamen} activeOpacity={0.7}
+            // Kun je niet (meer) stemmen, dan laat een tik zien wie dit kozen.
+            onPress={() => (!kan ? toonWie() : setKeuze((k) => (!stand.meerdere ? [o.id]
               : k.includes(o.id) ? k.filter((x) => x !== o.id)
-                : (stand.max_keuzes && k.length >= stand.max_keuzes ? k : [...k, o.id])))}
+                : (stand.max_keuzes && k.length >= stand.max_keuzes ? k : [...k, o.id]))))}
             style={[st.optie, { borderColor: gekozen ? INDIGO : c.border }]}>
             <View style={st.rij}>
               <Feather name={stand.meerdere ? (gekozen ? 'check-square' : 'square') : (gekozen ? 'check-circle' : 'circle')} size={17} color={gekozen ? INDIGO : c.muted} />
               <Text style={{ color: c.text, flex: 1, fontSize: 15 }}>{o.tekst}</Text>
-              {zichtbaar && <Text style={[st.klein, { color: c.muted }]}>{o.aantal} · {totaal ? Math.round((o.aantal / totaal) * 100) : 0}%</Text>}
+              {zichtbaar && (metNamen && o.aantal > 0
+                ? <Text style={[st.klein, st.aantalKnop]} onPress={toonWie} suppressHighlighting={false}>{o.aantal} · {totaal ? Math.round((o.aantal / totaal) * 100) : 0}% ›</Text>
+                : <Text style={[st.klein, { color: c.muted }]}>{o.aantal} · {totaal ? Math.round((o.aantal / totaal) * 100) : 0}%</Text>)}
             </View>
             {zichtbaar && <Balk deel={o.aantal} totaal={totaal} c={c} />}
             {zichtbaar && o.stemmers?.length > 0 && <Text numberOfLines={2} style={[st.klein, { color: c.muted, marginTop: 3 }]}>{namenVan(o.stemmers)}</Text>}
@@ -138,7 +173,15 @@ export function PollKaart({ item, c }) {
 
       {stand.soort === 'datum' && stand.opties.map((o) => (
         <View key={o.id} style={[st.optie, { borderColor: beste?.id === o.id && beste.ja > 0 ? '#16a34a' : c.border }]}>
-          <Text style={{ color: c.text, fontSize: 15, fontWeight: '500' }}>{o.tekst}{beste?.id === o.id && beste.ja > 0 ? '  ✓ beste optie' : ''}</Text>
+          <Text style={{ color: c.text, fontSize: 15, fontWeight: '500' }}
+                onPress={zichtbaar && !stand.anoniem && Array.isArray(o.stemmers_ja)
+                  ? () => setWie({ titel: o.tekst, groepen: [
+                    { label: 'Ja', namen: o.stemmers_ja }, { label: 'Misschien', namen: o.stemmers_misschien }, { label: 'Nee', namen: o.stemmers_nee },
+                  ] })
+                  : undefined}>
+            {o.tekst}{beste?.id === o.id && beste.ja > 0 ? '  ✓ beste optie' : ''}
+            {zichtbaar && !stand.anoniem && Array.isArray(o.stemmers_ja) && <Text style={st.aantalKnop}>  wie? ›</Text>}
+          </Text>
           <View style={[st.rij, { marginTop: 6 }]}>
             {DATUM_KNOPPEN.map(([k, label, icoon, kleur]) => {
               const actief = antwoorden[o.id] === k;
@@ -173,7 +216,12 @@ export function PollKaart({ item, c }) {
         </View>
       )}
       {stand.soort === 'schaal' && zichtbaar && stand.schaal && (
-        <Text style={{ color: c.text, marginTop: 6 }}>Gemiddeld <Text style={{ fontWeight: '700' }}>{stand.schaal.gemiddelde ?? '—'}</Text> van {stand.schaal_max}</Text>
+        <Text style={{ color: c.text, marginTop: 6 }}>
+          Gemiddeld <Text style={{ fontWeight: '700' }}>{stand.schaal.gemiddelde ?? '—'}</Text> van {stand.schaal_max}
+          {!stand.anoniem && stand.schaal.verdeling?.some((v) => v.stemmers?.length) && (
+            <Text style={st.aantalKnop} onPress={() => setWie({ titel: stand.vraag, groepen: [...stand.schaal.verdeling].reverse().map((v) => ({ label: String(v.waarde), namen: v.stemmers || [] })) })}>  wie gaf wat? ›</Text>
+          )}
+        </Text>
       )}
 
       {!zichtbaar && (
@@ -208,6 +256,7 @@ export function PollKaart({ item, c }) {
       </View>
       {toonNiet && stand.niet_gestemd?.length > 0 && <Text style={[st.klein, { color: c.muted }]}>Nog niet gestemd: {namenVan(stand.niet_gestemd)}</Text>}
       {!!fout && <Text style={st.fout}>{fout}</Text>}
+      <WieVenster wie={wie} onSluit={() => setWie(null)} c={c} />
     </View>
   );
 }
@@ -228,4 +277,7 @@ const st = StyleSheet.create({
   invoer: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6, fontSize: 14 },
   klein_knop: { borderWidth: 1, borderRadius: 8, padding: 7 },
   fout: { color: '#dc2626', fontSize: 12, marginTop: 4 },
+  aantalKnop: { color: INDIGO, fontSize: 12, textDecorationLine: 'underline' },
+  achtergrond: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 24 },
+  venster: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, padding: 16 },
 });

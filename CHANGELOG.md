@@ -3,6 +3,14 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## 0.1.29 — nog niet uitgebracht
+
+- **Zien wie wat stemde.** Tik in een poll op het aantal achter een antwoord
+  en je ziet wie dat kozen. Heb je al gestemd en kun je je stem niet meer
+  wijzigen, dan kun je ook gewoon op het antwoord zelf tikken. Bij een
+  datumprikker zie je per moment wie ja, misschien en nee zei; bij een
+  beoordeling wie welk cijfer gaf. Bij een anonieme poll blijft dat geheim.
+
 ## 0.1.28 — 22 oktober 2026
 
 - **De plusknop zit nu ook in threads.** Daar kun je net als in het gesprek
