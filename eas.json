@@ -10,12 +10,12 @@
     },
     "preview": {
       "distribution": "internal",
-      "ios": { "simulator": false, "image": "latest" },
+      "ios": { "simulator": false, "image": "macos-tahoe-26.5-xcode-26.6" },
       "android": { "buildType": "apk" }
     },
     "production": {
       "autoIncrement": true,
-      "ios": { "image": "latest" }
+      "ios": { "image": "macos-tahoe-26.5-xcode-26.6" }
     }
   },
   "submit": {

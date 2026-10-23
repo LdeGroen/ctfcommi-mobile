@@ -118,6 +118,20 @@ versienummer uit `app.json`; anders gaat er niets mee (wel een waarschuwing).
   notities van een versie alsnog in. De versionCode staat in de log van de
   Gradle-build. De .p8 mag op elke manier geplakt zijn (`p8NaarPem`).
 
+### Xcode staat vast, niet op "latest" (23-10-2026)
+
+`eas.json` noemt een vaste EAS-image: `macos-tahoe-26.5-xcode-26.6`. Tot
+22-10-2026 stond daar `"latest"`, en toen Expo die naar **Xcode 27.1** liet
+wijzen, crashte 0.1.28 bij het opstarten en wees Apple hem af (Guideline
+2.1(a), "crashed on launch"). 0.1.26 was nog met Xcode 26.6 gebouwd. Expo SDK 54
+/ React Native 0.81 is niet voor Xcode 27 gemaakt.
+
+**Pas de image pas aan samen met een Expo-upgrade** die Xcode 27 ondersteunt, en
+test dan eerst op een echt toestel of TestFlight. Zie je in een buildlog
+`Using VM template "...xcode-27..."` terwijl je dat niet zo bedoelde, dan is
+dit de reden. Op de Mac mini staat inmiddels ook Xcode 27 (macOS-update); een
+`eas build --local` daar heeft dus hetzelfde probleem, gebruik dan de cloud.
+
 ## iOS bouwen op de Mac mini (primaire route, gratis)
 
 De gratis EAS-cloudbuilds zijn maandelijks beperkt. We bouwen iOS daarom **lokaal op de
