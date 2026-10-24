@@ -86,6 +86,29 @@ export default function ChatScreen({ route, navigation }) {
     }
   }, [id]);
 
+  // Een groepsgesprek (DM met meer dan twee) mag wie het startte archiveren of
+  // verwijderen; de server zet daarvoor kan_opheffen.
+  const groepOpheffen = useCallback(() => {
+    const archiveer = async () => {
+      try { await chat.archiveConversation(id); navigation.goBack(); }
+      catch (e) { Alert.alert('Mislukt', e.message || ''); }
+    };
+    const verwijder = () => Alert.alert('Groepsgesprek verwijderen',
+      'Alle berichten in dit groepsgesprek gaan voor iedereen verloren. Dit kan niet ongedaan worden gemaakt.', [
+        { text: 'Annuleren', style: 'cancel' },
+        { text: 'Verwijderen', style: 'destructive', onPress: async () => {
+          try { await chat.deleteConversation(id); navigation.goBack(); }
+          catch (e) { Alert.alert('Mislukt', e.message || ''); }
+        } },
+      ]);
+    Alert.alert('Groepsgesprek',
+      'Archiveren haalt het gesprek voor iedereen uit de lijst; de berichten blijven bewaard en je zet het terug via Verborgen gesprekken.', [
+        { text: 'Annuleren', style: 'cancel' },
+        { text: 'Archiveren', onPress: archiveer },
+        { text: 'Verwijderen', style: 'destructive', onPress: verwijder },
+      ]);
+  }, [id, navigation]);
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -99,10 +122,15 @@ export default function ChatScreen({ route, navigation }) {
           <TouchableOpacity onPress={() => zetDemping(!conv?.muted)}>
             <Feather name={conv?.muted ? 'bell-off' : 'bell'} size={20} color={conv?.muted ? '#fcd34d' : '#fff'} />
           </TouchableOpacity>
+          {conv?.kan_opheffen && (
+            <TouchableOpacity onPress={groepOpheffen}>
+              <Feather name="more-vertical" size={20} color="#fff" />
+            </TouchableOpacity>
+          )}
         </View>
       ),
     });
-  }, [navigation, id, route.params?.title, conv?.muted, zetDemping]);
+  }, [navigation, id, route.params?.title, conv?.muted, zetDemping, conv?.kan_opheffen, groepOpheffen]);
 
   // De status van je gesprekspartner onder zijn naam in de kop. Alleen bij een
   // gesprek met één ander; de server stuurt hem alleen dan mee.

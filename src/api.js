@@ -159,6 +159,9 @@ export const chat = {
     apiFetch(`/api/chat/conversations/${id}/read`, { method: 'POST', body: JSON.stringify({ last_read_message_id: lastReadMessageId }) }),
   hideConversation: (id) => apiFetch(`/api/chat/conversations/${id}/hide`, { method: 'POST' }),
   hiddenConversations: () => apiFetch('/api/chat/conversations/hidden'),
+  // Groepsgesprek opheffen (alleen wie het startte, zie kan_opheffen); terugzetten = unhideConversation.
+  archiveConversation: (id) => apiFetch(`/api/chat/conversations/${id}/archiveer`, { method: 'POST' }),
+  deleteConversation: (id) => apiFetch(`/api/chat/conversations/${id}`, { method: 'DELETE' }),
   unhideConversation: (id) => apiFetch(`/api/chat/conversations/${id}/unhide`, { method: 'POST' }),
   favoriteConversation: (id) => apiFetch(`/api/chat/conversations/${id}/favorite`, { method: 'POST' }),
   muteConversation: (id, muted) => apiFetch(`/api/chat/conversations/${id}/mute`, { method: 'POST', body: JSON.stringify({ muted }) }),

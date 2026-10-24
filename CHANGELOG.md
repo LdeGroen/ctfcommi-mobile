@@ -10,6 +10,9 @@ Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
   wijzigen, dan kun je ook gewoon op het antwoord zelf tikken. Bij een
   datumprikker zie je per moment wie ja, misschien en nee zei; bij een
   beoordeling wie welk cijfer gaf. Bij een anonieme poll blijft dat geheim.
+- **Een groepsgesprek opruimen.** Wie een gesprek met meer mensen startte,
+  kan het via de drie puntjes rechtsboven archiveren (voor iedereen weg, maar
+  terug te zetten via Verborgen gesprekken) of helemaal verwijderen.
 
 ## 0.1.28 — 22 oktober 2026
 
