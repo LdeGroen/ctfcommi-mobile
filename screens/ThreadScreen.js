@@ -14,6 +14,12 @@ import { useMediaBijlagen, BijlagenRij, PlusKnop, PlusMenu, naMenu } from '../sr
 
 export default function ThreadScreen({ route }) {
   const { convId, parentId } = route.params;
+  // De leden van het gesprek: voor de @-suggesties, om getagde mensen mee te
+  // sturen (anders krijgen ze geen melding) en om namen in de thread blauw te
+  // maken. Tot 3-11-2026 kende dit scherm ze niet. Het chatscherm geeft ze mee;
+  // komt de thread van elders (Activiteit, Zoeken, Bewaard), dan halen we ze op.
+  const [members, setMembers] = useState(route.params.members || []);
+  const [mentionItems, setMentionItems] = useState([]);
   const bottomInset = useBottomBarInset();
   const dark = useColorScheme() === 'dark';
   const c = useMemo(() => theme(dark), [dark]);
@@ -36,6 +42,35 @@ export default function ThreadScreen({ route }) {
     })();
     return () => { cancelled = true; };
   }, [parentId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    chat.getConversation(convId)
+      .then((det) => { if (!cancelled && det?.members) setMembers(det.members); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [convId]);
+
+  // Zelfde regels als in het chatscherm: na @ een naam van één woord, en
+  // "channel" voor iedereen.
+  const onChangeText = (raw) => {
+    const t = convertEmoticons(raw);
+    setText(t);
+    const m = t.match(/(?:^|\s)@([\w-]*)$/);
+    if (!m) { setMentionItems([]); return; }
+    const q = m[1].toLowerCase();
+    const list = members.filter((mm) => (mm.name || '').toLowerCase().includes(q)).slice(0, 6);
+    if ('channel'.includes(q) || 'iedereen'.includes(q)) list.unshift({ name: 'channel', _channel: true });
+    setMentionItems(list);
+  };
+
+  const pickMention = (item) => {
+    setText((prev) => prev.replace(/(^|\s)@([\w-]*)$/, (full, pre) => `${pre}@${item.name} `));
+    setMentionItems([]);
+  };
+
+  const resolveMentionIds = (body) =>
+    members.filter((mm) => mm.name && body.includes(`@${mm.name}`)).map((mm) => mm.user_id ?? mm.id);
 
   useEffect(() => {
     let active = true;
@@ -103,8 +138,8 @@ export default function ThreadScreen({ route }) {
   }, [parentId]);
 
   const renderReply = useCallback(({ item }) => (
-    <MessageView item={item} c={c} onReact={handleReact} onSave={saveForLater} />
-  ), [c, handleReact, saveForLater]);
+    <MessageView item={item} c={c} onReact={handleReact} onSave={saveForLater} members={members} />
+  ), [c, handleReact, saveForLater, members]);
 
   // Het plusmenu (22-10-2026). In een thread alleen wat bij een antwoord past:
   // foto's, video's en Drive. Notities, polls en later versturen horen bij het
@@ -117,9 +152,10 @@ export default function ThreadScreen({ route }) {
     if (!body && !bijlagen.length) return;
     setSending(true);
     try {
-      const sent = await chat.sendMessage(convId, { body, parentId, files: bijlagen });
+      const sent = await chat.sendMessage(convId, { body, parentId, files: bijlagen, mentionUserIds: resolveMentionIds(body) });
       setReplies((prev) => (prev.some((x) => x.id === sent.id) ? prev : [...prev, sent]));
       setText('');
+      setMentionItems([]);
       setBijlagen([]);
     } catch (e) {
       Alert.alert('Niet verstuurd', e?.status === 413
@@ -142,7 +178,7 @@ export default function ThreadScreen({ route }) {
 
   const Header = () => (
     <View>
-      {parent && <MessageView item={parent} c={c} onReact={handleReact} onSave={saveForLater} />}
+      {parent && <MessageView item={parent} c={c} onReact={handleReact} onSave={saveForLater} members={members} />}
       <Text style={[styles.divider, { color: c.muted, borderColor: c.border }]}>
         {replies.length} {replies.length === 1 ? 'antwoord' : 'antwoorden'}
       </Text>
@@ -164,10 +200,21 @@ export default function ThreadScreen({ route }) {
         removeClippedSubviews
       />
       <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderColor: c.border, backgroundColor: c.bg }}>
+      {mentionItems.length > 0 && (
+        <View style={[styles.mentionBox, { backgroundColor: c.bg, borderColor: c.border }]}>
+          {mentionItems.map((item) => (
+            <TouchableOpacity key={item._channel ? 'channel' : 'u' + (item.user_id ?? item.id)} style={styles.mentionRow} onPress={() => pickMention(item)}>
+              <View style={styles.mentionAvatar}><Text style={styles.mentionAvatarText}>{item._channel ? '#' : (item.name || '?').charAt(0).toUpperCase()}</Text></View>
+              <Text style={[styles.mentionName, { color: c.text }]} numberOfLines={1}>@{item.name}</Text>
+              {item._channel && <Text style={[styles.mentionHint, { color: c.muted }]}>iedereen</Text>}
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
       <BijlagenRij bijlagen={bijlagen} setBijlagen={setBijlagen} c={c} dark={dark} />
       <View style={[styles.composer, { borderTopWidth: 0, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
         <PlusKnop onPress={() => setMenuOpen(true)} c={c} />
-        <TextInput style={[styles.input, { color: c.text, borderColor: c.border }]} value={text} onChangeText={(t) => setText(convertEmoticons(t))}
+        <TextInput style={[styles.input, { color: c.text, borderColor: c.border }]} value={text} onChangeText={onChangeText}
           placeholder="Antwoord in thread…" placeholderTextColor={c.muted} multiline />
         <TouchableOpacity style={[styles.send, (sending || (!text.trim() && !bijlagen.length)) && { opacity: 0.4 }]} onPress={send}
                           disabled={sending || (!text.trim() && !bijlagen.length)}>
@@ -193,4 +240,11 @@ const styles = StyleSheet.create({
   input: { flex: 1, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, minHeight: 44, maxHeight: 180, fontSize: 16, lineHeight: 21 },
   drive: { paddingHorizontal: 4, paddingVertical: 10, justifyContent: 'center' },
   send: { backgroundColor: '#4f46e5', borderRadius: 18, paddingHorizontal: 18, paddingVertical: 10 },
+  // Zelfde als in het chatscherm.
+  mentionBox: { borderBottomWidth: StyleSheet.hairlineWidth, maxHeight: 220 },
+  mentionRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 10 },
+  mentionAvatar: { width: 28, height: 28, borderRadius: 6, backgroundColor: '#c7d2fe', alignItems: 'center', justifyContent: 'center' },
+  mentionAvatarText: { color: '#3730a3', fontWeight: '700', fontSize: 13 },
+  mentionName: { fontSize: 15, flex: 1 },
+  mentionHint: { fontSize: 12 },
 });

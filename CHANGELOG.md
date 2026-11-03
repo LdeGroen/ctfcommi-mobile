@@ -13,6 +13,11 @@ Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 - **Een groepsgesprek opruimen.** Wie een gesprek met meer mensen startte,
   kan het via de drie puntjes rechtsboven archiveren (voor iedereen weg, maar
   terug te zetten via Verborgen gesprekken) of helemaal verwijderen.
+- **Namen voorstellen in een thread.** Typ je @ in een thread, dan komen er
+  nu ook namen in beeld, net als in het gesprek zelf. Wie je zo tagt, krijgt
+  ook echt een melding; dat ging in een thread tot nu toe niet.
+- **@channel is een tag.** @channel, @kanaal en @iedereen worden blauw, net
+  als een getagde naam, zodat je ziet dat iedereen een melding krijgt.
 
 ## 0.1.28 — 22 oktober 2026
 

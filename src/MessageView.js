@@ -63,6 +63,8 @@ function tikOpLink(url, onOpenChannel, onOpenProfile) {
     onOpenChannel(Number(k[1]));
     return false;
   }
+  // @channel: alleen een opmaak, er valt niets te openen.
+  if (url === 'commi-iedereen:') return false;
   const p = /^commi-mention:(\d+)$/.exec(url || '');
   if (p && onOpenProfile) {
     onOpenProfile(Number(p[1]));
@@ -72,6 +74,15 @@ function tikOpLink(url, onOpenChannel, onOpenProfile) {
 }
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// @channel, @kanaal en @iedereen taggen iedereen in het gesprek (dezelfde regex
+// als ChatMessageController in de backend). Ze krijgen een eigen link, zodat ze
+// er net zo uitzien als een getagde naam: dan zie je dat de tag werkt.
+const IEDEREEN_RE = /(^|\s)@(channel|kanaal|iedereen)\b/giu;
+function metIedereenLink(tekst) {
+  if (!tekst || !tekst.includes('@')) return tekst;
+  return tekst.replace(IEDEREEN_RE, (heel, voor, woord) => `${voor}[@${woord}](commi-iedereen:)`);
+}
 
 /**
  * Zet @<naam> van getagde leden om naar een aantikbare link.
@@ -115,10 +126,10 @@ function metKanaalLinks(tekst, kanalen) {
 function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onOpenNote, onToggleTodo, onRemind, onSave, onShowReads, onOpenProfile, channels = [], onOpenChannel, members = [] }) {
   // Eerst de personen, dan de kanalen: ze bijten elkaar niet, maar zo staat de
   // volgorde vast en is het resultaat voorspelbaar.
-  const opgemaakt = (tekst) => metKanaalLinks(
+  const opgemaakt = (tekst) => metIedereenLink(metKanaalLinks(
     metPersoonLinks(tekst, members, item.mention_user_ids || []),
     channels,
-  );
+  ));
   const [picker, setPicker] = useState(false);
   // Welke reactie wordt uitgelegd? null = geen. Een aanraakscherm kent geen
   // aanwijzen, dus hier opent een lange druk de namenlijst; een gewone tik

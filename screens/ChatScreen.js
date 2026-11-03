@@ -443,7 +443,7 @@ export default function ChatScreen({ route, navigation }) {
     ]);
   }, []);
 
-  const openThread = useCallback((item) => navigation.navigate('Thread', { convId: id, parentId: item.id, title: 'Thread' }), [id, navigation]);
+  const openThread = useCallback((item) => navigation.navigate('Thread', { convId: id, parentId: item.id, title: 'Thread', members }), [id, navigation, members]);
   const openNote = useCallback((item) => navigation.navigate('NoteEditor', { note: item, convId: id, members }), [id, navigation, members]);
   const placeNote = useCallback(async (noteType) => {
     try { const note = await chat.placeNote(id, { noteType }); navigation.navigate('NoteEditor', { note, convId: id, members }); } catch {}
