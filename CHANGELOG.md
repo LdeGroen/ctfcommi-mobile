@@ -3,7 +3,7 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
-## 0.1.29 — nog niet uitgebracht
+## 0.1.29 — 3 november 2026
 
 - **Zien wie wat stemde.** Tik in een poll op het aantal achter een antwoord
   en je ziet wie dat kozen. Heb je al gestemd en kun je je stem niet meer
