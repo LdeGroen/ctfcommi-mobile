@@ -3,7 +3,7 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
-## 0.1.30 — nog niet uitgebracht
+## 0.1.30 — 4 november 2026
 
 - **Antwoorden in een thread bewerken en verwijderen.** Druk lang op je eigen
   antwoord in een thread en kies Bewerken of Verwijderen, net als bij een
