@@ -3,6 +3,15 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## 0.1.30 — nog niet uitgebracht
+
+- **Antwoorden in een thread bewerken en verwijderen.** Druk lang op je eigen
+  antwoord in een thread en kies Bewerken of Verwijderen, net als bij een
+  bericht in het gesprek zelf.
+- **Bewerken verdwijnt niet meer bij slecht bereik.** Lukte het bij het openen
+  van een gesprek niet om op te vragen wie je bent, dan stond Bewerken niet
+  onder je eigen berichten tot je het gesprek opnieuw opende.
+
 ## 0.1.29 — 3 november 2026
 
 - **Zien wie wat stemde.** Tik in een poll op het aantal achter een antwoord

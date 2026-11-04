@@ -5,6 +5,7 @@ import { useHeaderHeight } from '@react-navigation/elements';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
+import { useIk } from '../src/ik';
 import { getEcho } from '../src/echo';
 import { bijHerverbinding, voegSamen } from '../src/herverbinding';
 import { shareFromDrive } from '../src/drive';
@@ -30,7 +31,12 @@ export default function ChatScreen({ route, navigation }) {
   const [sending, setSending] = useState(false);
   const [members, setMembers] = useState([]);
   const [mentionItems, setMentionItems] = useState([]);
-  const [me, setMe] = useState(null);
+  // Wie ben ik: nodig voor Bewerken en Verwijderen onder je eigen berichten.
+  // Uit het gedeelde geheugen (src/ik.js); de opvraag bij het openen hieronder
+  // vult het alleen nog aan.
+  const ik = useIk();
+  const [eigenMe, setMe] = useState(null);
+  const me = eigenMe || ik;
   const [editingId, setEditingId] = useState(null);
   const [conv, setConv] = useState(null);
   // De kanalen van deze gebruiker, om #kanaalnaam in een bericht te herkennen.

@@ -7,6 +7,7 @@ import { getEcho } from '../src/echo';
 import { bijHerverbinding } from '../src/herverbinding';
 import { shareFromDrive } from '../src/drive';
 import { convertEmoticons } from '../src/emoticons';
+import { useIk } from '../src/ik';
 import MessageView, { theme } from '../src/MessageView';
 import { useBottomBarInset } from '../src/useBottomBarInset';
 import KeyboardScreen from '../src/KeyboardScreen';
@@ -20,6 +21,11 @@ export default function ThreadScreen({ route }) {
   // komt de thread van elders (Activiteit, Zoeken, Bewaard), dan halen we ze op.
   const [members, setMembers] = useState(route.params.members || []);
   const [mentionItems, setMentionItems] = useState([]);
+  // Je eigen antwoorden bewerken en verwijderen, net als in het gesprek zelf.
+  // Kon tot 4-11-2026 alleen bij een bericht, niet bij een antwoord in een
+  // thread: dit scherm wist niet wie jij was en gaf de knoppen niet mee.
+  const me = useIk();
+  const [editingId, setEditingId] = useState(null);
   const bottomInset = useBottomBarInset();
   const dark = useColorScheme() === 'dark';
   const c = useMemo(() => theme(dark), [dark]);
@@ -68,6 +74,44 @@ export default function ThreadScreen({ route }) {
     setText((prev) => prev.replace(/(^|\s)@([\w-]*)$/, (full, pre) => `${pre}@${item.name} `));
     setMentionItems([]);
   };
+
+  const startEdit = useCallback((msg) => {
+    setEditingId(msg.id);
+    setText(msg.body || '');
+    setMentionItems([]);
+  }, []);
+
+  const cancelEdit = () => { setEditingId(null); setText(''); };
+
+  const saveEdit = async () => {
+    const body = text.trim();
+    if (!editingId || !body) return;
+    setSending(true);
+    try {
+      const updated = await chat.editMessage(editingId, body, resolveMentionIds(body));
+      if (editingId === parentId) setParent(updated);
+      else setReplies((prev) => prev.map((x) => (x.id === editingId ? updated : x)));
+      setEditingId(null);
+      setText('');
+      setMentionItems([]);
+    } catch (e) {
+      Alert.alert('Niet opgeslagen', e?.message || 'Probeer het nog eens.');
+    } finally { setSending(false); }
+  };
+
+  const handleDelete = useCallback((msg) => {
+    Alert.alert('Bericht verwijderen', 'Weet je zeker dat je dit bericht wilt verwijderen?', [
+      { text: 'Annuleren', style: 'cancel' },
+      { text: 'Verwijderen', style: 'destructive', onPress: async () => {
+        try {
+          await chat.deleteMessage(msg.id);
+          const weg = (x) => (x.id === msg.id ? { ...x, deleted_at: new Date().toISOString() } : x);
+          if (msg.id === parentId) setParent(weg);
+          else setReplies((prev) => prev.map(weg));
+        } catch {}
+      } },
+    ]);
+  }, [parentId]);
 
   const resolveMentionIds = (body) =>
     members.filter((mm) => mm.name && body.includes(`@${mm.name}`)).map((mm) => mm.user_id ?? mm.id);
@@ -138,8 +182,8 @@ export default function ThreadScreen({ route }) {
   }, [parentId]);
 
   const renderReply = useCallback(({ item }) => (
-    <MessageView item={item} c={c} onReact={handleReact} onSave={saveForLater} members={members} />
-  ), [c, handleReact, saveForLater, members]);
+    <MessageView item={item} c={c} me={me} onReact={handleReact} onSave={saveForLater} onEdit={startEdit} onDelete={handleDelete} members={members} />
+  ), [c, me, handleReact, saveForLater, startEdit, handleDelete, members]);
 
   // Het plusmenu (22-10-2026). In een thread alleen wat bij een antwoord past:
   // foto's, video's en Drive. Notities, polls en later versturen horen bij het
@@ -178,7 +222,7 @@ export default function ThreadScreen({ route }) {
 
   const Header = () => (
     <View>
-      {parent && <MessageView item={parent} c={c} onReact={handleReact} onSave={saveForLater} members={members} />}
+      {parent && <MessageView item={parent} c={c} me={me} onReact={handleReact} onSave={saveForLater} onEdit={startEdit} onDelete={handleDelete} members={members} />}
       <Text style={[styles.divider, { color: c.muted, borderColor: c.border }]}>
         {replies.length} {replies.length === 1 ? 'antwoord' : 'antwoorden'}
       </Text>
@@ -211,17 +255,29 @@ export default function ThreadScreen({ route }) {
           ))}
         </View>
       )}
-      <BijlagenRij bijlagen={bijlagen} setBijlagen={setBijlagen} c={c} dark={dark} />
+      {editingId && (
+        <View style={[styles.editBar, { borderColor: c.border }]}>
+          <Feather name="edit-2" size={14} color={c.muted} />
+          <Text style={{ color: c.muted, fontSize: 13, flex: 1 }} numberOfLines={1}>Bericht bewerken…</Text>
+          <TouchableOpacity onPress={cancelEdit}><Text style={{ color: '#6366f1', fontSize: 13, fontWeight: '600' }}>Annuleren</Text></TouchableOpacity>
+        </View>
+      )}
+      {!editingId && <BijlagenRij bijlagen={bijlagen} setBijlagen={setBijlagen} c={c} dark={dark} />}
       <View style={[styles.composer, { borderTopWidth: 0, backgroundColor: c.bg, paddingBottom: 8 + bottomInset }]}>
-        <PlusKnop onPress={() => setMenuOpen(true)} c={c} />
+        {!editingId && <PlusKnop onPress={() => setMenuOpen(true)} c={c} />}
         <TextInput style={[styles.input, { color: c.text, borderColor: c.border }]} value={text} onChangeText={onChangeText}
-          placeholder="Antwoord in thread…" placeholderTextColor={c.muted} multiline />
-        <TouchableOpacity style={[styles.send, (sending || (!text.trim() && !bijlagen.length)) && { opacity: 0.4 }]} onPress={send}
-                          disabled={sending || (!text.trim() && !bijlagen.length)}>
-          {sending && bijlagen.length
-            ? <ActivityIndicator size="small" color="#fff" />
-            : <Feather name="send" size={18} color="#fff" />}
-        </TouchableOpacity>
+          placeholder={editingId ? 'Bewerk je bericht…' : 'Antwoord in thread…'} placeholderTextColor={c.muted} multiline />
+        {(() => {
+          const leeg = editingId ? !text.trim() : (!text.trim() && !bijlagen.length);
+          return (
+            <TouchableOpacity style={[styles.send, (sending || leeg) && { opacity: 0.4 }]} onPress={() => (editingId ? saveEdit() : send())}
+                              disabled={sending || leeg}>
+              {sending && bijlagen.length && !editingId
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Feather name={editingId ? 'check' : 'send'} size={18} color="#fff" />}
+            </TouchableOpacity>
+          );
+        })()}
       </View>
       </View>
       <PlusMenu open={menuOpen} onSluit={() => setMenuOpen(false)} c={c} bottomInset={bottomInset} regels={[
@@ -241,6 +297,7 @@ const styles = StyleSheet.create({
   drive: { paddingHorizontal: 4, paddingVertical: 10, justifyContent: 'center' },
   send: { backgroundColor: '#4f46e5', borderRadius: 18, paddingHorizontal: 18, paddingVertical: 10 },
   // Zelfde als in het chatscherm.
+  editBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth },
   mentionBox: { borderBottomWidth: StyleSheet.hairlineWidth, maxHeight: 220 },
   mentionRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 10 },
   mentionAvatar: { width: 28, height: 28, borderRadius: 6, backgroundColor: '#c7d2fe', alignItems: 'center', justifyContent: 'center' },

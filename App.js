@@ -15,6 +15,7 @@ import { chat, getToken, setToken, opSessieVerlopen } from './src/api';
 import { disconnectEcho } from './src/echo';
 import { wisselInlogcodeIn } from './src/auth';
 import { registerForPush } from './src/push';
+import { vergeetIk } from './src/ik';
 import LoginScreen from './screens/LoginScreen';
 import ConversationsScreen from './screens/ConversationsScreen';
 import ChatScreen from './screens/ChatScreen';
@@ -119,7 +120,7 @@ export default function App() {
       const code = pick(queryParams?.code);
       if (code) {
         const ingewisseld = await wisselInlogcodeIn(code);
-        if (ingewisseld) { await setToken(ingewisseld); loadUser(); }
+        if (ingewisseld) { vergeetIk(); await setToken(ingewisseld); loadUser(); }
       }
     };
     const sub = Linking.addEventListener('url', (e) => handleUrl(e.url));

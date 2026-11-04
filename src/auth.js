@@ -1,6 +1,7 @@
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { API_URL, apiFetch, setToken, clearToken } from './api';
+import { vergeetIk } from './ik';
 
 // E-mail/wachtwoord-login (naast Google), voor accounts zonder Google-login —
 // o.a. het App Store-review-account en externe testers.
@@ -9,7 +10,7 @@ export async function loginWithPassword(email, password) {
     method: 'POST',
     body: JSON.stringify({ email: (email || '').trim().toLowerCase(), password }),
   });
-  if (res?.token) { await setToken(res.token); return true; }
+  if (res?.token) { vergeetIk(); await setToken(res.token); return true; }
   return false;
 }
 
@@ -55,7 +56,7 @@ export async function loginWithGoogle() {
   const code = pick(queryParams?.code);
   if (code) {
     const ingewisseld = await wisselInlogcodeIn(code);
-    if (ingewisseld) { await setToken(ingewisseld); return true; }
+    if (ingewisseld) { vergeetIk(); await setToken(ingewisseld); return true; }
     throw new Error('Deze inlogcode is verlopen of al gebruikt. Probeer opnieuw.');
   }
 
@@ -64,5 +65,6 @@ export async function loginWithGoogle() {
 
 export async function logout() {
   try { const { apiFetch } = require('./api'); await apiFetch('/api/logout', { method: 'POST' }); } catch {}
+  vergeetIk();
   await clearToken();
 }
