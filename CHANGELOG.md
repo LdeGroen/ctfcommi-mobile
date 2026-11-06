@@ -3,7 +3,7 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
-## Nog niet uitgebracht
+## 0.1.31 — 6 november 2026
 
 - **Een melding van een antwoord in een thread opent die thread.** Eerst
   kwam je in het gesprek terecht en moest je de thread zelf zoeken.
