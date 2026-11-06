@@ -3,6 +3,14 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## Nog niet uitgebracht
+
+- **Een melding van een antwoord in een thread opent die thread.** Eerst
+  kwam je in het gesprek terecht en moest je de thread zelf zoeken.
+- **Overzicht per kanaal.** Berichten staan gegroepeerd per kanaal, en
+  antwoorden in dezelfde thread staan ingesprongen onder het bericht waar ze
+  op reageren.
+
 ## 0.1.30 — 4 november 2026
 
 - **Antwoorden in een thread bewerken en verwijderen.** Druk lang op je eigen

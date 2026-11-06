@@ -132,19 +132,31 @@ export default function App() {
   // de navigator klaar is én de gebruiker is ingelogd; bewaar anders als pending.
   const navReadyRef = useRef(false);
   navReadyRef.current = navReady;
+  // Een doel is een rij schermen: Chat, en bij een thread daarna Thread.
+  const gaNaar = (stappen) => {
+    stappen.forEach((s) => navRef.current.navigate(s.scherm, s.params));
+  };
   const openFromNotification = (data) => {
     try {
       // De samenvatting ("je hebt 7 nieuwe berichten") gaat niet over één
-      // gesprek, dus die opent het overzicht Nieuw.
-      const doel = data && data.type === 'chat_samenvatting'
-        ? { scherm: 'Nieuw', params: undefined }
-        : (data && data.conversation_id
-            ? { scherm: 'Chat', params: { id: Number(data.conversation_id), title: data.title || 'Gesprek' } }
-            : null);
+      // gesprek, dus die opent het overzicht Nieuw. Een antwoord in een thread
+      // opent het gesprek met de thread erbovenop (6-11-2026; daarvoor alleen
+      // het gesprek, en moest je de thread zelf zoeken). Terug brengt je dan
+      // in het gesprek.
+      let doel = null;
+      if (data && data.type === 'chat_samenvatting') {
+        doel = [{ scherm: 'Nieuw', params: undefined }];
+      } else if (data && data.conversation_id) {
+        const convId = Number(data.conversation_id);
+        doel = [{ scherm: 'Chat', params: { id: convId, title: data.title || 'Gesprek' } }];
+        if (data.parent_id) {
+          doel.push({ scherm: 'Thread', params: { convId, parentId: Number(data.parent_id), title: 'Thread' } });
+        }
+      }
       if (!doel) return;
 
       if (navRef.current && navReadyRef.current && userRef.current) {
-        navRef.current.navigate(doel.scherm, doel.params);
+        gaNaar(doel);
       } else {
         pendingNavRef.current = doel; // later afhandelen (zie onReady/login-effect)
       }
@@ -188,7 +200,7 @@ export default function App() {
     if (navReady && user && pendingNavRef.current && navRef.current) {
       const doel = pendingNavRef.current;
       pendingNavRef.current = null;
-      try { navRef.current.navigate(doel.scherm, doel.params); } catch (e) {}
+      try { gaNaar(doel); } catch (e) {}
     }
   }, [navReady, user]);
 

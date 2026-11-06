@@ -250,6 +250,21 @@ de backend. Met de hand taggen of nummers bijwerken hoeft dus niet meer.
 - Zet de "Wat is er nieuw"-tekst met de hand in beide consoles; EAS stuurt die
   niet mee. De tekst staat klaar in `CHANGELOG.md`.
 
+## Overzicht per kanaal, en een melding opent de thread (6-11-2026)
+
+- **Overzicht** groepeert per gesprek (nieuwste bovenaan); daarbinnen staan de
+  berichten op tijd, en antwoorden uit dezelfde thread getrapt onder hun
+  startbericht, met "Bekijk n eerdere reacties". Het rekenwerk staat in
+  `groepeerOverzicht()` -- in ctfcommi `src/lib/overzicht.js`, in
+  ctfcommi-mobile `src/overzicht.js`. **Verander ze samen.** Het startbericht
+  komt uit `parent`, dat `GET chat/activity` bij elk antwoord meestuurt: het
+  staat vaak zelf niet in de lijst.
+- **Een melding van een threadantwoord opent de thread.** De push heeft
+  `parent_id` in zijn data; mobiel opent dan Chat en daarbovenop Thread (terug
+  = het gesprek), desktop gaat via `openGesprek(conv, parent_id)`. Eerst
+  opende alleen het gesprek, en op desktop zelfs dat niet als je in een andere
+  weergave stond.
+
 ## Aandachtspunten / valkuilen
 - **Feather-iconen (Gradle-build):** in de prebuild/Gradle-build laadt
   `expo-font` het Feather-font niet async → iconen onzichtbaar. NIET oplossen
