@@ -13,9 +13,13 @@
  *     niet in de lijst: ouder dan 30 dagen, of nog niet geladen).
  *
  * `eerdereAntwoorden` = antwoorden in die thread die hier niet staan.
+ *
+ * `sleutel` bepaalt de volgorde (standaard het id, dus de tijd van het
+ * bericht). Activiteit geeft de tijd van de gebeurtenis mee: een reactie van
+ * vandaag op een bericht van vorige week hoort bovenaan.
  * Zelfde functie staat in ctfcommi (src/lib/overzicht.js); verander ze samen.
  */
-export function groepeerOverzicht(items) {
+export function groepeerOverzicht(items, { sleutel = (m) => m.id } = {}) {
   const perGesprek = new Map();
   for (const m of items || []) {
     const conv = m.conversation || { id: m.conversation_id };
@@ -36,11 +40,12 @@ export function groepeerOverzicht(items) {
     let laatsteId = 0;
 
     for (const m of [...g.berichten].sort((a, b) => a.id - b.id)) {
-      // Op id: oplopend in de tijd, en zonder gedoe met tijdzones in de tekst.
-      if (m.id > laatsteId) { laatsteId = m.id; laatste = m.created_at || ''; }
+      // Standaard op id: oplopend in de tijd, zonder gedoe met tijdzones.
+      const k = sleutel(m);
+      if (k > laatsteId) { laatsteId = k; laatste = m.at || m.created_at || ''; }
       const threadId = m.parent_id || (metAntwoord.has(m.id) ? m.id : null);
       if (!threadId) {
-        blokken.push({ sleutel: `b${m.id}`, threadId: null, berichten: [m], volgorde: m.id });
+        blokken.push({ sleutel: `b${m.id}`, threadId: null, berichten: [m], volgorde: k });
         continue;
       }
       let blok = threads.get(threadId);
@@ -54,7 +59,7 @@ export function groepeerOverzicht(items) {
         blok.berichten.push(m);
         if (!blok.start && m.parent) blok.start = m.parent;
       }
-      blok.volgorde = Math.max(blok.volgorde, m.id);
+      blok.volgorde = Math.max(blok.volgorde, k);
     }
 
     for (const blok of threads.values()) {
@@ -69,8 +74,31 @@ export function groepeerOverzicht(items) {
   groepen.sort((a, b) => b.laatsteId - a.laatsteId);
   return groepen;
 }
-  return groepen;
+
+/**
+ * Activiteit naar berichten (6-11-2026), zodat groepeerOverzicht er kanalen en
+ * threads van kan maken. Meer gebeurtenissen bij hetzelfde bericht (twee
+ * reacties, of een antwoord waarin je ook genoemd wordt) worden één bericht
+ * met meer `redenen`; `at` is de nieuwste.
+ */
+export function activiteitNaarBerichten(events) {
+  const perBericht = new Map();
+  for (const e of events || []) {
+    const m = e.message;
+    if (!m) continue;
+    let b = perBericht.get(m.id);
+    if (!b) {
+      b = { ...m, conversation: e.conversation, redenen: [], at: e.at };
+      perBericht.set(m.id, b);
+    }
+    b.redenen.push({ type: e.type, actor: e.actor, emoji: e.emoji, at: e.at });
+    if ((e.at || '') > (b.at || '')) b.at = e.at;
+  }
+  return [...perBericht.values()];
 }
+
+/** Volgorde voor Activiteit: de tijd van de gebeurtenis. */
+export const opGebeurtenis = (m) => Date.parse(m.at || m.created_at) || 0;
 
 /**
  * Threads per kanaal (6-11-2026). De backend geeft de threads al op volgorde

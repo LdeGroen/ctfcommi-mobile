@@ -265,6 +265,11 @@ de backend. Met de hand taggen of nummers bijwerken hoeft dus niet meer.
   (`laatste_antwoorden` uit `GET chat/threads`) met "Bekijk n eerdere
   reacties". Dat opent de thread; alle antwoorden laden hier zou de lijst
   zwaar maken.
+- **Activiteit** ook: `activiteitNaarBerichten()` maakt van de gebeurtenissen
+  berichten met `redenen` (meer gebeurtenissen op één bericht = één regel),
+  en `groepeerOverzicht(..., { sleutel: opGebeurtenis })` sorteert op de tijd
+  van de gebeurtenis in plaats van het bericht. `parent` komt ook hier mee
+  (`threadStarts()` in de controller).
 - **Een melding van een threadantwoord opent de thread.** De push heeft
   `parent_id` in zijn data; mobiel opent dan Chat en daarbovenop Thread (terug
   = het gesprek), desktop gaat via `openGesprek(conv, parent_id)`. Eerst
