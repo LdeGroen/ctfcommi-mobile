@@ -3,8 +3,11 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
-## 0.1.31 — 6 november 2026
+## 0.1.32 — 6 november 2026
 
+- **Threads per kanaal.** Per kanaal de drie nieuwste threads, met de laatste
+  twee reacties ingesprongen onder het bericht. Tik op "Meer threads" of
+  "Bekijk eerdere reacties" voor de rest.
 - **Een melding van een antwoord in een thread opent die thread.** Eerst
   kwam je in het gesprek terecht en moest je de thread zelf zoeken.
 - **Overzicht per kanaal.** Berichten staan gegroepeerd per kanaal, en

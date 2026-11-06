@@ -259,6 +259,12 @@ de backend. Met de hand taggen of nummers bijwerken hoeft dus niet meer.
   ctfcommi-mobile `src/overzicht.js`. **Verander ze samen.** Het startbericht
   komt uit `parent`, dat `GET chat/activity` bij elk antwoord meestuurt: het
   staat vaak zelf niet in de lijst.
+- **Threads** volgt dezelfde indeling (`groepeerThreads()`, zelfde bestand):
+  per kanaal de drie nieuwste threads met "Meer threads", per thread het
+  startbericht en daaronder getrapt de laatste twee antwoorden
+  (`laatste_antwoorden` uit `GET chat/threads`) met "Bekijk n eerdere
+  reacties". Dat opent de thread; alle antwoorden laden hier zou de lijst
+  zwaar maken.
 - **Een melding van een threadantwoord opent de thread.** De push heeft
   `parent_id` in zijn data; mobiel opent dan Chat en daarbovenop Thread (terug
   = het gesprek), desktop gaat via `openGesprek(conv, parent_id)`. Eerst

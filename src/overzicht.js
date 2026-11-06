@@ -69,3 +69,25 @@ export function groepeerOverzicht(items) {
   groepen.sort((a, b) => b.laatsteId - a.laatsteId);
   return groepen;
 }
+  return groepen;
+}
+
+/**
+ * Threads per kanaal (6-11-2026). De backend geeft de threads al op volgorde
+ * van laatste antwoord, nieuwste eerst; die volgorde blijft, binnen een kanaal
+ * en tussen de kanalen (het kanaal met de nieuwste thread bovenaan).
+ */
+export function groepeerThreads(items) {
+  const perGesprek = new Map();
+  for (const t of items || []) {
+    const conv = t.conversation || { id: t.conversation_id };
+    let g = perGesprek.get(conv.id);
+    if (!g) {
+      g = { conversation: conv, threads: [], ongelezen: 0 };
+      perGesprek.set(conv.id, g);
+    }
+    g.threads.push(t);
+    g.ongelezen += t.unread_reply_count || 0;
+  }
+  return [...perGesprek.values()];
+}
