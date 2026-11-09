@@ -3,6 +3,13 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## 0.1.33 — 9 november 2026
+
+- **Berichten gaan niet meer vanzelf op gelezen.** Een gesprek dat nog
+  openstond onder een thread, of met de app op de achtergrond, zette nieuwe
+  berichten meteen op gelezen, ook op je computer. Nu pas als je het gesprek
+  echt voor je hebt.
+
 ## 0.1.32 — 6 november 2026
 
 - **Threads per kanaal.** Per kanaal de drie nieuwste threads, met de laatste

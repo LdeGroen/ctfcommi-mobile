@@ -67,7 +67,22 @@ export default function ChatScreen({ route, navigation }) {
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
 
-  const markRead = (lastId) => chat.markRead(id, lastId).catch(() => {});
+  // Alleen als gelezen melden als iemand kijkt: de app op de voorgrond én dit
+  // scherm bovenaan (9-11-2026). Eerst gebeurde het bij elk binnenkomend
+  // bericht, ook met de app op de achtergrond of met dit scherm onder een
+  // thread -- en een tik op een threadmelding zet sinds 6-11 precies zo'n
+  // gesprek onder de thread. Dan ging alles meteen op gelezen, ook op de
+  // desktop, terwijl niemand het had gezien. Wat blijft liggen, gaat mee bij
+  // terugkeer (focus of de app weer actief).
+  const teMarkerenRef = useRef(false);
+  const markRead = (lastId) => {
+    if (AppState.currentState !== 'active' || !navigation.isFocused()) {
+      teMarkerenRef.current = true;
+      return Promise.resolve();
+    }
+    teMarkerenRef.current = false;
+    return chat.markRead(id, lastId).catch(() => {});
+  };
 
   // Ook bij terugkeren in dit scherm (uit een thread, of vanuit de achtergrond)
   // opnieuw als gelezen melden — er kan intussen van alles zijn binnengekomen.
@@ -254,12 +269,18 @@ export default function ChatScreen({ route, navigation }) {
     if (recent.some((m) => !bekend.has(m.id))) markRead();
   };
   const bijhalenRef = useRef(bijhalen);
+  const markReadRef = useRef(markRead);
+  markReadRef.current = markRead;
   bijhalenRef.current = bijhalen;
 
   // iOS sluit de socket als de app op de achtergrond staat, en useFocusEffect
   // vuurt niet bij terugkeer naar de app. Dus ook hier bijhalen.
   useEffect(() => {
-    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') bijhalenRef.current(); });
+    const sub = AppState.addEventListener('change', (st) => {
+      if (st !== 'active') return;
+      if (teMarkerenRef.current) markReadRef.current();
+      bijhalenRef.current();
+    });
     return () => sub.remove();
   }, []);
 

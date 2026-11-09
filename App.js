@@ -4,7 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, StackActions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Feather } from '@expo/vector-icons';
@@ -133,8 +133,13 @@ export default function App() {
   const navReadyRef = useRef(false);
   navReadyRef.current = navReady;
   // Een doel is een rij schermen: Chat, en bij een thread daarna Thread.
+  // Eerst terug naar de lijst, dan het doel erop (9-11-2026). Anders stapelt
+  // elke tik op een melding een nieuw gesprek op de vorige, en bleven al die
+  // gesprekken onder elkaar openstaan en meeluisteren.
   const gaNaar = (stappen) => {
-    stappen.forEach((s) => navRef.current.navigate(s.scherm, s.params));
+    const nav = navRef.current;
+    if (nav.canGoBack()) nav.dispatch(StackActions.popToTop());
+    stappen.forEach((s) => nav.navigate(s.scherm, s.params));
   };
   const openFromNotification = (data) => {
     try {
