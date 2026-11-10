@@ -9,6 +9,7 @@ import UpdateMelding from '../src/UpdateMelding';
 import { getEcho } from '../src/echo';
 import { bijHerverbinding } from '../src/herverbinding';
 import Avatar from '../src/Avatar';
+import GroepAvatar from '../src/GroepAvatar';
 import { useOnline } from '../src/aanwezig';
 
 export default function ConversationsScreen({ navigation, user, onLogout }) {
@@ -277,7 +278,9 @@ function Row({ item, c, navigation, onHide, onFav, onGeopend }) {
           onGeopend(item.id);
           navigation.navigate('Chat', { id: item.id, title: name });
         }}>
-        {isDm && <View style={{ marginRight: 10 }}><Avatar name={name} uri={item.peer_avatar} size={38} online={online.has(Number(item.peer_user_id))} /></View>}
+        {isDm && <View style={{ marginRight: 10 }}>{item.peer_avatars?.length > 1
+          ? <GroepAvatar leden={item.peer_avatars} anderen={(item.member_count || 1) - 1} size={38} />
+          : <Avatar name={name} uri={item.peer_avatar} size={38} online={online.has(Number(item.peer_user_id))} />}</View>}
         <View style={{ flex: 1 }}>
           <Text style={[styles.name, {
             color: item.muted ? c.muted : c.text,

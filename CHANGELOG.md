@@ -3,6 +3,12 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## Nog niet uitgebracht
+
+- **Groepsgesprekken herken je aan de gezichten.** In plaats van één
+  letter staan er kleine bolletjes met de foto's van de anderen: drie of
+  vier, en een plusje als de groep groter is.
+
 ## 0.1.33 — 9 november 2026
 
 - **Berichten gaan niet meer vanzelf op gelezen.** Een gesprek dat nog

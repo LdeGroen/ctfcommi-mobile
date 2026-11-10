@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
 import Avatar from '../src/Avatar';
+import GroepAvatar from '../src/GroepAvatar';
 
 export default function NieuwScreen({ navigation }) {
   const dark = useColorScheme() === 'dark';
@@ -44,7 +45,9 @@ export default function NieuwScreen({ navigation }) {
       <View style={[styles.row, { borderColor: c.border }]}>
         <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
           onPress={() => navigation.navigate('Chat', { id: item.id, title: name })}>
-          {item.type === 'dm' && <View style={{ marginRight: 10 }}><Avatar name={name} uri={item.peer_avatar} size={38} /></View>}
+          {item.type === 'dm' && <View style={{ marginRight: 10 }}>{item.peer_avatars?.length > 1
+            ? <GroepAvatar leden={item.peer_avatars} anderen={(item.member_count || 1) - 1} size={38} />
+            : <Avatar name={name} uri={item.peer_avatar} size={38} />}</View>}
           <View style={{ flex: 1 }}>
             <Text style={[styles.name, { color: c.text }]} numberOfLines={1}>
               {isChannel && <><Feather name={item.is_private ? 'lock' : 'hash'} size={13} color={c.muted} /> </>}{name}
