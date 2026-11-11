@@ -1,0 +1,58 @@
+name: Versie melden aan de backend
+
+# Na goedkeuring in de store: zet de updatemelding in de app aan voor deze
+# versie (11-11-2026). De releaseworkflow meldt alleen bij een uitgave met tag;
+# een build met uitgave=geen moet zo met de hand gemeld worden, en dat hoort
+# pas te gebeuren als de versie echt in de store staat.
+on:
+  workflow_dispatch:
+    inputs:
+      versie:
+        description: 'Versie (bijv. 0.1.34)'
+        required: true
+      platform:
+        description: 'Platform'
+        type: choice
+        options: [beide, ios, android]
+        default: beide
+
+jobs:
+  melden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Melden
+        env:
+          OPS_TOKEN: ${{ secrets.OPS_TOKEN }}
+          VERSIE: ${{ inputs.versie }}
+          PLATFORM: ${{ inputs.platform }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for PLAT in android ios; do
+            [ "$PLATFORM" = beide ] || [ "$PLATFORM" = "$PLAT" ] || continue
+            PLAT="$PLAT" node -e "
+              const fs = require('fs');
+              const versie = process.env.VERSIE, plat = process.env.PLAT;
+              let notities = null;
+              try {
+                const c = fs.readFileSync('CHANGELOG.md', 'utf8');
+                const start = c.indexOf('## ' + versie);
+                if (start >= 0) {
+                  const rest = c.slice(start);
+                  const eind = rest.indexOf('\n## ', 3);
+                  notities = (eind < 0 ? rest : rest.slice(0, eind)).split('\n').slice(1).join('\n').trim() || null;
+                }
+              } catch (e) {}
+              const url = plat === 'ios'
+                ? 'https://apps.apple.com/app/id6776176073'
+                : 'https://backend.cafetheaterfestival.nl/commi';
+              fs.writeFileSync('lading.json', JSON.stringify({ platform: plat, versie, url, notities }));
+            "
+            code=$(curl -sS -o antwoord.txt -w '%{http_code}' --max-time 30 -X POST \
+              -H "X-Ops-Token: $OPS_TOKEN" -H "Content-Type: application/json" -H "Accept: application/json" \
+              --data-binary @lading.json \
+              "https://backend.cafetheaterfestival.nl/api/ops/app-versie") || code=000
+            echo "$PLAT melden: HTTP $code"
+            [ "$code" = 200 ] || [ "$code" = 201 ] || { cat antwoord.txt; exit 1; }
+          done
