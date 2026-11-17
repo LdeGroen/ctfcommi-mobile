@@ -3,7 +3,7 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
-## Nog niet uitgebracht
+## 0.1.35 — 17 november 2026
 
 - **Delen in een ander gesprek.** Houd een bericht ingedrukt en kies "Delen in
   ander gesprek": het komt er als citaat te staan, met je eigen tekst erbij.
