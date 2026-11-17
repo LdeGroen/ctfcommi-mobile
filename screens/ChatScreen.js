@@ -483,6 +483,14 @@ export default function ChatScreen({ route, navigation }) {
   }, []);
 
   const openRemind = useCallback((msg) => setRemindFor(msg), []);
+  // Delen in een ander gesprek (17-11-2026).
+  const [mijnIds, setMijnIds] = useState(() => new Set());
+  const deel = useCallback((msg) => navigation.navigate('Delen', { bericht: msg }), [navigation]);
+  const kanOpenen = useCallback((cid) => mijnIds.has(cid), [mijnIds]);
+  const openGedeeld = useCallback((g) => {
+    if (g.parent_id) navigation.push('Thread', { convId: g.conversation_id, parentId: g.parent_id, title: 'Thread' });
+    else navigation.push('Chat', { id: g.conversation_id, title: g.conversation_name ? `#${g.conversation_name}` : 'Gesprek' });
+  }, [navigation]);
   const saveForLater = useCallback(async (msg) => {
     try {
       const r = await chat.toggleSave(msg.id);
@@ -526,7 +534,9 @@ export default function ChatScreen({ route, navigation }) {
     let actief = true;
     chat.listConversations()
       .then((r) => {
-        if (actief) setKanalen((r.conversations || []).filter((k) => k.type === 'channel'));
+        if (!actief) return;
+        setKanalen((r.conversations || []).filter((k) => k.type === 'channel'));
+        setMijnIds(new Set((r.conversations || []).map((k) => k.id)));
       })
       .catch(() => { /* zonder lijst blijft #naam gewoon tekst */ });
     return () => { actief = false; };
@@ -553,10 +563,10 @@ export default function ChatScreen({ route, navigation }) {
       <View>
         {nieuweDag ? <DagStreep iso={item.created_at} c={c} /> : null}
         {eersteNieuwe ? <NieuwStreep c={c} /> : null}
-        <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} onOpenNote={openNote} onToggleTodo={toggleTodo} onRemind={openRemind} onSave={saveForLater} onShowReads={openReads} onOpenProfile={setProfielId} channels={kanalen} onOpenChannel={openKanaal} members={members} />
+        <MessageView item={item} c={c} me={me} onOpenThread={openThread} onReact={handleReact} onEdit={startEdit} onDelete={handleDelete} onOpenNote={openNote} onToggleTodo={toggleTodo} onRemind={openRemind} onSave={saveForLater} onShowReads={openReads} onOpenProfile={setProfielId} channels={kanalen} onOpenChannel={openKanaal} members={members} onShare={deel} onOpenGedeeld={openGedeeld} kanOpenen={kanOpenen} />
       </View>
     );
-  }, [c, me, nieuwVanaf, openThread, handleReact, startEdit, handleDelete, openNote, toggleTodo, openRemind, saveForLater, openReads, setProfielId, kanalen, openKanaal, members]);
+  }, [c, me, nieuwVanaf, openThread, handleReact, startEdit, handleDelete, openNote, toggleTodo, openRemind, saveForLater, openReads, setProfielId, kanalen, openKanaal, members, deel, openGedeeld, kanOpenen]);
 
   const pinnedNotes = messages.filter((m) => m.kind === 'note' && m.pinned_at && !m.deleted_at);
   // Vastgeprikte notities tonen we in de pinbalk; niet nóg eens in de stroom.

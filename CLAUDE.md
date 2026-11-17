@@ -276,6 +276,31 @@ de backend. Met de hand taggen of nummers bijwerken hoeft dus niet meer.
   opende alleen het gesprek, en op desktop zelfs dat niet als je in een andere
   weergave stond.
 
+## Delen in een ander gesprek (17-11-2026)
+
+Bij een bericht (hover op desktop, lang drukken op mobiel) en bij een notitie
+of to-dolijst (kaart op desktop, editor op mobiel) staat **Delen**. Je kiest een
+kanaal of gesprek; alles gaat via `POST chat/messages/{id}/share` in ctfbackend.
+
+- **Een bericht wordt een citaat**, met je eigen tekst erbij (mag leeg). Het
+  origineel staat in `gedeeld` als momentopname: afzender, tijd, tekst, en waar
+  het vandaan kwam. Wie in het doel zit hoeft geen lid van de bron te zijn, en
+  het citaat verandert niet mee als het origineel wordt bewerkt of verwijderd.
+  "Bekijk origineel" staat er alleen als jij in dat gesprek zit.
+- **Een notitie of to-dolijst wordt een losse kopie** (besluit Luc): titel,
+  tekst, bijlagen en de punten met hun stand. Toegewezen blijft alleen wie ook
+  in het doel zit. Afvinken in de kopie raakt het origineel niet. Onder de
+  kaart staat "Kopie uit #kanaal".
+- **Bij een DM staat er geen naam in `gedeeld`**, alleen "een direct gesprek":
+  wie er in een privégesprek zit, reist niet vanzelf mee.
+- Bijlagen gaan mee als nieuwe rij naar hetzelfde bestand; chatbestanden worden
+  nergens van de opslag gehaald, dus dat mag.
+
+Desktop: `DeelDialoog.jsx` en `Gedeeld.jsx` (citaat, `herkomstNaam`). Mobiel:
+`screens/DeelScherm.js` (vervangt zichzelf door het doelgesprek, zodat Terug
+je bij het origineel brengt) en het citaat in `src/MessageView.js`.
+Verander ze samen.
+
 ## Aandachtspunten / valkuilen
 - **Feather-iconen (Gradle-build):** in de prebuild/Gradle-build laadt
   `expo-font` het Feather-font niet async → iconen onzichtbaar. NIET oplossen

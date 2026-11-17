@@ -147,6 +147,10 @@ export const chat = {
   // Bewaren voor later.
   saved: () => apiFetch('/api/chat/saved'),
   toggleSave: (messageId) => apiFetch(`/api/chat/messages/${messageId}/save`, { method: 'POST' }),
+  // Delen in een ander gesprek: bericht als citaat, notitie als kopie (17-11-2026).
+  shareMessage: (messageId, conversationId, body = '') => apiFetch(`/api/chat/messages/${messageId}/share`, {
+    method: 'POST', body: JSON.stringify({ conversation_id: conversationId, body }),
+  }),
   search: ({ q, conversationId, before, limit = 30 } = {}) => {
     const qs = new URLSearchParams();
     qs.set('q', q || '');

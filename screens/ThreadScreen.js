@@ -13,7 +13,7 @@ import { useBottomBarInset } from '../src/useBottomBarInset';
 import KeyboardScreen from '../src/KeyboardScreen';
 import { useMediaBijlagen, BijlagenRij, PlusKnop, PlusMenu, naMenu } from '../src/Bijlagen';
 
-export default function ThreadScreen({ route }) {
+export default function ThreadScreen({ route, navigation }) {
   const { convId, parentId } = route.params;
   // De leden van het gesprek: voor de @-suggesties, om getagde mensen mee te
   // sturen (anders krijgen ze geen melding) en om namen in de thread blauw te
@@ -172,6 +172,7 @@ export default function ThreadScreen({ route }) {
 
   // Bewaren kon in een thread nog niet op de telefoon, terwijl juist daar de
   // dingen staan die je later terug wilt zoeken.
+  const deel = useCallback((msg) => navigation.navigate('Delen', { bericht: msg }), [navigation]);
   const saveForLater = useCallback(async (msg) => {
     try {
       const r = await chat.toggleSave(msg.id);
@@ -182,8 +183,8 @@ export default function ThreadScreen({ route }) {
   }, [parentId]);
 
   const renderReply = useCallback(({ item }) => (
-    <MessageView item={item} c={c} me={me} onReact={handleReact} onSave={saveForLater} onEdit={startEdit} onDelete={handleDelete} members={members} />
-  ), [c, me, handleReact, saveForLater, startEdit, handleDelete, members]);
+    <MessageView item={item} c={c} me={me} onReact={handleReact} onSave={saveForLater} onEdit={startEdit} onDelete={handleDelete} members={members} onShare={deel} />
+  ), [c, me, handleReact, saveForLater, startEdit, handleDelete, members, deel]);
 
   // Het plusmenu (22-10-2026). In een thread alleen wat bij een antwoord past:
   // foto's, video's en Drive. Notities, polls en later versturen horen bij het
@@ -222,7 +223,7 @@ export default function ThreadScreen({ route }) {
 
   const Header = () => (
     <View>
-      {parent && <MessageView item={parent} c={c} me={me} onReact={handleReact} onSave={saveForLater} onEdit={startEdit} onDelete={handleDelete} members={members} />}
+      {parent && <MessageView item={parent} c={c} me={me} onReact={handleReact} onSave={saveForLater} onEdit={startEdit} onDelete={handleDelete} members={members} onShare={deel} />}
       <Text style={[styles.divider, { color: c.muted, borderColor: c.border }]}>
         {replies.length} {replies.length === 1 ? 'antwoord' : 'antwoorden'}
       </Text>

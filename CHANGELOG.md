@@ -3,6 +3,13 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## Nog niet uitgebracht
+
+- **Delen in een ander gesprek.** Houd een bericht ingedrukt en kies "Delen in
+  ander gesprek": het komt er als citaat te staan, met je eigen tekst erbij.
+  Een notitie of to-dolijst deel je vanuit de notitie zelf; dan komt er een
+  kopie die je daar los kunt bijwerken en afvinken.
+
 ## 0.1.34 — 10 november 2026
 
 - **Groepsgesprekken herken je aan de gezichten.** In plaats van één

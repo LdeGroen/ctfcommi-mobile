@@ -123,7 +123,12 @@ function metKanaalLinks(tekst, kanalen) {
   return uit;
 }
 
-function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onOpenNote, onToggleTodo, onRemind, onSave, onShowReads, onOpenProfile, channels = [], onOpenChannel, members = [] }) {
+// Waar iets vandaan kwam: "#techniek" of "een direct gesprek" (17-11-2026).
+function herkomst(g) {
+  return g.conversation_type === 'channel' ? `#${g.conversation_name || 'kanaal'}` : 'een direct gesprek';
+}
+
+function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onOpenNote, onToggleTodo, onRemind, onSave, onShowReads, onOpenProfile, channels = [], onOpenChannel, members = [], onShare, onOpenGedeeld, kanOpenen }) {
   // Eerst de personen, dan de kanalen: ze bijten elkaar niet, maar zo staat de
   // volgorde vast en is het resultaat voorspelbaar.
   const opgemaakt = (tekst) => metIedereenLink(metKanaalLinks(
@@ -203,13 +208,18 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
         )}
 
         <Text style={[s.noteMeta, { color: c.muted }]}>{item.edited_at ? 'bewerkt ' : ''}{fmt(item.edited_at || item.created_at)}{item.user?.name ? ` · ${item.user.name}` : ''}</Text>
+        {item.gedeeld ? (
+          <Text style={[s.noteMeta, { color: c.muted, marginTop: 1 }]}>
+            ↪ Kopie uit {herkomst(item.gedeeld)}{item.gedeeld.user?.name ? `, van ${item.gedeeld.user.name}` : ''}
+          </Text>
+        ) : null}
       </TouchableOpacity>
     );
   }
 
   const mine = me && item.user_id === me.id;
   const react = (emoji) => { setPicker(false); onReact && onReact(item, emoji); };
-  const hasSheet = !!onReact || !!onRemind || !!onSave || (mine && (onEdit || onDelete));
+  const hasSheet = !!onReact || !!onRemind || !!onSave || !!onShare || (mine && (onEdit || onDelete));
 
   return (
     <Pressable onLongPress={() => hasSheet && setPicker(true)} delayLongPress={250} style={s.msg}>
@@ -235,6 +245,27 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
       {item.kind === 'poll'
         ? <PollKaart item={item} c={c} />
         : !!item.body && <Markdown style={{ body: { color: c.text, fontSize: 15 }, link: { color: '#6366f1' } }} onLinkPress={(url) => tikOpLink(url, onOpenChannel, onOpenProfile)}>{opgemaakt(item.body)}</Markdown>}
+
+      {/* Doorgestuurd bericht (17-11-2026): het origineel zoals het was. */}
+      {item.gedeeld && item.kind !== 'poll' ? (
+        <View style={[s.citaat, { borderLeftColor: '#a5b4fc', backgroundColor: c.border }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Avatar name={item.gedeeld.user?.name} uri={item.gedeeld.user?.avatar} size={18} />
+            <Text style={{ color: c.text, fontWeight: '600', fontSize: 13 }}>{item.gedeeld.user?.name || 'Onbekend'}</Text>
+            <Text style={{ color: c.muted, fontSize: 11 }}>{fmt(item.gedeeld.created_at)}</Text>
+          </View>
+          {item.gedeeld.title ? <Text style={{ color: c.text, fontWeight: '600', marginTop: 2 }}>{item.gedeeld.title}</Text> : null}
+          {item.gedeeld.body ? (
+            <Markdown style={{ body: { color: c.text, fontSize: 14 }, link: { color: '#6366f1' } }} onLinkPress={(url) => tikOpLink(url, onOpenChannel, onOpenProfile)}>{opgemaakt(item.gedeeld.body)}</Markdown>
+          ) : null}
+          <Text style={{ color: c.muted, fontSize: 11, marginTop: 2 }}>
+            Gedeeld uit {herkomst(item.gedeeld)}{item.gedeeld.parent_id ? ' (thread)' : ''}
+            {kanOpenen?.(item.gedeeld.conversation_id) ? (
+              <Text style={{ color: '#6366f1', fontWeight: '600' }} onPress={() => onOpenGedeeld?.(item.gedeeld)}>   Bekijk origineel</Text>
+            ) : null}
+          </Text>
+        </View>
+      ) : null}
 
       {item.attachments?.map((a) => (
         a.source === 'drive' ? (
@@ -340,8 +371,14 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
                 ))}
               </View>
             )}
-            {(onRemind || onSave || (mine && (onEdit || onDelete))) && (
+            {(onRemind || onSave || onShare || (mine && (onEdit || onDelete))) && (
               <View style={[s.actions, { borderColor: c.border }]}>
+                {onShare && (
+                  <TouchableOpacity style={s.actionBtn} onPress={() => { setPicker(false); onShare(item); }}>
+                    <Feather name="corner-up-right" size={16} color={c.text} />
+                    <Text style={[s.actionText, { color: c.text }]}>Delen in ander gesprek</Text>
+                  </TouchableOpacity>
+                )}
                 {onRemind && (
                   <TouchableOpacity style={s.actionBtn} onPress={() => { setPicker(false); onRemind(item); }}>
                     <Feather name="clock" size={16} color={c.text} />
@@ -387,6 +424,7 @@ const s = StyleSheet.create({
   noteHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
   noteTitle: { flex: 1, fontSize: 14, fontWeight: '700' },
   noteMeta: { fontSize: 11, marginTop: 4 },
+  citaat: { marginTop: 4, borderLeftWidth: 3, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 6 },
   todoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 },
   todoChild: { marginLeft: 22 },
   todoText: { flex: 1, fontSize: 14 },

@@ -394,6 +394,11 @@ export default function NoteEditorScreen({ route, navigation }) {
           <TouchableOpacity onPress={() => save()} disabled={saving} style={[styles.saveBtn, saving && { opacity: 0.5 }]}>
             {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveText}>Opslaan</Text>}
           </TouchableOpacity>
+          {/* Een kopie delen in een ander gesprek (17-11-2026). */}
+          <TouchableOpacity onPress={() => navigation.navigate('Delen', { bericht: note })} style={styles.delBtn}>
+            <Feather name="corner-up-right" size={14} color="#6366f1" />
+            <Text style={[styles.delText, { color: '#6366f1' }]}>Delen</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={del} style={styles.delBtn}>
             <Feather name="trash-2" size={14} color="#dc2626" />
             <Text style={styles.delText}>Verwijderen</Text>
