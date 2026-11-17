@@ -3,6 +3,15 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## Nog niet uitgebracht
+
+- **Betere linkpreviews.** YouTube-, Vimeo- en Spotify-links krijgen een
+  groot beeld met afspeelknop, gewone sites een plaatje boven de titel, en
+  een link naar een foto of PDF wordt als zodanig getoond. Plaatjes die niet
+  laden verdwijnen in plaats van een leeg vak te laten.
+- **Bestanden als kaartje** met soort en grootte ("Spreadsheet · 1,2 MB")
+  in plaats van een kale link.
+
 ## 0.1.35 — 17 november 2026
 
 - **Delen in een ander gesprek.** Houd een bericht ingedrukt en kies "Delen in

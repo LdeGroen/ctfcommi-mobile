@@ -15,6 +15,18 @@ function isPdf(a) {
   return a.mime === 'application/pdf' || /\.pdf(\?.*)?$/i.test(a.filename || a.url || '');
 }
 const isFoto = (a) => (a.mime || '').startsWith('image/') || /\.(jpe?g|png|gif|webp|heic)(\?.*)?$/i.test(a.filename || '');
+// "Spreadsheet · 1,2 MB" onder een bestandskaart (17-11-2026).
+function bestandLabel(a) {
+  const ext = ((a.filename || '').match(/\.([a-z0-9]{1,5})$/i) || [])[1] || '';
+  const soort = /^(docx?|odt|rtf|pages)$/i.test(ext) ? 'Document'
+    : /^(xlsx?|ods|csv|numbers)$/i.test(ext) ? 'Spreadsheet'
+    : /^(pptx?|odp|key)$/i.test(ext) ? 'Presentatie'
+    : /^audio\//.test(a.mime || '') ? 'Geluid'
+    : ext ? ext.toUpperCase() : 'Bestand';
+  if (!a.size) return soort;
+  const mb = a.size / 1048576;
+  return `${soort} · ${mb >= 1 ? `${mb.toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(a.size / 1024))} KB`}`;
+}
 const isVideo = (a) => (a.mime || '').startsWith('video/') || /\.(mp4|mov|m4v|webm)(\?.*)?$/i.test(a.filename || '');
 
 const QUICK = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🎉', '🔥'];
@@ -300,9 +312,14 @@ function MessageView({ item, c, onOpenThread, onReact, me, onEdit, onDelete, onO
             </View>
           </TouchableOpacity>
         ) : (
-          <Text key={a.id} style={{ color: '#6366f1', marginTop: 2 }} onPress={() => Linking.openURL(a.url)}>
-            <Feather name="paperclip" size={13} color="#6366f1" /> {a.filename}
-          </Text>
+          <TouchableOpacity key={a.id} onPress={() => a.url && Linking.openURL(a.url)}
+                            style={[s.driveCard, { borderColor: c.border, backgroundColor: c.bg }]}>
+            <Feather name={/^audio\//.test(a.mime || '') ? 'music' : 'file'} size={15} color="#6366f1" />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text numberOfLines={1} style={{ color: c.text, fontSize: 14 }}>{a.filename}</Text>
+              <Text style={{ color: c.muted, fontSize: 11 }}>{bestandLabel(a)} — tik om te openen</Text>
+            </View>
+          </TouchableOpacity>
         )
       ))}
 
