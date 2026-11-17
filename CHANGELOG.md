@@ -3,7 +3,7 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
-## Nog niet uitgebracht
+## 0.1.36 — 17 november 2026
 
 - **Betere linkpreviews.** YouTube-, Vimeo- en Spotify-links krijgen een
   groot beeld met afspeelknop, gewone sites een plaatje boven de titel, en
