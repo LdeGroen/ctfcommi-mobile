@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, useColorScheme, Alert, AppState } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
@@ -262,9 +262,12 @@ function Row({ item, c, navigation, onHide, onFav, onGeopend }) {
     </View>
   );
 
+  // ReanimatedSwipeable (gesture-handler 3) geeft de RICHTING VAN DE SWIPE
+  // door, niet de kant die opengaat zoals de oude Swipeable deed: 'right' =
+  // naar rechts geveegd = de linkeractie (Verberg) staat open.
   const onOpen = (direction) => {
-    if (direction === 'left' && renderLeft) { close(); onHide(item.id); }
-    else if (direction === 'right') { close(); onFav(item.id); }
+    if (direction === 'right' && renderLeft) { close(); onHide(item.id); }
+    else if (direction === 'left') { close(); onFav(item.id); }
     else close();
   };
 
