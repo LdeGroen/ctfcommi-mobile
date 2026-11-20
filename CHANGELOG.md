@@ -3,6 +3,12 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## 0.1.38 — 20 november 2026
+
+- **Klaar voor de nieuwste iPhone-software.** Commi is gebouwd op een nieuwere
+  basis, zodat hij ook werkt op iOS 27 en nieuwere Android-versies. Verder
+  verandert er niets aan hoe je Commi gebruikt.
+
 ## 0.1.37 — 20 november 2026
 
 - **Veiligheidsupdates.** Onderdelen van de app zijn bijgewerkt naar nieuwere,
