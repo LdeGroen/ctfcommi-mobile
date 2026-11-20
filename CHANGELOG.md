@@ -3,6 +3,11 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## 0.1.37 — 20 november 2026
+
+- **Veiligheidsupdates.** Onderdelen van de app zijn bijgewerkt naar nieuwere,
+  veiligere versies. Verder verandert er niets aan hoe je Commi gebruikt.
+
 ## 0.1.36 — 17 november 2026
 
 - **Betere linkpreviews.** YouTube-, Vimeo- en Spotify-links krijgen een
