@@ -16,7 +16,7 @@ voor het toetsenbord — zie `src/KeyboardScreen.js`.
   /`_PASSWORD`/`ANDROID_KEY_ALIAS`/`ANDROID_KEY_PASSWORD`), en kan met `submit=true`
   via fastlane direct naar de Play **gesloten test-track (alpha)** pushen
   (track staat in `eas.json` → submit.production.android.track). versionCode = epoch/60
-  (altijd oplopend). target/compileSdk 35 via `expo-build-properties`.
+  (altijd oplopend). compileSdk 37 en targetSdk 36 via `expo-build-properties` (SDK 58 eist compileSdk 37).
   De invoer `wat` kiest **aab**, **apk** of **beide**; met *beide* komen ze uit
   dezelfde commit en met hetzelfde versienummer.
 
