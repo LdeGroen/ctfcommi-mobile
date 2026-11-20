@@ -7,11 +7,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "backgroundColor": "#396971",
-      "resizeMode": "contain",
-      "image": "./assets/icon.png"
-    },
     "ios": {
       "bundleIdentifier": "nl.cafetheaterfestival.commi",
       "supportsTablet": false,
@@ -30,6 +25,15 @@
     },
     "plugins": [
       [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#396971",
+          "image": "./assets/icon.png",
+          "resizeMode": "contain",
+          "imageWidth": 200
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
@@ -40,7 +44,7 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 36,
+            "compileSdkVersion": 37,
             "targetSdkVersion": 36
           }
         }
@@ -53,7 +57,6 @@
           "microphonePermission": "Commi gebruikt je microfoon voor het geluid bij een video die je in een gesprek deelt."
         }
       ],
-      "./plugins/withFmtConstevalFix",
       "expo-secure-store",
       "expo-asset",
       [

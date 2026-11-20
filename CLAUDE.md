@@ -4,7 +4,7 @@ iOS + Android client voor de interne chat. Web/desktop = repo `ctfcommi`,
 backend (Laravel) = repo `ctfbackend` (zie chat-sectie in die CLAUDE.md).
 
 ## Stack
-Expo SDK 54 (RN 0.81, React 19), React Navigation native-stack, expo-notifications/
+Expo SDK 58 (RN 0.88, React 19.3), React Navigation native-stack, expo-notifications/
 secure-store/web-browser/linking, pusher-js (realtime), react-native-markdown-display,
 @expo/vector-icons (Feather), react-native-keyboard-controller (+ reanimated/worklets)
 voor het toetsenbord — zie `src/KeyboardScreen.js`.
@@ -16,7 +16,7 @@ voor het toetsenbord — zie `src/KeyboardScreen.js`.
   /`_PASSWORD`/`ANDROID_KEY_ALIAS`/`ANDROID_KEY_PASSWORD`), en kan met `submit=true`
   via fastlane direct naar de Play **gesloten test-track (alpha)** pushen
   (track staat in `eas.json` → submit.production.android.track). versionCode = epoch/60
-  (altijd oplopend). target/compileSdk 35 via `expo-build-properties`.
+  (altijd oplopend). compileSdk 37 en targetSdk 36 via `expo-build-properties` (SDK 58 eist compileSdk 37).
   De invoer `wat` kiest **aab**, **apk** of **beide**; met *beide* komen ze uit
   dezelfde commit en met hetzelfde versienummer.
 
@@ -127,10 +127,36 @@ wijzen, crashte 0.1.28 bij het opstarten en wees Apple hem af (Guideline
 / React Native 0.81 is niet voor Xcode 27 gemaakt.
 
 **Pas de image pas aan samen met een Expo-upgrade** die Xcode 27 ondersteunt, en
-test dan eerst op een echt toestel of TestFlight. Zie je in een buildlog
+test dan eerst op een echt toestel of TestFlight. Gebeurd met SDK 58, zie hieronder. Zie je in een buildlog
 `Using VM template "...xcode-27..."` terwijl je dat niet zo bedoelde, dan is
 dit de reden. Op de Mac mini staat inmiddels ook Xcode 27 (macOS-update); een
 `eas build --local` daar heeft dus hetzelfde probleem, gebruik dan de cloud.
+
+### Expo SDK 58 en Xcode 27 (20-11-2026, tak `expo-58`)
+
+Upgrade van SDK 54 naar 58, omdat Apple vanaf april 2027 builds met Xcode 27 /
+iOS 27 SDK eist (ITMS-90725). Wat er anders werd:
+
+- **iOS-image `macos-tahoe-26.6-xcode-27.1`** (= alias `sdk-58`). De crash van
+  0.1.28 kwam doordat een Xcode 27-build op iOS 27 alleen opstart met de UIKit
+  *scene life cycle*; SDK 58 heeft die standaard (SDK 57 had er
+  `ios.enableSceneSupport` voor nodig, SDK 54 kon het niet).
+- **Edge-to-edge is op Android altijd aan** (targetSdk 36). De oude opt-out
+  (`withOptOutEdgeToEdge`) bestaat niet meer; toetsenbord en navigatiebalk gaan
+  via react-native-keyboard-controller en de safe-area-insets.
+- **`plugins/withFmtConstevalFix.js` is weg**: RN 0.88 levert fmt 12, dat het
+  consteval-probleem met nieuwe Clang niet meer heeft.
+- **`babel.config.js` is weg**: SDK 58 gebruikt standaard `babel-preset-expo`,
+  en die staat genest onder `expo/` -- een eigen config vond hem niet meer.
+- **`splash` staat nu als `expo-splash-screen`-plugin** in `app.json`.
+- **`Swipeable` → `ReanimatedSwipeable`** (gesture-handler 3). Let op:
+  `onSwipeableOpen` geeft daar de *swiperichting* door ('right' = linkeractie
+  open), de oude gaf de kant die openging.
+- **`overrides`: markdown-it 14 voor react-native-markdown-display** (dat vraagt
+  ^10). Versie 10 heeft de Node-module `punycode` nodig die nu niet meer
+  meekomt (Metro faalde), en had de high-meldingen van linkify-it.
+- `android-gradle.yml` heeft de invoer **`naar_commi`**: zet hem uit voor een
+  test-APK, anders vervangt die de APK op /commi.
 
 ## iOS bouwen op de Mac mini (primaire route, gratis)
 
@@ -168,7 +194,7 @@ eas submit --platform ios --path ~/build-commi.ipa --profile production --non-in
 ### Valkuilen / wat we tegenkwamen
 - **`EAS_NO_VCS=1`** is nodig als de build vanuit een map zonder/los van git draait
   (anders: "Failed to get Git root path"). Met de git-clone is het verder prima.
-- **Node-versie:** pin **Node 22** (Expo SDK 54). Brew installeerde eerst Node 26 → die
+- **Node-versie:** pin **Node 22** (Expo SDK 58 vraagt ≥ 22.13). Brew installeerde eerst Node 26 → die
   niet gebruiken; vandaar `node@22` met expliciet PATH.
 - **Certificaat-conflict (belangrijk):** vindt Xcode nóg een `Apple Distribution:
   Stichting CafeTheaterFestival`-certificaat (ander serienr. dan dat van EAS), dan kiest

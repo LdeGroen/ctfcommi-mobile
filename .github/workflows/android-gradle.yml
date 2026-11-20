@@ -17,6 +17,10 @@ on:
         description: 'Direct indienen bij Play (gesloten test / alpha)? (alleen bij AAB)'
         type: boolean
         default: false
+      naar_commi:
+        description: 'APK ook op backend/commi zetten? (uit voor een testbouw)'
+        type: boolean
+        default: true
 
 jobs:
   build:
@@ -80,7 +84,7 @@ jobs:
       # en na negentig dagen is het weg. Voor wie geen Play Store gebruikt zetten
       # we het bestand daarom op de backend; die serveert het op /commi.
       - name: APK klaarzetten op backend.cafetheaterfestival.nl/commi
-        if: ${{ github.event.inputs.wat == 'apk' || github.event.inputs.wat == 'beide' }}
+        if: ${{ (github.event.inputs.wat == 'apk' || github.event.inputs.wat == 'beide') && github.event.inputs.naar_commi != 'false' }}
         env:
           OPS_TOKEN: ${{ secrets.OPS_TOKEN }}
         run: |
