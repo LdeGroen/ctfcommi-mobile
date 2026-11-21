@@ -159,6 +159,35 @@ iOS 27 SDK eist (ITMS-90725). Wat er anders werd:
   meekomt (Metro faalde), en had de high-meldingen van linkify-it.
 - `android-gradle.yml` heeft de invoer **`naar_commi`**: zet hem uit voor een
   test-APK, anders vervangt die de APK op /commi.
+- **Schuin scrollen in de gesprekkenlijst (21-11-2026).** In
+  `ReanimatedSwipeable` heeft de veegbeweging alleen `activeOffsetX` (10 px).
+  Een duim beweegt nooit recht omlaag, dus haalde de veegactie het scrollen
+  halverwege onderuit: de lijst stopte. De oude `Swipeable` had dat niet. Er is
+  geen prop voor, dus zet `patches/react-native-gesture-handler+3.3.0.patch`
+  er `failOffsetY: [-10, 10]` bij: eerst verticaal bewogen = scrollen. **Werk
+  je gesture-handler bij, maak de patch dan opnieuw** (`npx patch-package
+  react-native-gesture-handler`). Patch-package meldt het in `npm ci` als de
+  patch niet meer past, maar de build gaat gewoon door, dus kijk naar die
+  regel.
+
+### Gebaren nalopen op de emulator (zonder inloggen)
+
+Een test-APK met **`testschermen=true`** (alleen samen met `wat=apk` en
+`naar_commi` uit) heeft het scherm **Gebaren-test**: lang drukken op het logo
+in het inlogscherm. Het toont de echte gespreksrijen (`Row` uit
+ConversationsScreen, met de veegacties) en de echte berichten (`MessageView`
+in een omgekeerde lijst) met nepgegevens. Bovenin staat wat er als laatste
+herkend is ("tik op rij 7", "scroll y=946", "verberg 20"), zodat een
+screenshot bewijst dat een gebaar aankwam.
+
+```bash
+gh workflow run android-gradle.yml --ref main -f wat=apk -f naar_commi=false -f testschermen=true
+```
+
+Daarna op de emulator van de mini (`adb install -r`, lang drukken op het logo)
+met `adb shell input swipe`. Test ook **schuin** (`swipe 500 1900 620 900
+300`): recht omlaag werkte ook toen het stuk was. De vlag staat in
+`src/testschermen.js`; in een gewone build valt het scherm eruit.
 
 ## iOS bouwen op de Mac mini (primaire route, gratis)
 
