@@ -1,0 +1,26 @@
+diff --git a/node_modules/react-native-gesture-handler/lib/module/components/ReanimatedSwipeable/ReanimatedSwipeable.js b/node_modules/react-native-gesture-handler/lib/module/components/ReanimatedSwipeable/ReanimatedSwipeable.js
+index 5f2f759..12c78d9 100644
+--- a/node_modules/react-native-gesture-handler/lib/module/components/ReanimatedSwipeable/ReanimatedSwipeable.js
++++ b/node_modules/react-native-gesture-handler/lib/module/components/ReanimatedSwipeable/ReanimatedSwipeable.js
+@@ -340,6 +340,8 @@ const Swipeable = props => {
+     enabled: enabled ?? true,
+     enableTrackpadTwoFingerGesture: enableTrackpadTwoFingerGesture,
+     activeOffsetX: [dragOffsetFromRight, dragOffsetFromLeft],
++    // ctfcommi: eerst verticaal bewogen = scrollen, de veegactie geeft op.
++    failOffsetY: [-10, 10],
+     simultaneousWith,
+     requireToFail,
+     block,
+diff --git a/node_modules/react-native-gesture-handler/src/components/ReanimatedSwipeable/ReanimatedSwipeable.tsx b/node_modules/react-native-gesture-handler/src/components/ReanimatedSwipeable/ReanimatedSwipeable.tsx
+index b62da83..548aaf1 100644
+--- a/node_modules/react-native-gesture-handler/src/components/ReanimatedSwipeable/ReanimatedSwipeable.tsx
++++ b/node_modules/react-native-gesture-handler/src/components/ReanimatedSwipeable/ReanimatedSwipeable.tsx
+@@ -606,6 +606,8 @@ const Swipeable = (props: SwipeableProps) => {
+         typeof dragOffsetFromRight,
+         typeof dragOffsetFromLeft,
+       ],
++      // ctfcommi: eerst verticaal bewogen = scrollen, de veegactie geeft op.
++      failOffsetY: [-10, 10],
+       simultaneousWith,
+       requireToFail,
+       block,
