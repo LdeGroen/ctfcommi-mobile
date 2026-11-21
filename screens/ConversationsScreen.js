@@ -236,7 +236,7 @@ function VerborgenGesprekken({ c, onHersteld }) {
 
 // Eén gespreksrij met swipe-acties: rechts swipen = verbergen (alleen DM),
 // links swipen = favoriet (DM + channel).
-function Row({ item, c, navigation, onHide, onFav, onGeopend }) {
+export function Row({ item, c, navigation, onHide, onFav, onGeopend }) {
   const online = useOnline();
   const ref = useRef(null);
   const unread = item.unread_count || 0;

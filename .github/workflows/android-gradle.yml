@@ -21,6 +21,10 @@ on:
         description: 'APK ook op backend/commi zetten? (uit voor een testbouw)'
         type: boolean
         default: true
+      testschermen:
+        description: 'Testschermen erin (gebaren-test, lang drukken op het logo)? Alleen bij wat=apk en naar_commi uit'
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -64,6 +68,10 @@ jobs:
       - name: APK bouwen (gesigneerd, test)
         if: ${{ github.event.inputs.wat == 'apk' || github.event.inputs.wat == 'beide' }}
         working-directory: android
+        env:
+          # Alleen voor een losse test-APK die niet op /commi komt; bij `beide`
+          # zou de AAB dezelfde bundel kunnen hergebruiken (src/testschermen.js).
+          EXPO_PUBLIC_TESTSCHERMEN: ${{ (github.event.inputs.testschermen == 'true' && github.event.inputs.wat == 'apk' && github.event.inputs.naar_commi == 'false') && '1' || '' }}
         run: |
           chmod +x ./gradlew
           ./gradlew :app:assembleRelease \

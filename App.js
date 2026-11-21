@@ -31,6 +31,8 @@ import DeelScherm from './screens/DeelScherm';
 import PollMakenScreen from './screens/PollMakenScreen';
 import MijnTakenScreen from './screens/MijnTakenScreen';
 import LayoutTestScreen from './screens/LayoutTestScreen';
+import GebarenTestScreen from './screens/GebarenTestScreen';
+import { TESTSCHERMEN } from './src/testschermen';
 import ActiviteitScreen from './screens/ActiviteitScreen';
 import SavedScreen from './screens/SavedScreen';
 import ThreadsScreen from './screens/ThreadsScreen';
@@ -234,6 +236,7 @@ export default function App() {
                 te kunnen testen zonder in te loggen. Alleen in een
                 ontwikkelbuild (audit COM-24). */}
             {__DEV__ && <Stack.Screen name="LayoutTest" component={LayoutTestScreen} options={{ title: 'Layout-test' }} />}
+            {TESTSCHERMEN && <Stack.Screen name="GebarenTest" component={GebarenTestScreen} options={{ title: 'Gebaren-test' }} />}
           </>
         ) : (
           <>

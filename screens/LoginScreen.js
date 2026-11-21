@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, Styl
 import { LinearGradient } from 'expo-linear-gradient';
 import { loginWithGoogle, loginWithPassword } from '../src/auth';
 import KeyboardScreen from '../src/KeyboardScreen';
+import { TESTSCHERMEN } from '../src/testschermen';
 
 export default function LoginScreen({ onLoggedIn, navigation }) {
   const [busy, setBusy] = useState(false);
@@ -49,7 +50,7 @@ export default function LoginScreen({ onLoggedIn, navigation }) {
       {/* Lang drukken op het logo opent het verborgen layout-testscherm; daarmee
           is het toetsenbord-/navigatiebalk-gedrag van de composer te testen
           zonder in te loggen (zie LayoutTestScreen). */}
-      <TouchableOpacity activeOpacity={1} delayLongPress={800} onLongPress={__DEV__ ? () => navigation?.navigate('LayoutTest') : undefined}>
+      <TouchableOpacity activeOpacity={1} delayLongPress={800} onLongPress={TESTSCHERMEN ? () => navigation?.navigate('GebarenTest') : __DEV__ ? () => navigation?.navigate('LayoutTest') : undefined}>
         <Image source={require('../assets/icon.png')} style={styles.logo} />
       </TouchableOpacity>
       <Text style={styles.title}>CTF Commi</Text>
