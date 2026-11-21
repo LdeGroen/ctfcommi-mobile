@@ -3,6 +3,13 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## 0.1.39 — 21 november 2026
+
+- **Scrollen in de gesprekkenlijst werkt weer soepel.** Als je duim bij het
+  scrollen een beetje schuin ging, bleef de lijst halverwege hangen en kwam een
+  tik daarna niet aan. Nu scrolt hij gewoon door; opzij vegen om een gesprek te
+  verbergen of als favoriet te zetten werkt zoals altijd.
+
 ## 0.1.38 — 20 november 2026
 
 - **Klaar voor de nieuwste iPhone-software.** Commi is gebouwd op een nieuwere
