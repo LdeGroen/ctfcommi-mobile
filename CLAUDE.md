@@ -37,8 +37,8 @@ het bestand terwijl de laatste tag v0.1.20 was, dan kreeg de APK het label
 
 **Dat is niet onschuldig.** `UpdateMelding.js` vergelijkt de eigen versie met
 het register en toont een balk *"Versie 0.1.20 staat klaar — jij draait
-0.1.17"*, met een link naar de GitHub-releasepagina. Die repo is privé, dus
-daar kan niemand bij: een melding die je niet weg krijgt en die nergens heen
+0.1.17"*, met een link naar de GitHub-releasepagina. Daar staat geen versie die je
+zomaar installeert: een melding die je niet weg krijgt en die nergens heen
 gaat.
 
 **Kijk dus vóór een `wat=apk`-bouw naar `git tag -l 'v*' --sort=-v:refname`** en
@@ -55,8 +55,10 @@ Een AAB is een pakket voor Google, geen installeerbare app. Wie de Play Store ni
 gebruikt kwam er dus niet in. Sinds 27-8-2026 zet `wat=apk` de universele APK ook
 op de backend (`POST /api/ops/commi-apk`, secret `OPS_TOKEN`), die hem aanbiedt op
 **<https://backend.cafetheaterfestival.nl/commi>** — een pagina met downloadknop en
-installatie-uitleg. Een GitHub-artifact volstond niet: die is alleen te halen met
-toegang tot deze privé-repo en verdwijnt na negentig dagen.
+installatie-uitleg. Een GitHub-artifact volstond niet: die vraagt een GitHub-account
+en verdwijnt na negentig dagen. Let op: deze repo is **publiek**, dus
+Actions-logs en artifacts zijn voor iedereen met een GitHub-account te lezen.
+Print in een workflow nooit een serverantwoord, alleen de HTTP-code.
 
 Drie dingen om te weten:
 
@@ -161,58 +163,14 @@ iOS 27 SDK eist (ITMS-90725). Wat er anders werd:
 ## iOS bouwen op de Mac mini (primaire route, gratis)
 
 De gratis EAS-cloudbuilds zijn maandelijks beperkt. We bouwen iOS daarom **lokaal op de
-Mac mini** (Apple M4) via `eas build --local` — dat telt NIET mee voor het gratis plan en
-is snel. De mini is bereikbaar via Tailscale-SSH: `ssh lucdegroen-schram@100.102.177.120`.
+Mac mini** via `eas build --local` (telt niet mee voor het gratis plan) met het script
+`~/build-ios.sh`: `git pull` → `npm ci` → `eas build --platform ios --profile production
+--local` → `eas submit` naar App Store Connect (app id 6776176073). **Push je wijziging dus
+eerst naar `main`**, het script pullt.
 
-### In één commando (na een codewijziging die al naar `main` is gepusht)
-```bash
-ssh lucdegroen-schram@100.102.177.120 "~/build-ios.sh"
-```
-`~/build-ios.sh` doet: `git pull` → `npm ci` → `eas build --platform ios --profile
-production --local` → `eas submit` naar App Store Connect. Daarna verwerkt Apple de build
-(~5-10 min, mail volgt); zichtbaar op App Store Connect / TestFlight (app id 6776176073).
-**Push je wijziging dus eerst naar `main`** voordat je het script draait (het pullt).
-
-### Wat er op de mini staat (eenmalig ingericht, juni 2026)
-- **Xcode 26.5** (stond er al), **Node 22** (`brew node@22`, keg-only →
-  `/opt/homebrew/opt/node@22/bin`), **CocoaPods**, **Fastlane**, **eas-cli** (npm global).
-- `~/.ctf-build-env` → `export EXPO_TOKEN=…` (Expo access token; **niet in git**).
-- `~/.git-credentials` → GitHub PAT (`repo`-scope) zodat `git pull` van de privé-repo werkt.
-- `~/ctfcommi-mobile` → git-clone van deze repo. `~/build-ios.sh` → het buildscript.
-
-### Handmatig (als je stap voor stap wilt)
-```bash
-ssh lucdegroen-schram@100.102.177.120
-export PATH=/opt/homebrew/opt/node@22/bin:/opt/homebrew/bin:/usr/bin:/bin
-export EAS_NO_VCS=1 LANG=en_US.UTF-8
-source ~/.ctf-build-env                 # EXPO_TOKEN
-cd ~/ctfcommi-mobile && git pull && npm ci
-eas build --platform ios --profile production --local --non-interactive --output ~/build-commi.ipa
-eas submit --platform ios --path ~/build-commi.ipa --profile production --non-interactive
-```
-
-### Valkuilen / wat we tegenkwamen
-- **`EAS_NO_VCS=1`** is nodig als de build vanuit een map zonder/los van git draait
-  (anders: "Failed to get Git root path"). Met de git-clone is het verder prima.
-- **Node-versie:** pin **Node 22** (Expo SDK 58 vraagt ≥ 22.13). Brew installeerde eerst Node 26 → die
-  niet gebruiken; vandaar `node@22` met expliciet PATH.
-- **Certificaat-conflict (belangrijk):** vindt Xcode nóg een `Apple Distribution:
-  Stichting CafeTheaterFestival`-certificaat (ander serienr. dan dat van EAS), dan kiest
-  het dat → archive faalt met *"Provisioning profile … doesn't include signing
-  certificate …"*. Op de mini zat dat cert **niet** in de login-keychain maar in
-  `~/Library/Keychains/chriskatten.keychain-db`, die vóór login in de zoeklijst stond.
-  Fix zonder iets weg te gooien — die keychain uit de zoeklijst halen:
-  ```bash
-  security list-keychains -d user            # controleren wat er in staat
-  security list-keychains -d user -s ~/Library/Keychains/login.keychain-db
-  ```
-  Daarna blijft alleen het EAS-certificaat (in de tijdelijke build-keychain) over.
-  Terugzetten kan met hetzelfde commando met beide paden erachter.
-  Zoeken waar een cert woont: `security find-certificate -a -c "<naam>" | grep keychain`.
-  (De desktop-app gebruikt een **Developer ID**-cert — ander type, blijft in login staan.)
-- **buildNumber** wordt door EAS remote automatisch opgehoogd (autoIncrement); geen
-  handmatige actie nodig.
-- De mini moet wakker + ingelogd zijn (FileVault aan, auto-login uit) en op Tailscale.
+Hoe je op de mini komt, wat er staat en de valkuilen (Node 22, certificaatconflict in de
+sleutelhanger) staan in **`ctfsoftware/docs/ios-bouwen-mini.md`**. Bewust niet hier: deze
+repo is publiek (audit COM-23).
 
 ## Structuur
 | Bestand | Doel |

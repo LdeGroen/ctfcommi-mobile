@@ -181,5 +181,5 @@ jobs:
               -H "X-Ops-Token: $OPS_TOKEN" -H "Content-Type: application/json" -H "Accept: application/json" \
               --data-binary @lading.json \
               "https://backend.cafetheaterfestival.nl/api/ops/app-versie") || code=000
-            echo "$PLAT melden: HTTP $code · $(cat antwoord.txt)"
+            echo "$PLAT melden: HTTP $code"
           done

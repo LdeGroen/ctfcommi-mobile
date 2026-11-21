@@ -54,5 +54,5 @@ jobs:
               --data-binary @lading.json \
               "https://backend.cafetheaterfestival.nl/api/ops/app-versie") || code=000
             echo "$PLAT melden: HTTP $code"
-            [ "$code" = 200 ] || [ "$code" = 201 ] || { cat antwoord.txt; exit 1; }
+            [ "$code" = 200 ] || [ "$code" = 201 ] || { echo "melden mislukt: HTTP $code"; exit 1; }
           done

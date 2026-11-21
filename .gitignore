@@ -19,3 +19,13 @@ google-service-account*.json
 # Zit als base64 in GitHub-secret ANDROID_KEYSTORE_BASE64 + back-up in EAS.
 *.jks
 *.keystore
+
+# Lokale omgeving en Apple-/EAS-sleutels — NOOIT committen. Deze repo is
+# publiek (audit INF-14 / COM-23).
+.env
+.env.*
+*.p8
+*.p12
+*.pem
+*.mobileprovision
+credentials.json
