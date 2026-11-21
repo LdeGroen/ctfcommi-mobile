@@ -49,7 +49,7 @@ export default function LoginScreen({ onLoggedIn, navigation }) {
       {/* Lang drukken op het logo opent het verborgen layout-testscherm; daarmee
           is het toetsenbord-/navigatiebalk-gedrag van de composer te testen
           zonder in te loggen (zie LayoutTestScreen). */}
-      <TouchableOpacity activeOpacity={1} delayLongPress={800} onLongPress={() => navigation?.navigate('LayoutTest')}>
+      <TouchableOpacity activeOpacity={1} delayLongPress={800} onLongPress={__DEV__ ? () => navigation?.navigate('LayoutTest') : undefined}>
         <Image source={require('../assets/icon.png')} style={styles.logo} />
       </TouchableOpacity>
       <Text style={styles.title}>CTF Commi</Text>

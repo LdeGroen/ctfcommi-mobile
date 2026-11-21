@@ -21,11 +21,8 @@ export function fmtMoment(iso) {
   return d.toLocaleString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-/** Lokale wandtijd voor de backend, zonder tijdzone ('2026-11-02 19:00:00'). */
-export function lokaleTijd(d) {
-  const p = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:00`;
-}
+// lokaleTijd staat in src/tijdstippen.js; hier doorgegeven voor PollMakenScreen.
+export { lokaleTijd } from './tijdstippen';
 
 function Balk({ deel, totaal, c }) {
   const pct = totaal > 0 ? Math.round((deel / totaal) * 100) : 0;

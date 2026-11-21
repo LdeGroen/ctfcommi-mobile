@@ -5,7 +5,8 @@ import { useHeaderHeight } from '@react-navigation/elements';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { chat } from '../src/api';
-import { useIk } from '../src/ik';
+import { useIk, haalIk } from '../src/ik';
+import { lokaleTijd, vasteMomenten } from '../src/tijdstippen';
 import { getEcho } from '../src/echo';
 import { bijHerverbinding, voegSamen } from '../src/herverbinding';
 import { shareFromDrive } from '../src/drive';
@@ -175,7 +176,7 @@ export default function ChatScreen({ route, navigation }) {
     let cancelled = false;
     (async () => {
       try {
-        const [res, det, meRes] = await Promise.all([chat.listMessages(id, { limit: 40 }), chat.getConversation(id), chat.me().catch(() => null)]);
+        const [res, det, meRes] = await Promise.all([chat.listMessages(id, { limit: 40 }), chat.getConversation(id), haalIk().catch(() => null)]);
         if (cancelled) return;
         // Vastgeprikte notities kunnen ouder zijn dan het venster: erbij mengen.
         const base = res.messages || [];
@@ -507,25 +508,11 @@ export default function ChatScreen({ route, navigation }) {
     catch { setReadsModal(null); }
   }, []);
 
-  const fmtLocal = (d) => {
-    const p = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:00`;
-  };
-  const remindOptions = () => {
-    const now = new Date();
-    const inHour = new Date(now.getTime() + 3600 * 1000);
-    const tonight = new Date(now); tonight.setHours(18, 0, 0, 0); if (tonight <= now) tonight.setDate(tonight.getDate() + 1);
-    const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(9, 0, 0, 0);
-    const week = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
-    return [
-      ['Over 1 uur', inHour], ['Vanavond 18:00', tonight], ['Morgen 09:00', tomorrow], ['Volgende week', week],
-    ];
-  };
   const setReminder = async (when) => {
     const msg = remindFor; setRemindFor(null);
     if (!msg) return;
     try {
-      await chat.addReminder({ messageId: msg.id, conversationId: id, remindAt: fmtLocal(when) });
+      await chat.addReminder({ messageId: msg.id, conversationId: id, remindAt: lokaleTijd(when) });
       Alert.alert('Herinnering gezet', 'Je krijgt op dat moment een melding.');
     } catch (e) { Alert.alert('Mislukt', e.message || ''); }
   };
@@ -718,8 +705,8 @@ export default function ChatScreen({ route, navigation }) {
         <Pressable style={styles.backdrop} onPress={() => setPlanOpen(false)}>
           <Pressable style={[styles.modalCard, { backgroundColor: c.bg, borderColor: c.border }]} onPress={() => {}}>
             <Text style={[styles.modalTitle, { color: c.text }]}>Versturen om…</Text>
-            {remindOptions().map(([label, when]) => (
-              <TouchableOpacity key={label} style={styles.modalRow} onPress={() => send(fmtLocal(when))}>
+            {vasteMomenten().map(([label, when]) => (
+              <TouchableOpacity key={label} style={styles.modalRow} onPress={() => send(lokaleTijd(when))}>
                 <Feather name="clock" size={16} color="#6366f1" />
                 <Text style={{ color: c.text, fontSize: 15 }}>{label}</Text>
               </TouchableOpacity>
@@ -733,7 +720,7 @@ export default function ChatScreen({ route, navigation }) {
         <Pressable style={styles.backdrop} onPress={() => setRemindFor(null)}>
           <Pressable style={[styles.modalCard, { backgroundColor: c.bg, borderColor: c.border }]} onPress={() => {}}>
             <Text style={[styles.modalTitle, { color: c.text }]}>Herinner me over…</Text>
-            {remindOptions().map(([label, when]) => (
+            {vasteMomenten().map(([label, when]) => (
               <TouchableOpacity key={label} style={styles.modalRow} onPress={() => setReminder(when)}>
                 <Feather name="clock" size={16} color="#6366f1" />
                 <Text style={{ color: c.text, fontSize: 15 }}>{label}</Text>

@@ -231,8 +231,9 @@ export default function App() {
             </Stack.Screen>
             {/* Verborgen: lang drukken op het logo. Zelfde opbouw als een
                 chatscherm (header + lijst + composer) om het toetsenbord-gedrag
-                te kunnen testen zonder in te loggen. */}
-            <Stack.Screen name="LayoutTest" component={LayoutTestScreen} options={{ title: 'Layout-test' }} />
+                te kunnen testen zonder in te loggen. Alleen in een
+                ontwikkelbuild (audit COM-24). */}
+            {__DEV__ && <Stack.Screen name="LayoutTest" component={LayoutTestScreen} options={{ title: 'Layout-test' }} />}
           </>
         ) : (
           <>
