@@ -50,6 +50,9 @@
   "overrides": {
     "react-native-markdown-display": {
       "markdown-it": "^14.1.1"
+    },
+    "@expo/fingerprint": {
+      "minimatch": "^11.0.9"
     }
   }
 }

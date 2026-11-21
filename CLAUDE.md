@@ -157,6 +157,11 @@ iOS 27 SDK eist (ITMS-90725). Wat er anders werd:
 - **`overrides`: markdown-it 14 voor react-native-markdown-display** (dat vraagt
   ^10). Versie 10 heeft de Node-module `punycode` nodig die nu niet meer
   meekomt (Metro faalde), en had de high-meldingen van linkify-it.
+- **`overrides`: minimatch 11 voor `@expo/fingerprint`** (21-11-2026,
+  Dependabot #96, DoS via globparts). Fingerprint vraagt `^10.2.6` en de fix
+  bestaat alleen in 11.0.1+. Het is bouwgereedschap (zit niet in de app);
+  `npx @expo/fingerprint .` werkt ermee. Haal de override weg zodra Expo zelf
+  minimatch 11 vraagt.
 - `android-gradle.yml` heeft de invoer **`naar_commi`**: zet hem uit voor een
   test-APK, anders vervangt die de APK op /commi.
 - **Schuin scrollen in de gesprekkenlijst (21-11-2026).** In
