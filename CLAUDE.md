@@ -105,6 +105,12 @@ versienummer uit `app.json`; anders gaat er niets mee (wel een waarschuwing).
 - Play staat maar **500 tekens** toe. Past het niet, dan gaat de eerste alinea
   plus de vetgedrukte kop van elk punt mee. Schrijf punten daarom als
   `- **Kop.** uitleg`.
+- **Noem geen Android of Google Play in de tekst.** Dezelfde tekst gaat naar
+  Apple, en die keurt hem af (richtlijn 2.3.10): 0.1.39 is 22-11-2026
+  teruggestuurd om "nieuwere Android-versies" in de tekst van 0.1.38, die
+  bleef staan omdat het invullen bij de uitgave met een 409 mislukte. Mislukt
+  die stap, vul hem dan alsnog met `storenotities.yml` (`wat=ios`) vóór je
+  ter beoordeling indient.
 - Alleen dat ene veld wordt aangeraakt. Bewust niet EAS Metadata: dat kan
   geen Play en stuurt de hele storevermelding mee.
 - Geen secret of een fout: alleen een `::warning`, de uitgave gaat door.
