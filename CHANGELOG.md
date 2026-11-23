@@ -3,6 +3,13 @@
 Per versie, in gewone taal — bedoeld om uit te kunnen putten voor de
 "Wat is er nieuw"-tekst in de App Store en Google Play. De nieuwste bovenaan.
 
+## 0.1.40 — 23 november 2026
+
+- **Onder de motorkap gelijkgetrokken met Commi op de computer.** Tijden,
+  datumscheidingen in een gesprek en emoticons werken nu precies hetzelfde als
+  in de desktopversie, omdat beide apps dezelfde onderdelen gebruiken. Verder
+  verandert er niets aan hoe je Commi gebruikt.
+
 ## 0.1.39 — 21 november 2026
 
 - **Scrollen in de gesprekkenlijst werkt weer soepel.** Als je duim bij het
