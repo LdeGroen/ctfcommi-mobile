@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
+import { maakChatApi } from 'ctf-ui/commi';
 
 const extra = Constants.expoConfig?.extra || {};
 export const API_URL = extra.apiUrl || 'https://backend.cafetheaterfestival.nl';
@@ -50,133 +51,9 @@ export async function apiFetch(path, options = {}) {
   return body;
 }
 
-export const chat = {
-  me: () => apiFetch('/api/chat/me'),
-  // Publiek: welke appversie is de nieuwste (voor de updatemelding).
-  appVersies: () => apiFetch('/api/app-versies'),
-
-  // Wie zit er nu in de app? Zegt tegelijk dat jij er bent.
-  aanwezig: () => apiFetch('/api/chat/aanwezig', { method: 'POST' }),
-  updateSettings: (data) => apiFetch('/api/chat/me/settings', { method: 'PUT', body: JSON.stringify(data) }),
-  listConversations: () => apiFetch('/api/chat/conversations'),
-  getConversation: (id) => apiFetch(`/api/chat/conversations/${id}`),
-  listMessages: (id, { before, limit = 30 } = {}) => {
-    const qs = new URLSearchParams();
-    if (before) qs.set('before', before);
-    if (limit) qs.set('limit', limit);
-    return apiFetch(`/api/chat/conversations/${id}/messages?${qs.toString()}`);
-  },
-  // Eén bericht volledig, voor een uitzending die te groot was voor Pusher en
-  // daarom afgekapt binnenkwam (body_truncated).
-  getMessage: (messageId) => apiFetch(`/api/chat/messages/${messageId}`),
-  // scheduledFor: lokale wandtijd ('2026-09-16 09:00:00'). Staat die erin, dan
-  // wordt het bericht wel aangemaakt maar pas op dat moment verstuurd -- en tot
-  // die tijd ziet niemand anders het.
-  // files: [{ uri, name, type }] uit de fotobibliotheek of camera. Dan gaat het
-  // als multipart, net als in de desktop-app (attachments[]).
-  sendMessage: (id, { body, mentionUserIds = [], files = [], parentId = null, isAnnouncement = false, scheduledFor = null }) => {
-    if (files.length) {
-      const fd = new FormData();
-      if (body) fd.append('body', body);
-      if (parentId) fd.append('parent_id', String(parentId));
-      if (isAnnouncement) fd.append('is_announcement', '1');
-      if (scheduledFor) fd.append('scheduled_for', scheduledFor);
-      mentionUserIds.forEach((uid) => fd.append('mention_user_ids[]', String(uid)));
-      files.forEach((f) => fd.append('attachments[]', { uri: f.uri, name: f.name, type: f.type }));
-      return apiFetch(`/api/chat/conversations/${id}/messages`, { method: 'POST', body: fd });
-    }
-    return apiFetch(`/api/chat/conversations/${id}/messages`, {
-      method: 'POST',
-      body: JSON.stringify({ body, mention_user_ids: mentionUserIds, parent_id: parentId, is_announcement: isAnnouncement, scheduled_for: scheduledFor }),
-    });
-  },
-
-  // Eigen berichten die nog klaarstaan. Alleen van jezelf: een ander kan ze niet
-  // zien en dus ook niet tegenhouden.
-  listScheduled: (conversationId = null) =>
-    apiFetch(`/api/chat/ingepland${conversationId ? `?conversation_id=${conversationId}` : ''}`),
-  sendScheduledNow: (messageId) => apiFetch(`/api/chat/ingepland/${messageId}/nu`, { method: 'POST' }),
-  deleteScheduled: (messageId) => apiFetch(`/api/chat/ingepland/${messageId}`, { method: 'DELETE' }),
-  editMessage: (messageId, body, mentionUserIds = []) =>
-    apiFetch(`/api/chat/messages/${messageId}`, { method: 'PUT', body: JSON.stringify({ body, mention_user_ids: mentionUserIds }) }),
-  deleteMessage: (messageId) => apiFetch(`/api/chat/messages/${messageId}`, { method: 'DELETE' }),
-  listReplies: (messageId) => apiFetch(`/api/chat/messages/${messageId}/replies`),
-  // Gedeelde notities = berichten van soort 'note' in de stroom.
-  // Polls (ChatPollController). De stand verschilt per kijker; die haal je op
-  // met getPoll, opnieuw zodra item.poll.versie verandert.
-  createPoll: (id, data) => apiFetch(`/api/chat/conversations/${id}/polls`, { method: 'POST', body: JSON.stringify(data) }),
-  getPoll: (messageId) => apiFetch(`/api/chat/messages/${messageId}/poll`),
-  stemPoll: (messageId, stem) => apiFetch(`/api/chat/messages/${messageId}/poll/stem`, { method: 'POST', body: JSON.stringify(stem) }),
-  trekPollStemIn: (messageId) => apiFetch(`/api/chat/messages/${messageId}/poll/stem`, { method: 'DELETE' }),
-  pollOptieToevoegen: (messageId, optie) => apiFetch(`/api/chat/messages/${messageId}/poll/opties`, { method: 'POST', body: JSON.stringify(optie) }),
-  sluitPoll: (messageId) => apiFetch(`/api/chat/messages/${messageId}/poll/sluiten`, { method: 'POST' }),
-  heropenPoll: (messageId) => apiFetch(`/api/chat/messages/${messageId}/poll/heropenen`, { method: 'POST' }),
-  placeNote: (id, { title = '', body = '', noteType = 'note' } = {}) => apiFetch(`/api/chat/conversations/${id}/messages`, { method: 'POST', body: JSON.stringify({ kind: 'note', title, body, note_type: noteType }) }),
-  // basis = edited_at van de versie waar je van uitging (null = nooit bewerkt).
-  // Weglaten (undefined) = toch opslaan, ook als een ander intussen iets wijzigde.
-  updateNote: (messageId, { title = '', body = '', noteType, basis } = {}) => apiFetch(`/api/chat/messages/${messageId}`, { method: 'PUT', body: JSON.stringify({ title, body, ...(noteType ? { note_type: noteType } : {}), ...(basis !== undefined ? { basis } : {}) }) }),
-  togglePinNote: (messageId) => apiFetch(`/api/chat/messages/${messageId}/pin`, { method: 'POST' }),
-  // To-do-items binnen een notitie (parentId = subitem onder dat item).
-  addTodo: (noteId, text, parentId = null) => apiFetch(`/api/chat/messages/${noteId}/todos`, { method: 'POST', body: JSON.stringify({ text, parent_id: parentId }) }),
-  updateTodo: (noteId, itemId, text) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}`, { method: 'PUT', body: JSON.stringify({ text }) }),
-  toggleTodo: (noteId, itemId) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}/toggle`, { method: 'POST' }),
-  moveTodo: (noteId, itemId, direction) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}/move`, { method: 'POST', body: JSON.stringify({ direction }) }),
-  assignTodo: (noteId, itemId, userIds) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}/assignees`, { method: 'PUT', body: JSON.stringify({ user_ids: userIds }) }),
-  setTodoDue: (noteId, itemId, dueOn) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}/due`, { method: 'PUT', body: JSON.stringify({ due_on: dueOn }) }),
-  setTodoRecurrence: (noteId, itemId, recurrence) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}/recurrence`, { method: 'PUT', body: JSON.stringify({ recurrence }) }),
-  deleteTodo: (noteId, itemId) => apiFetch(`/api/chat/messages/${noteId}/todos/${itemId}`, { method: 'DELETE' }),
-  // Mijn taken: alle aan mij toegewezen open to-do's over alle gesprekken.
-  myTodos: () => apiFetch('/api/chat/todos/mine'),
-  // Leesbevestiging van een aankondiging: wie heeft 'm wel/niet gezien.
-  messageReads: (messageId) => apiFetch(`/api/chat/messages/${messageId}/reads`),
-  // Herinner-me op een bericht/gesprek.
-  listReminders: () => apiFetch('/api/chat/reminders'),
-  addReminder: ({ messageId = null, conversationId = null, note = null, remindAt }) =>
-    apiFetch('/api/chat/reminders', { method: 'POST', body: JSON.stringify({ message_id: messageId, conversation_id: conversationId, note, remind_at: remindAt }) }),
-  deleteReminder: (id) => apiFetch(`/api/chat/reminders/${id}`, { method: 'DELETE' }),
-  threads: ({ limit = 30 } = {}) => apiFetch(`/api/chat/threads?limit=${limit}`),
-  userProfile: (id) => apiFetch(`/api/chat/users/${id}/profile`),
-  activity: ({ before, limit = 30 } = {}) => {
-    const qs = new URLSearchParams();
-    if (before) qs.set('before', before);
-    if (limit) qs.set('limit', limit);
-    return apiFetch(`/api/chat/activity?${qs.toString()}`);
-  },
-  // Persoonlijke activiteit (reacties op mij, thread-antwoorden, vermeldingen).
-  activityFeed: ({ limit = 40 } = {}) => apiFetch(`/api/chat/activity/feed?limit=${limit}`),
-  // Bewaren voor later.
-  saved: () => apiFetch('/api/chat/saved'),
-  toggleSave: (messageId) => apiFetch(`/api/chat/messages/${messageId}/save`, { method: 'POST' }),
-  // Delen in een ander gesprek: bericht als citaat, notitie als kopie (17-11-2026).
-  shareMessage: (messageId, conversationId, body = '') => apiFetch(`/api/chat/messages/${messageId}/share`, {
-    method: 'POST', body: JSON.stringify({ conversation_id: conversationId, body }),
-  }),
-  search: ({ q, conversationId, before, limit = 30 } = {}) => {
-    const qs = new URLSearchParams();
-    qs.set('q', q || '');
-    if (conversationId) qs.set('conversation_id', conversationId);
-    if (before) qs.set('before', before);
-    if (limit) qs.set('limit', limit);
-    return apiFetch(`/api/chat/search?${qs.toString()}`);
-  },
-  markRead: (id, lastReadMessageId) =>
-    apiFetch(`/api/chat/conversations/${id}/read`, { method: 'POST', body: JSON.stringify({ last_read_message_id: lastReadMessageId }) }),
-  hideConversation: (id) => apiFetch(`/api/chat/conversations/${id}/hide`, { method: 'POST' }),
-  hiddenConversations: () => apiFetch('/api/chat/conversations/hidden'),
-  // Groepsgesprek opheffen (alleen wie het startte, zie kan_opheffen); terugzetten = unhideConversation.
-  archiveConversation: (id) => apiFetch(`/api/chat/conversations/${id}/archiveer`, { method: 'POST' }),
-  deleteConversation: (id) => apiFetch(`/api/chat/conversations/${id}`, { method: 'DELETE' }),
-  unhideConversation: (id) => apiFetch(`/api/chat/conversations/${id}/unhide`, { method: 'POST' }),
-  favoriteConversation: (id) => apiFetch(`/api/chat/conversations/${id}/favorite`, { method: 'POST' }),
-  muteConversation: (id, muted) => apiFetch(`/api/chat/conversations/${id}/mute`, { method: 'POST', body: JSON.stringify({ muted }) }),
-  saveDraft: (id, body) => apiFetch(`/api/chat/conversations/${id}/draft`, { method: 'PUT', body: JSON.stringify({ body }) }),
-  conversationAttachments: (id) => apiFetch(`/api/chat/conversations/${id}/attachments`),
-  unfurl: (url) => apiFetch(`/api/chat/unfurl?url=${encodeURIComponent(url)}`),
-  listUsers: (search = '') => apiFetch(`/api/chat/users${search ? `?search=${encodeURIComponent(search)}` : ''}`),
-  createChannel: (data) => apiFetch('/api/chat/conversations', { method: 'POST', body: JSON.stringify(data) }),
-  startDm: (userIds) => apiFetch('/api/chat/dm', { method: 'POST', body: JSON.stringify({ user_ids: userIds }) }),
-  toggleReaction: (messageId, emoji) =>
-    apiFetch(`/api/chat/messages/${messageId}/reactions`, { method: 'POST', body: JSON.stringify({ emoji }) }),
-  registerDeviceToken: (token, platform) =>
-    apiFetch('/api/chat/device-tokens', { method: 'POST', body: JSON.stringify({ token, platform }) }),
-};
+// De eindpunten zelf staan in ctf-ui/commi, gedeeld met de webclient (audit
+// COM-17, 23-11-2026). Een nieuw eindpunt hoort daar, niet hier. Een bestand
+// gaat in React Native als { uri, name, type } in de FormData.
+export const chat = maakChatApi(apiFetch, {
+  bijlage: (f) => ({ uri: f.uri, name: f.name, type: f.type }),
+});

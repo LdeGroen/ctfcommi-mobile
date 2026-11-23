@@ -7,42 +7,10 @@ import { View, Text } from 'react-native';
  * teksten en de regels om te bepalen wélk label horen hetzelfde te zijn.
  */
 
-const DAGEN = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
-const MAANDEN = ['januari', 'februari', 'maart', 'april', 'mei', 'juni',
-  'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
+// De labels zelf staan in ctf-ui/commi, gedeeld met de webclient (COM-17).
+import { dagSleutel, dagLabel } from 'ctf-ui/commi';
 
-/** Kale datumsleutel (YYYY-MM-DD) in lokale tijd, om dagen mee te vergelijken. */
-export function dagSleutel(iso) {
-  // new Date(null) is 1 januari 1970, geen ongeldige datum.
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const p = (n) => String(n).padStart(2, '0');
-
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-
-/** "Vandaag", "Gisteren", een weekdag, of een volledige datum. */
-export function dagLabel(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-
-  const vandaag = new Date();
-  const kaal = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate());
-  const verschil = Math.round((kaal(vandaag) - kaal(d)) / 86400000);
-
-  if (verschil === 0) return 'Vandaag';
-  if (verschil === 1) return 'Gisteren';
-
-  const dag = DAGEN[d.getDay()];
-  const hoofdletter = (t) => t.charAt(0).toUpperCase() + t.slice(1);
-  if (verschil > 1 && verschil < 7) return hoofdletter(dag);
-
-  const basis = hoofdletter(`${dag} ${d.getDate()} ${MAANDEN[d.getMonth()]}`);
-
-  return d.getFullYear() === vandaag.getFullYear() ? basis : `${basis} ${d.getFullYear()}`;
-}
+export { dagSleutel, dagLabel };
 
 /** Het datumlabel, als pil op een lijn door het scherm. */
 export function DagStreep({ iso, c }) {
