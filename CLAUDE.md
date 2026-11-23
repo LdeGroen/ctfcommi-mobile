@@ -20,30 +20,21 @@ voor het toetsenbord — zie `src/KeyboardScreen.js`.
   De invoer `wat` kiest **aab**, **apk** of **beide**; met *beide* komen ze uit
   dezelfde commit en met hetzelfde versienummer.
 
-### Twee versiesporen, en ze lopen uit elkaar
+### Eén versiebron (sinds 23-11-2026)
 
-Er zijn twee plekken waar een versienummer vandaan komt, en ze weten niets van
-elkaar:
+Het versienummer staat op één plek: `expo.version` in `app.json` (`package.json`
+en `package-lock.json` lopen mee). Alleen `uitbrengen.yml` hoogt op, met een
+commit en een tag `v<versie>`, en bouwt daarna iOS en Android vanaf precies die
+tag. `mobile.yml` en `android-gradle.yml` hogen niets meer op; los gestart
+bouwen ze het nummer dat in `app.json` staat.
 
-| | Bron | Wie leest het |
-|---|---|---|
-| `mobile.yml` (uitgave) | de **git-tag**, of `app.json` als die hoger is | meldt het aan `POST /api/ops/app-versie` → het register |
-| `android-gradle.yml` (bouw) | **alleen `app.json`** | zet dat label op de APK en op `/commi` |
-
-Gevolg: `app.json` mag achterlopen op de tags -- `mobile.yml` neemt de hoogste
-van de twee -- maar `android-gradle.yml` doet dat **niet**. Stond er 0.1.17 in
-het bestand terwijl de laatste tag v0.1.20 was, dan kreeg de APK het label
-0.1.17.
-
-**Dat is niet onschuldig.** `UpdateMelding.js` vergelijkt de eigen versie met
-het register en toont een balk *"Versie 0.1.20 staat klaar — jij draait
-0.1.17"*, met een link naar de GitHub-releasepagina. Daar staat geen versie die je
-zomaar installeert: een melding die je niet weg krijgt en die nergens heen
-gaat.
-
-**Kijk dus vóór een `wat=apk`-bouw naar `git tag -l 'v*' --sort=-v:refname`** en
-zet `app.json` daarboven. Op 15-9-2026 ging dat mis (0.1.18 gebouwd terwijl het
-register op 0.1.20 stond) en is de bouw overgedaan als 0.1.21.
+Tot die dag waren er twee sporen: `mobile.yml` nam het hoogste van de laatste
+tag en `app.json` en zette alleen een tag, `android-gradle.yml` las alleen
+`app.json`. Liep `app.json` achter, dan kreeg de APK een ouder label dan het
+register (0.1.18 gebouwd terwijl het register op 0.1.20 stond, 15-9-2026), en
+`UpdateMelding.js` toonde een balk die je niet weg kreeg. De tags liepen
+daardoor ook achter (v0.1.29 bij 0.1.39); vanaf het eerste gebruik van de knop
+kloppen ze weer.
 
 Het register bewust **niet** door de APK-bouw laten bijwerken: `android` in dat
 register geldt ook voor wie via Play installeert, en die zou dan naar een versie
@@ -84,13 +75,15 @@ Drie dingen om te weten:
 
   De route voor de desktop-installers accepteerde al 200 MB, dus dat gat zat er
   al — het was alleen nog nooit geraakt, want die pakketten zijn klein.
-- **iOS (PRIMAIRE route — lokaal op de Mac mini):** `eas build --platform ios --local`
+- **iOS (reserve — lokaal op de Mac mini, als de gratis EAS-builds op zijn):** `eas build --platform ios --local`
   op de mini, buiten de EAS-cloudwachtrij/limiet om (lokale builds tellen NIET mee voor
   het gratis plan). Zie sectie **"iOS bouwen op de Mac mini"** hieronder. EAS beheert nog
   steeds de credentials (cert + provisioning profile) remote; de lokale build haalt die op.
-- **iOS (oude route, cloud):** `.github/workflows/mobile.yml` (`eas build --platform ios
-  --profile production --auto-submit`). Werkt, maar gratis cloudbuilds zijn beperkt per
-  maand. `eas.json`: ios `image: latest` (iOS 26 SDK), submit `ascAppId: 6776176073`.
+- **iOS (cloud, de gewone route sinds november 2026):** `.github/workflows/mobile.yml`
+  (`eas build --platform ios --profile production --auto-submit`), aangeroepen door
+  `uitbrengen.yml`. Gratis cloudbuilds zijn beperkt per maand; is de grens bereikt,
+  bouw dan op de mini (hierboven), nadat `uitbrengen.yml` met `platform=android` de
+  versie en tag heeft gezet. `eas.json`: ios-image vast op `macos-tahoe-26.6-xcode-27.1`, submit `ascAppId: 6776176073`.
 - Na codewijziging is dus een **nieuwe build** nodig om het op het toestel te zien.
 
 ### Releasenotes gaan vanzelf mee (sinds 22-10-2026)
@@ -257,22 +250,29 @@ eigen berichten: een ander kan ze niet zien en dus ook niet tegenhouden.
 
 ## Uitbrengen en versiebeleid
 
-**Uitbrengen = Actions → "Build & submit mobile (EAS)" → Run workflow → kies
-patch/minor/major.** De workflow bepaalt zelf het nieuwe versienummer (het
-hoogste van de laatste tag en `app.json`, plus één), zet de tag, vult
-`app.json` en `package.json` in, bouwt, dient in en meldt de nieuwe versie aan
-de backend. Met de hand taggen of nummers bijwerken hoeft dus niet meer.
+**Uitbrengen = Actions → "Uitbrengen" → Run workflow** (`uitbrengen.yml`, sinds
+23-11-2026; hetzelfde recept als de Android-timetable):
+
+1. Schrijf eerst in `CHANGELOG.md` het kopje `## <nieuwe versie> — <datum>` en
+   push. Zonder dat kopje weigert de workflow: dan gaat er niets mee naar de
+   stores en zegt de updatemelding niet wát er nieuw is.
+2. Kies `patch`/`minor`/`major` (en eventueel alleen `ios` of `android`). De
+   workflow hoogt `app.json` op, commit, tagt `v<versie>`, en roept dan
+   `mobile.yml` (iOS via EAS, indienen bij App Store Connect + "Wat is er
+   nieuw") en `android-gradle.yml` (AAB naar Play alpha + releasenotes, APK naar
+   `/commi`) aan op die tag.
+3. Na goedkeuring: Actions → "Versie melden aan de backend" met die versie. Pas
+   dan gaat de updatemelding in de app aan; eerder sturen we mensen naar een
+   versie die nog niet in de store staat.
 
 - Blijf patch ophogen (0.1.1 → 0.1.2 → …) **totdat de gebruiker zegt dat het
   0.2 mag worden**; kies dan "minor".
-- `versionCode` (Android) en `buildNumber` (iOS) lopen automatisch op.
-- Kies "geen" als je wilt bouwen zonder het versienummer te verhogen. Let op:
-  dan blijft `app.json` staan waar hij staat, dus doe dat niet vlak ná een
-  uitgave — dan bouw je het oude nummer opnieuw.
+- `geen` bouwt het huidige nummer opnieuw, bijvoorbeeld na een afwijzing door
+  Apple. Er wordt dan niets vastgelegd.
+- `versionCode` (Android, tijdstempel/60) en `buildNumber` (iOS, EAS remote)
+  lopen vanzelf op.
 - **Android komt in de gesloten test-track (alpha)**, niet in productie. Doorzetten
-  doe je zelf in Play Console. iOS gaat naar App Store Connect.
-- Zet de "Wat is er nieuw"-tekst met de hand in beide consoles; EAS stuurt die
-  niet mee. De tekst staat klaar in `CHANGELOG.md`.
+  doe je zelf in Play Console.
 
 ## Overzicht per kanaal, en een melding opent de thread (6-11-2026)
 

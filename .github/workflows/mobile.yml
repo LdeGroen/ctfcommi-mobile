@@ -1,28 +1,27 @@
-name: Build & submit mobile (EAS)
+name: iOS bouwen en indienen (EAS)
 
-# Handmatig starten (kies platform), of automatisch bij een versie-tag (vX.Y.Z).
+# Aangeroepen door uitbrengen.yml, met ref = de nieuwe tag. Los starten kan
+# ook: dan bouwt hij het nummer dat in app.json staat, bijvoorbeeld opnieuw na
+# een afwijzing. Ophogen en taggen doet alleen uitbrengen.yml (23-11-2026);
+# tot dan deed deze workflow dat ook, maar dan kwam het nummer niet in app.json
+# en bouwde android-gradle.yml een ander nummer.
+#
+# Android hoort hier niet meer: dat gaat via android-gradle.yml (eigen
+# versionCode, geen EAS-wachtrij).
 on:
+  workflow_call:
+    inputs:
+      ref: { type: string, required: false, default: '' }
+      submit: { type: boolean, required: false, default: true }
   workflow_dispatch:
     inputs:
-      platform:
-        description: 'Platform'
-        type: choice
-        options: [all, ios, android]
-        default: all
-      uitgave:
-        description: 'Soort uitgave (bepaalt zelf het nieuwe versienummer)'
-        type: choice
-        options: [patch, minor, major, geen]
-        default: patch
       submit:
-        description: 'Direct indienen bij de stores?'
+        description: 'Direct indienen bij App Store Connect?'
         type: boolean
         default: true
-  push:
-    tags: ['v*']
 
 permissions:
-  contents: write   # tag pushen bij een uitgave
+  contents: read
 
 jobs:
   build:
@@ -30,43 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0   # we hebben de tags nodig om te kunnen ophogen
-
-      # Welk versienummer wordt het? Bij een handmatige uitgave hoogt de
-      # workflow zelf op en zet de tag; push je zelf een tag, dan is die
-      # leidend. Zo hoeft er met de hand niets meer getagd te worden.
-      - name: Versienummer bepalen
-        id: versie
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            echo "VERSIE=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
-            exit 0
-          fi
-          if [ "${{ inputs.uitgave }}" = "geen" ]; then
-            echo "Geen versieverhoging — bouwt op het huidige nummer."
-            exit 0
-          fi
-
-          VANTAG=$(git tag -l 'v*' --sort=-v:refname | head -n 1)
-          VANTAG="${VANTAG#v}"
-          INBESTAND=$(node -p "require('./app.json').expo.version")
-          NIEUW=$(node -e "
-            const soort = process.argv[3];
-            const naar = (v) => (v || '0.0.0').split('.').map(Number).map((n) => n || 0);
-            const hoogste = [process.argv[1], process.argv[2]]
-              .map(naar)
-              .sort((x, y) => (y[0] - x[0]) || (y[1] - x[1]) || (y[2] - x[2]))[0];
-            const [a, b, c] = hoogste;
-            console.log(soort === 'major' ? [a + 1, 0, 0].join('.')
-                      : soort === 'minor' ? [a, b + 1, 0].join('.')
-                      : [a, b, c + 1].join('.'));
-          " "$VANTAG" "$INBESTAND" "${{ inputs.uitgave }}")
-
-          echo "Laatste tag: ${VANTAG:-geen} · in het bestand: $INBESTAND → nieuwe: $NIEUW"
-          git tag "v$NIEUW"
-          git push origin "v$NIEUW"
-          echo "VERSIE=$NIEUW" >> "$GITHUB_ENV"
+          ref: ${{ inputs.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -88,98 +51,24 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      # De tag is leidend voor het versienummer, zodat de app en de store
-      # hetzelfde nummer noemen als de updatecheck.
-      - name: Versienummer invullen
-        if: env.VERSIE != ''
-        shell: bash
+      - name: Bouwen (+ indienen) op EAS
         run: |
-          echo "Versie wordt: $VERSIE"
-          node -e "
-            const fs = require('fs');
-            const versie = process.argv[1];
-            const j = JSON.parse(fs.readFileSync('app.json', 'utf8'));
-            j.expo.version = versie;
-            fs.writeFileSync('app.json', JSON.stringify(j, null, 2) + '\n');
-            const pk = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pk.version = versie;
-            fs.writeFileSync('package.json', JSON.stringify(pk, null, 2) + '\n');
-          " "$VERSIE"
-
-      - name: Build (+ optioneel indienen) op EAS
-        run: |
-          PLATFORM="${{ github.event.inputs.platform || 'all' }}"
-          SUBMIT="${{ github.event.inputs.submit }}"
-          # --wait: GitHub wacht op de EAS-build en wordt rood als die faalt
-          # (anders zie je een fout pas op EAS). De job draait dan langer.
-          if [ "${{ github.ref_type }}" = "tag" ] || [ "$SUBMIT" = "true" ]; then
-            eas build --platform "$PLATFORM" --profile production --non-interactive --wait --auto-submit
+          echo "Versie: $(node -p "require('./app.json').expo.version")"
+          # --wait: GitHub wacht op de EAS-build en wordt rood als die faalt.
+          if [ "${{ inputs.submit }}" = "true" ]; then
+            eas build --platform ios --profile production --non-interactive --wait --auto-submit
           else
-            eas build --platform "$PLATFORM" --profile production --non-interactive --wait
+            eas build --platform ios --profile production --non-interactive --wait
           fi
 
       # "Wat is er nieuw" in App Store Connect invullen uit CHANGELOG.md. Alleen
       # dat veld; de rest van de storevermelding blijft zoals hij is. Zonder
       # secrets of bij een fout alleen een waarschuwing. Zie scripts/storenotities.mjs.
       - name: '"Wat is er nieuw" in de App Store (uit CHANGELOG.md)'
-        if: ${{ (github.ref_type == 'tag' || inputs.submit) && (github.event.inputs.platform || 'all') != 'android' }}
+        if: ${{ inputs.submit }}
         continue-on-error: true
         env:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
         run: node scripts/storenotities.mjs ios "$(node -p "require('./app.json').expo.version")"
-
-      # De app vraagt de backend of hij achterloopt; hier melden we wat er net
-      # is uitgebracht. Alleen bij een tag én als het ook echt is ingediend —
-      # anders staat het in de store nog niet klaar en stuur je mensen voor
-      # niets naar een versie die er nog niet is.
-      - name: Nieuwe versie melden aan de backend
-        if: ${{ env.VERSIE != '' && (github.event_name == 'push' || inputs.submit) }}
-        continue-on-error: true
-        shell: bash
-        env:
-          OPS_TOKEN: ${{ secrets.OPS_TOKEN }}
-        run: |
-          if [ -z "$OPS_TOKEN" ]; then echo "geen OPS_TOKEN — overgeslagen"; exit 0; fi
-          VERSIE=$(node -p "require('./app.json').expo.version")
-
-          # De notities van deze versie meesturen, zodat de updatemelding in de
-          # app niet alleen zegt dát er iets nieuws is maar ook wát. Ze komen uit
-          # het kopje in CHANGELOG.md dat bij dit versienummer hoort; staat dat
-          # er (nog) niet, dan gaat het zonder notities — een release tegenhouden
-          # om een ontbrekende tekst is erger dan de tekst missen.
-          LADING=$(VERSIE="$VERSIE" node -e "
-            const fs = require('fs');
-            const versie = process.env.VERSIE;
-            let notities = null;
-            try {
-              const c = fs.readFileSync('CHANGELOG.md', 'utf8');
-              const start = c.indexOf('## ' + versie);
-              if (start >= 0) {
-                const rest = c.slice(start);
-                const eind = rest.indexOf('\n## ', 3);
-                notities = (eind < 0 ? rest : rest.slice(0, eind))
-                  .split('\n').slice(1).join('\n').trim() || null;
-              }
-            } catch (e) { /* geen changelog is geen reden om te stoppen */ }
-            process.stdout.write(JSON.stringify({
-              versie,
-              notities,
-              url: 'https://github.com/${{ github.repository }}/releases/tag/v' + versie,
-            }));
-          ")
-
-          for PLAT in android ios; do
-            echo "$LADING" | node -e "
-              let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>{
-                const j = JSON.parse(d); j.platform = process.argv[1];
-                require('fs').writeFileSync('lading.json', JSON.stringify(j));
-              });
-            " "$PLAT"
-            code=$(curl -sS -o antwoord.txt -w '%{http_code}' --max-time 30 -X POST \
-              -H "X-Ops-Token: $OPS_TOKEN" -H "Content-Type: application/json" -H "Accept: application/json" \
-              --data-binary @lading.json \
-              "https://backend.cafetheaterfestival.nl/api/ops/app-versie") || code=000
-            echo "$PLAT melden: HTTP $code"
-          done

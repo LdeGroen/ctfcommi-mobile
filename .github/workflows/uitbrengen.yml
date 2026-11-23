@@ -1,0 +1,138 @@
+name: Uitbrengen
+
+# Eén knop voor een nieuwe versie van Commi mobiel (23-11-2026). Hetzelfde
+# recept als de Android-timetable:
+#
+#   1. Schrijf in CHANGELOG.md een kopje "## <nieuwe versie> — <datum>" en push.
+#   2. Actions -> Uitbrengen -> Run workflow -> patch/minor/major.
+#   3. Na goedkeuring door Apple/Google: Actions -> "Versie melden aan de
+#      backend" (zet de updatemelding in de app aan).
+#
+# De versie staat op één plek: expo.version in app.json (package.json loopt
+# mee). Deze workflow hoogt op, legt dat vast met een commit en een tag
+# v<versie>, en bouwt daarna iOS (mobile.yml, EAS) en Android
+# (android-gradle.yml, Gradle; AAB naar Play alpha en APK naar /commi) vanaf
+# precies die tag. Ophogen doet verder geen enkele workflow; tot 23-11-2026
+# deed mobile.yml dat zelf zonder app.json bij te werken, waardoor Android met
+# een ander nummer bouwde (0.1.18).
+#
+# "geen" bouwt het huidige nummer opnieuw (na een afwijzing). Dan wordt er
+# niets vastgelegd; de tag moet dan al bestaan of wordt alsnog gezet.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ophogen:
+        description: 'Versie ophogen'
+        type: choice
+        options: [patch, minor, major, geen]
+        default: patch
+      platform:
+        description: 'Welke apps'
+        type: choice
+        options: [beide, ios, android]
+        default: beide
+      naar_commi:
+        description: 'Android-APK ook op backend/commi zetten?'
+        type: boolean
+        default: true
+
+concurrency:
+  group: uitbrengen
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  versie:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      versie: ${{ steps.v.outputs.versie }}
+      tag: ${{ steps.v.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Versie bepalen, controleren en vastleggen
+        id: v
+        env:
+          OPHOGEN: ${{ inputs.ophogen }}
+        run: |
+          set -euo pipefail
+          OUD=$(node -p "require('./app.json').expo.version")
+          NIEUW=$(node -e '
+            const [a, b, c] = process.argv[1].split(".").map(Number);
+            const s = process.argv[2];
+            console.log(s === "major" ? `${a + 1}.0.0` : s === "minor" ? `${a}.${b + 1}.0`
+              : s === "patch" ? `${a}.${b}.${c + 1}` : process.argv[1]);
+          ' "$OUD" "$OPHOGEN")
+          echo "app.json: $OUD -> $NIEUW"
+
+          # Zonder notities gaat er niets mee naar de stores en zegt de
+          # updatemelding alleen dát er iets nieuws is.
+          if ! grep -qE "^## $NIEUW( |$)" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md heeft geen kopje '## $NIEUW'. Schrijf dat eerst (zonder Android of Google Play in de tekst: Apple 2.3.10) en push."
+            exit 1
+          fi
+
+          if [ "$OPHOGEN" != geen ]; then
+            if git rev-parse -q --verify "refs/tags/v$NIEUW" >/dev/null; then
+              echo "::error::Tag v$NIEUW bestaat al."; exit 1
+            fi
+            node -e '
+              const fs = require("fs"), v = process.argv[1];
+              const lock = (j) => { j.version = v; if (j.packages && j.packages[""]) j.packages[""].version = v; };
+              for (const [f, zet] of [["app.json", (j) => { j.expo.version = v; }], ["package.json", (j) => { j.version = v; }], ["package-lock.json", lock]]) {
+                const j = JSON.parse(fs.readFileSync(f, "utf8")); zet(j);
+                fs.writeFileSync(f, JSON.stringify(j, null, 2) + "\n");
+              }
+            ' "$NIEUW"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add app.json package.json package-lock.json
+            git commit -m "Versie $NIEUW [skip ci]"
+            git tag -a "v$NIEUW" -m "Commi mobiel $NIEUW"
+            git push origin "HEAD:${GITHUB_REF_NAME}" "v$NIEUW"
+          elif ! git rev-parse -q --verify "refs/tags/v$NIEUW" >/dev/null; then
+            # Opnieuw bouwen van een nummer dat nog geen tag had (van vóór dit recept).
+            git tag "v$NIEUW" && git push origin "v$NIEUW"
+          fi
+          echo "versie=$NIEUW" >> "$GITHUB_OUTPUT"
+          echo "tag=v$NIEUW" >> "$GITHUB_OUTPUT"
+
+  ios:
+    needs: versie
+    if: ${{ inputs.platform != 'android' }}
+    uses: ./.github/workflows/mobile.yml
+    with:
+      ref: ${{ needs.versie.outputs.tag }}
+      submit: true
+    secrets: inherit
+
+  android:
+    needs: versie
+    if: ${{ inputs.platform != 'ios' }}
+    uses: ./.github/workflows/android-gradle.yml
+    with:
+      ref: ${{ needs.versie.outputs.tag }}
+      wat: beide
+      submit: true
+      naar_commi: ${{ inputs.naar_commi }}
+    secrets: inherit
+
+  samenvatting:
+    needs: [versie, ios, android]
+    if: ${{ always() && needs.versie.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          {
+            echo "### Commi mobiel ${{ needs.versie.outputs.versie }}"
+            echo "- iOS: ${{ needs.ios.result }} · Android: ${{ needs.android.result }}"
+            echo "- Na goedkeuring: Actions -> \"Versie melden aan de backend\" met ${{ needs.versie.outputs.versie }}."
+            echo "- Android staat op de gesloten test (alpha); doorzetten naar productie in Play Console."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -3,6 +3,15 @@ name: Android build (Gradle — geen EAS-wachtrij)
 # Bouwt de Android-AAB rechtstreeks met Gradle op een GitHub-runner (gratis,
 # geen EAS-buildwachtrij). Optioneel daarna indienen bij Play via eas submit.
 on:
+  # Aangeroepen door uitbrengen.yml (met ref = de nieuwe tag), of los voor een
+  # testbouw op het huidige nummer.
+  workflow_call:
+    inputs:
+      ref: { type: string, required: false, default: '' }
+      wat: { type: string, required: false, default: aab }
+      submit: { type: boolean, required: false, default: false }
+      naar_commi: { type: boolean, required: false, default: true }
+      testschermen: { type: boolean, required: false, default: false }
   workflow_dispatch:
     inputs:
       wat:
@@ -31,6 +40,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -66,12 +77,12 @@ jobs:
 
       # --- Test-APK (installeerbaar via sideload, gaat NIET naar Play) ---
       - name: APK bouwen (gesigneerd, test)
-        if: ${{ github.event.inputs.wat == 'apk' || github.event.inputs.wat == 'beide' }}
+        if: ${{ inputs.wat == 'apk' || inputs.wat == 'beide' }}
         working-directory: android
         env:
           # Alleen voor een losse test-APK die niet op /commi komt; bij `beide`
           # zou de AAB dezelfde bundel kunnen hergebruiken (src/testschermen.js).
-          EXPO_PUBLIC_TESTSCHERMEN: ${{ (github.event.inputs.testschermen == 'true' && github.event.inputs.wat == 'apk' && github.event.inputs.naar_commi == 'false') && '1' || '' }}
+          EXPO_PUBLIC_TESTSCHERMEN: ${{ (inputs.testschermen && inputs.wat == 'apk' && !inputs.naar_commi) && '1' || '' }}
         run: |
           chmod +x ./gradlew
           ./gradlew :app:assembleRelease \
@@ -81,7 +92,7 @@ jobs:
             -Pandroid.injected.signing.key.password="${{ secrets.ANDROID_KEY_PASSWORD }}"
 
       - name: APK als artifact bewaren
-        if: ${{ github.event.inputs.wat == 'apk' || github.event.inputs.wat == 'beide' }}
+        if: ${{ inputs.wat == 'apk' || inputs.wat == 'beide' }}
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
@@ -92,7 +103,7 @@ jobs:
       # geen Play Store gebruikt zetten we het bestand daarom op de backend; die
       # serveert het op /commi.
       - name: APK klaarzetten op backend.cafetheaterfestival.nl/commi
-        if: ${{ (github.event.inputs.wat == 'apk' || github.event.inputs.wat == 'beide') && github.event.inputs.naar_commi != 'false' }}
+        if: ${{ (inputs.wat == 'apk' || inputs.wat == 'beide') && inputs.naar_commi }}
         env:
           OPS_TOKEN: ${{ secrets.OPS_TOKEN }}
         run: |
@@ -110,7 +121,7 @@ jobs:
 
       # --- AAB (voor Play; standaard) ---
       - name: AAB bouwen (gesigneerd)
-        if: ${{ github.event.inputs.wat == 'aab' || github.event.inputs.wat == 'beide' }}
+        if: ${{ inputs.wat == 'aab' || inputs.wat == 'beide' }}
         working-directory: android
         run: |
           chmod +x ./gradlew
@@ -121,7 +132,7 @@ jobs:
             -Pandroid.injected.signing.key.password="${{ secrets.ANDROID_KEY_PASSWORD }}"
 
       - name: AAB als artifact bewaren
-        if: ${{ github.event.inputs.wat == 'aab' || github.event.inputs.wat == 'beide' }}
+        if: ${{ inputs.wat == 'aab' || inputs.wat == 'beide' }}
         uses: actions/upload-artifact@v4
         with:
           name: app-release-aab
@@ -129,14 +140,14 @@ jobs:
           if-no-files-found: error
 
       - name: EAS CLI (alleen bij indienen)
-        if: ${{ (github.event.inputs.wat == 'aab' || github.event.inputs.wat == 'beide') && github.event.inputs.submit == 'true' }}
+        if: ${{ (inputs.wat == 'aab' || inputs.wat == 'beide') && inputs.submit }}
         uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e  # v8, vastgezet (INF-05)
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Indienen bij Play (track uit eas.json — gesloten test/alpha)
-        if: ${{ (github.event.inputs.wat == 'aab' || github.event.inputs.wat == 'beide') && github.event.inputs.submit == 'true' }}
+        if: ${{ (inputs.wat == 'aab' || inputs.wat == 'beide') && inputs.submit }}
         run: |
           AAB=$(ls android/app/build/outputs/bundle/release/*.aab | head -n1)
           eas submit --platform android --profile production --non-interactive --path "$AAB"
@@ -145,7 +156,7 @@ jobs:
       # secret of bij een fout alleen een waarschuwing: notities houden een
       # uitgave nooit tegen. Zie scripts/storenotities.mjs.
       - name: Releasenotes in Google Play (uit CHANGELOG.md)
-        if: ${{ (github.event.inputs.wat == 'aab' || github.event.inputs.wat == 'beide') && github.event.inputs.submit == 'true' }}
+        if: ${{ (inputs.wat == 'aab' || inputs.wat == 'beide') && inputs.submit }}
         continue-on-error: true
         env:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
